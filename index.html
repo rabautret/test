@@ -294,6 +294,10 @@ textarea#importTxt:focus{outline:none;border-color:var(--orange)}
 }
 #prog-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ff8c00);width:0%;transition:width .15s}
 
+/* ═══ MAP PAGE ═══ */
+#page-map{position:relative;background:#0d1a0d}
+#cmap{background:#0d1a0d}
+
 /* Speed fab */
 #speed-fab{
   position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:10;
@@ -347,6 +351,16 @@ textarea#importTxt:focus{outline:none;border-color:var(--orange)}
       <div id="speed-fab">
         <label>Vitesse</label>
         <input type="range" id="speedRange" min="0.3" max="5" step="0.1" value="1">
+      </div>
+    </div>
+
+    <!-- PAGE MAP -->
+    <div class="page" id="page-map">
+      <canvas id="cmap" style="display:block;width:100%;flex:1;touch-action:pan-y"></canvas>
+      <div style="flex-shrink:0;height:32px;background:#060a14;border-top:1px solid #1a2a3e;display:flex;align-items:center;padding:0 12px;gap:10px">
+        <div id="map-km-badge" style="font-size:.65rem;color:#60a5fa;font-weight:700;font-variant-numeric:tabular-nums">Km 0.0</div>
+        <div style="font-size:.6rem;color:#445;flex:1">Vue dessus · tracé réel</div>
+        <div id="map-count" style="font-size:.62rem;color:#5a7090">0 coureurs</div>
       </div>
     </div>
 
@@ -450,7 +464,10 @@ textarea#importTxt:focus{outline:none;border-color:var(--orange)}
   <!-- TAB BAR -->
   <div id="tabbar">
     <div class="tab active" onclick="switchPage('3d')"    id="tab-3d">
-      <div class="tab-icon">🗺</div>3D
+      <div class="tab-icon">🏔</div>3D
+    </div>
+    <div class="tab" onclick="switchPage('map')"    id="tab-map">
+      <div class="tab-icon">🗺</div>Maps
     </div>
     <div class="tab" onclick="switchPage('class')"  id="tab-class">
       <div class="tab-icon">🏆</div>Résultats
@@ -531,38 +548,31 @@ function getColor(name){if(!riderColors[name]){riderColors[name]=PALETTE[colorId
 // ═══════════════════════════════════════════════════════════
 // PARSE
 // ═══════════════════════════════════════════════════════════
-// ── Parse un temps absolu : 11'04".703  11'04"703  11:04.703
-function parseAbsTime(s){
-  if(!s||!s.trim())return null;
+// ── Détecteurs de type de ligne
+function _isTimeOrDelta(s){
   s=s.trim();
-  // mm'ss".mmm  ou  mm'ss"mmm
-  let m=s.match(/^(\d+)['''](\d+)["""][\.]?(\d*)/);
+  return s.startsWith('+')||s.startsWith('-')||/^\d+[\''\u2019"]/.test(s)||/^\d+:\d/.test(s);
+}
+function _isSpeed(s){return /km\/h/i.test(s);}
+function _isPosition(s){return /^\d+\s+\S/.test(s.trim());}
+
+function _parseAbsTime(s){
+  s=s.trim();
+  let m=s.match(/^(\d+)[\''\u2019](\d+)[\"""\u201c\u201d\.]*?(\d*)/);
   if(m){const ms=m[3]?parseInt(m[3].padEnd(3,'0').slice(0,3)):0;return parseInt(m[1])*60+parseInt(m[2])+ms/1000;}
-  // mm:ss.mmm
   m=s.match(/^(\d+):(\d+)[.,](\d*)/);
   if(m)return parseInt(m[1])*60+parseInt(m[2])+parseInt((m[3]+'000').slice(0,3))/1000;
-  // secondes brutes
-  m=s.match(/^(\d+)[.,](\d*)/);
-  if(m)return parseInt(m[1])+parseInt((m[2]+'000').slice(0,3))/1000;
   return null;
 }
-
-// ── Parse un écart : +22".424  +1'02".500  +22"424
-function parseDelta(s){
-  if(!s||!s.trim())return null;
+function _parseDelta(s){
   s=s.trim();
   if(!s.startsWith('+')&&!s.startsWith('-'))return null;
   const sign=s.startsWith('-')?-1:1;
   s=s.slice(1).trim();
-  // mm'ss".mmm
-  let m=s.match(/^(\d+)['''](\d+)["""][\.]?(\d*)/);
+  let m=s.match(/^(\d+)[\''\u2019](\d+)[\"""\u201c\u201d\.]*?(\d*)/);
   if(m){const ms=m[3]?parseInt(m[3].padEnd(3,'0').slice(0,3)):0;return sign*(parseInt(m[1])*60+parseInt(m[2])+ms/1000);}
-  // ss".mmm  ou  ss"mmm
-  m=s.match(/^(\d+)["""][\.]?(\d*)/);
+  m=s.match(/^(\d+)[\"""\u201c\u201d]*\.?(\d*)/);
   if(m){const ms=m[2]?parseInt(m[2].padEnd(3,'0').slice(0,3)):0;return sign*(parseInt(m[1])+ms/1000);}
-  // ss.mmm
-  m=s.match(/^(\d+)[.,](\d*)/);
-  if(m)return sign*(parseInt(m[1])+parseInt((m[2]+'000').slice(0,3))/1000);
   return null;
 }
 
@@ -577,64 +587,56 @@ function fmtDelta(s){
   return`+${m?m+"'":''}${String(sc).padStart(2,'0')}"`;
 }
 
+// ── Parser principal : machine à états ligne par ligne
+// Gère : blocs sans ligne vide, coureurs sans temps, écarts et temps absolus mélangés
 function parseImport(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
   const raw=[];
-  const blocks=text.trim().split(/\n{2,}/);
-
-  for(const block of blocks){
-    const lines=block.trim().split('\n').map(l=>l.trim()).filter(l=>l.length>0);
-    if(lines.length<3)continue;
-
-    // Ligne 0 : position + nom
-    const mPos=lines[0].match(/^(\d+)\s+(.+)/);
-    if(!mPos)continue;
-    const pos=parseInt(mPos[1]);
-    const name=mPos[2].trim().toUpperCase();
-
-    // Ligne 1 : équipe
-    const team=lines[1].trim().toUpperCase();
-
-    // Ligne 2 : temps absolu OU écart (+...)
-    const timeLine=lines[2].trim();
-    const isDelta=timeLine.startsWith('+');
-    const timeVal=isDelta ? parseDelta(timeLine) : parseAbsTime(timeLine);
-    if(timeVal===null)continue;
-
-    // Ligne 3 (optionnelle) : vitesse (seulement si temps absolu)
-    let speed=null;
-    if(!isDelta&&lines[3]){
-      const sm=lines[3].match(/([\d,\.]+)/);
-      if(sm)speed=parseFloat(sm[1].replace(',','.'));
+  let i=0;
+  while(i<lines.length){
+    const posMatch=lines[i].match(/^(\d+)\s+(.+)/);
+    if(!posMatch){i++;continue;}
+    const pos=parseInt(posMatch[1]);
+    const name=posMatch[2].trim().toUpperCase();
+    i++;
+    let team='';
+    if(i<lines.length&&!_isTimeOrDelta(lines[i])&&!_isSpeed(lines[i])&&!_isPosition(lines[i])){
+      team=lines[i].trim().toUpperCase();i++;
     }
-
-    raw.push({pos,name,team,timeLine,timeVal,isDelta,speed});
+    let timeVal=null,isDelta=false,speed=null;
+    if(i<lines.length&&_isTimeOrDelta(lines[i])){
+      const tl=lines[i].trim();
+      isDelta=tl.startsWith('+');
+      timeVal=isDelta?_parseDelta(tl):_parseAbsTime(tl);
+      i++;
+      if(i<lines.length&&_isSpeed(lines[i])){
+        const sm=lines[i].match(/([\d,\.]+)/);
+        if(sm)speed=parseFloat(sm[1].replace(',','.'));
+        i++;
+      }
+    }
+    raw.push({pos,name,team,timeVal,isDelta,speed});
   }
-
-  if(!raw.length)return[];
-
-  // Résoudre les écarts en temps absolus
-  // Le leader (pos=1) doit avoir un temps absolu ; les suivants peuvent avoir des écarts
-  // On parcourt dans l'ordre de position pour propager
   raw.sort((a,b)=>a.pos-b.pos);
   let leaderTime=null;
   const riders=[];
-
   for(const r of raw){
-    let timeSec;
-    if(!r.isDelta){
-      timeSec=r.timeVal;
-      if(r.pos===1||leaderTime===null) leaderTime=timeSec;
-    } else {
-      // écart relatif au leader
-      if(leaderTime===null)continue; // pas encore de leader — skip
-      timeSec=leaderTime+r.timeVal;
+    let timeSec=null;
+    if(r.timeVal!==null){
+      if(!r.isDelta){timeSec=r.timeVal;if(leaderTime===null)leaderTime=r.timeVal;}
+      else if(leaderTime!==null)timeSec=leaderTime+r.timeVal;
     }
-    riders.push({pos:r.pos,name:r.name,team:r.team,timeStr:r.timeLine,timeSec,speed:r.speed});
+    riders.push({pos:r.pos,name:r.name,team:r.team,timeSec,speed:r.speed});
   }
-
-  riders.sort((a,b)=>a.timeSec-b.timeSec);
+  riders.sort((a,b)=>{
+    if(a.timeSec===null&&b.timeSec===null)return a.pos-b.pos;
+    if(a.timeSec===null)return 1;
+    if(b.timeSec===null)return -1;
+    return a.timeSec-b.timeSec;
+  });
   return riders;
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // 3D ENGINE
@@ -848,6 +850,154 @@ function drawProfile(){
   [0,10,20,29.7].forEach(km=>pCtx.fillText(km,toX(km),H-pad.b+10));
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// MAP VIEW — vue dessus style satellite + coureurs colorés
+// ═══════════════════════════════════════════════════════════
+const mapCanvas = document.getElementById('cmap');
+const mCtx = mapCanvas.getContext('2d');
+
+// Bounding box du tracé pour normalisation
+const _mx0=Math.min(...TRACK.map(p=>p.x))-30;
+const _mx1=Math.max(...TRACK.map(p=>p.x))+30;
+const _mz0=Math.min(...TRACK.map(p=>p.z))-30;
+const _mz1=Math.max(...TRACK.map(p=>p.z))+30;
+
+function mapToCanvas(x,z,W,H){
+  const pad=28;
+  return {
+    cx: pad+(x-_mx0)/(_mx1-_mx0)*(W-pad*2),
+    cy: pad+(z-_mz0)/(_mz1-_mz0)*(H-pad*2),
+  };
+}
+
+function drawMap(){
+  const dpr=window.devicePixelRatio||1;
+  const r=mapCanvas.getBoundingClientRect();
+  if(r.width===0||r.height===0)return;
+  mapCanvas.width=r.width*dpr;
+  mapCanvas.height=r.height*dpr;
+  mCtx.scale(dpr,dpr);
+  const W=r.width,H=r.height;
+
+  // Fond style satellite
+  mCtx.fillStyle='#0a150a';mCtx.fillRect(0,0,W,H);
+
+  // Patches terrain
+  [[0.05,0.05,0.3,0.4,'#0d200d'],[0.35,0.0,0.3,0.35,'#0b1c0b'],
+   [0.65,0.05,0.3,0.4,'#0e220e'],[0.0,0.5,0.35,0.45,'#0c1e0c'],
+   [0.35,0.55,0.3,0.4,'#0d200d'],[0.65,0.5,0.32,0.45,'#0b1c0b'],
+   [0.1,0.25,0.2,0.2,'#112211'],[0.55,0.3,0.18,0.22,'#0f1f0f']].forEach(([fx,fy,fw,fh,col])=>{
+    mCtx.fillStyle=col;
+    mCtx.fillRect(fx*W,fy*H,fw*W,fh*H);
+  });
+
+  // Grille légère
+  mCtx.save();mCtx.globalAlpha=.07;mCtx.strokeStyle='#4a8a4a';mCtx.lineWidth=.5;
+  for(let i=0;i<10;i++){
+    mCtx.beginPath();mCtx.moveTo(i/10*W,0);mCtx.lineTo(i/10*W,H);mCtx.stroke();
+    mCtx.beginPath();mCtx.moveTo(0,i/10*H);mCtx.lineTo(W,i/10*H);mCtx.stroke();
+  }
+  mCtx.restore();
+
+  // Shadow route
+  mCtx.save();mCtx.globalAlpha=.25;
+  mCtx.beginPath();let s=false;
+  TRACK.forEach(p=>{
+    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
+    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
+  });
+  mCtx.strokeStyle='#000';mCtx.lineWidth=10;mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.stroke();
+  mCtx.restore();
+
+  // Route base
+  mCtx.beginPath();s=false;
+  TRACK.forEach(p=>{
+    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
+    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
+  });
+  mCtx.strokeStyle='#3c4838';mCtx.lineWidth=6;mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.stroke();
+
+  // Route surface
+  mCtx.beginPath();s=false;
+  TRACK.forEach(p=>{
+    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
+    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
+  });
+  mCtx.strokeStyle='#5a6655';mCtx.lineWidth=3.5;mCtx.stroke();
+
+  // Checkpoints
+  CPS.forEach((cp,i)=>{
+    const pos=getTrackPos(cp.km);
+    const{cx,cy}=mapToCanvas(pos.x,pos.z,W,H);
+    const col=cp.isArr?'#e85d04':i===0?'#fb923c':'#60a5fa';
+
+    // Cercle checkpoint
+    mCtx.beginPath();mCtx.arc(cx,cy,7,0,Math.PI*2);
+    mCtx.fillStyle=col;mCtx.fill();
+    mCtx.beginPath();mCtx.arc(cx,cy,7,0,Math.PI*2);
+    mCtx.strokeStyle='rgba(0,0,0,.6)';mCtx.lineWidth=2;mCtx.stroke();
+
+    // Label
+    mCtx.font='bold 9px sans-serif';mCtx.fillStyle=col;mCtx.textAlign='center';
+    mCtx.shadowColor=col;mCtx.shadowBlur=6;
+    mCtx.fillText(cp.name,cx,cy-11);
+    mCtx.shadowBlur=0;
+    mCtx.font='7px sans-serif';mCtx.fillStyle='#6a8a6a';
+    mCtx.fillText(cp.label,cx,cy+20);
+  });
+
+  // Curseur de progression sur la route
+  const curPos=getTrackPos(animT*TOTAL_KM);
+  const{cx:curCx,cy:curCy}=mapToCanvas(curPos.x,curPos.z,W,H);
+  mCtx.beginPath();mCtx.arc(curCx,curCy,4,0,Math.PI*2);
+  mCtx.fillStyle='rgba(255,255,255,.4)';mCtx.fill();
+
+  // ── COUREURS ──────────────────────────────────────────────
+  const riders=buildRiders();
+  const curKm=animT*TOTAL_KM;
+  const riderPts=[];
+
+  riders.forEach(r=>{
+    const km=riderKmAt(r,curKm);if(km===null)return;
+    const pos=getTrackPos(km);
+    const{cx,cy}=mapToCanvas(pos.x,pos.z,W,H);
+    riderPts.push({...r,cx,cy,km});
+  });
+
+  // Traîner d'abord
+  riderPts.forEach(r=>{
+    const trailKm=Math.max(0,r.km-1.2);
+    const tp=getTrackPos(trailKm);
+    const{cx:tx,cy:ty}=mapToCanvas(tp.x,tp.z,W,H);
+    const g=mCtx.createLinearGradient(tx,ty,r.cx,r.cy);
+    g.addColorStop(0,'transparent');g.addColorStop(1,r.color+'70');
+    mCtx.beginPath();mCtx.moveTo(tx,ty);mCtx.lineTo(r.cx,r.cy);
+    mCtx.strokeStyle=g;mCtx.lineWidth=2;mCtx.stroke();
+  });
+
+  // Points coureurs
+  riderPts.forEach(r=>{
+    mCtx.save();
+    mCtx.shadowColor=r.color;mCtx.shadowBlur=10;
+    mCtx.beginPath();mCtx.arc(r.cx,r.cy,5,0,Math.PI*2);
+    mCtx.fillStyle=r.color;mCtx.fill();
+    mCtx.restore();
+    mCtx.beginPath();mCtx.arc(r.cx,r.cy,5,0,Math.PI*2);
+    mCtx.strokeStyle='rgba(0,0,0,.7)';mCtx.lineWidth=1.5;mCtx.stroke();
+    // Nom si pas trop de monde
+    if(riderPts.length<=15){
+      mCtx.font='bold 7.5px sans-serif';mCtx.fillStyle=r.color;mCtx.textAlign='center';
+      mCtx.shadowColor=r.color;mCtx.shadowBlur=4;
+      mCtx.fillText(r.name.split(' ')[0],r.cx,r.cy-8);
+      mCtx.shadowBlur=0;
+    }
+  });
+
+  document.getElementById('map-km-badge').textContent='Km '+(animT*TOTAL_KM).toFixed(1);
+  document.getElementById('map-count').textContent=riderPts.length+' coureur'+(riderPts.length>1?'s':'');
+}
+
 // ═══════════════════════════════════════════════════════════
 // ANIMATION
 // ═══════════════════════════════════════════════════════════
@@ -862,7 +1012,7 @@ function loop(ts){
     animT+=dt*sp/ANIM_DUR;
     if(animT>1.05)animT=0;
   }
-  draw3D();drawProfile();
+  draw3D();drawProfile();drawMap();
   document.getElementById('prog-fill').style.width=(Math.min(1,animT)*100)+'%';
   document.getElementById('km-badge').textContent='Km '+(animT*TOTAL_KM).toFixed(1);
   requestAnimationFrame(loop);
@@ -918,6 +1068,7 @@ function switchPage(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
+  if(id==='map')drawMap();
 }
 function goImport(){switchPage('import');}
 
