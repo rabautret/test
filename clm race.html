@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLM Championnats de France 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0b0f1a;font-family:'Segoe UI',system-ui,sans-serif;color:#e8eaf0}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh}
+header{
+  background:linear-gradient(135deg,#0d1b3e 0%,#162040 100%);
+  border-bottom:3px solid #e85d04;
+  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-shrink:0;
+}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-title h1{font-size:.95rem;font-weight:800;letter-spacing:.08em;color:#fff;line-height:1.2}
+.hdr-title p{font-size:.65rem;color:#6a8caf;letter-spacing:.04em}
+.hdr-badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{background:#0d2040;border:1px solid #1e3a5f;border-radius:4px;padding:3px 8px;font-size:.62rem;color:#60a5fa;letter-spacing:.05em;white-space:nowrap}
+.badge.orange{border-color:#e85d04;color:#fb8c00}
+
+.toolbar{
+  background:#080d18;border-bottom:1px solid #111e35;
+  padding:6px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;
+}
+.tb-group{display:flex;align-items:center;gap:5px}
+.tb-label{font-size:.62rem;color:#5a7090;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.btn{
+  border:none;border-radius:5px;font-size:.72rem;font-weight:700;
+  padding:5px 11px;cursor:pointer;letter-spacing:.04em;transition:all .15s;
+  white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(135deg,#e85d04,#c1440c);color:#fff}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.btn-ghost{background:#111e35;border:1px solid #1e3a5f;color:#8ab}
+.btn-ghost:hover{background:#1a2a45;color:#e0e8ff}
+.btn-ghost.active{background:#1a3a60;border-color:#60a5fa;color:#60a5fa}
+.sep{width:1px;height:22px;background:#1a2a3e;margin:0 2px}
+.anim-speed{width:70px;accent-color:#e85d04}
+
+/* ── CANVAS ── */
+#c3d{display:block;width:100%;height:100%;cursor:grab}
+#c3d:active{cursor:grabbing}
+
+/* ── BOTTOM PROFILE ── */
+#profile-bar{
+  height:90px;background:#060a14;border-top:1px solid #111e35;
+  flex-shrink:0;position:relative;overflow:hidden;
+}
+#profileCanvas{display:block;width:100%;height:100%}
+#profile-bar .pc-labels{position:absolute;top:4px;left:0;width:100%;pointer-events:none}
+
+/* ── SIDE PANEL ── */
+#panel{
+  position:absolute;right:12px;top:100px;width:210px;
+  background:rgba(6,10,20,.93);border:1px solid #1a2a3e;border-radius:10px;
+  overflow:hidden;backdrop-filter:blur(10px);z-index:20;
+}
+#panel-tabs{display:flex;border-bottom:1px solid #1a2a3e}
+.ptab{
+  flex:1;text-align:center;padding:6px 4px;font-size:.65rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;cursor:pointer;color:#5a7090;
+  transition:all .15s;border-bottom:2px solid transparent;
+}
+.ptab.active{color:#e85d04;border-bottom-color:#e85d04;background:#0a1020}
+#panel-content{padding:8px;max-height:340px;overflow-y:auto}
+#panel-content::-webkit-scrollbar{width:3px}
+#panel-content::-webkit-scrollbar-thumb{background:#1a2a3e;border-radius:2px}
+
+.rider-row{
+  display:flex;align-items:center;gap:6px;padding:4px 0;
+  border-bottom:1px solid #0d1a2e;cursor:pointer;transition:background .1s;border-radius:3px;
+}
+.rider-row:hover{background:#0d1a2e}
+.rider-row:last-child{border-bottom:none}
+.r-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 5px currentColor}
+.r-pos{font-size:.62rem;color:#5a7090;min-width:14px;text-align:right}
+.r-name{font-size:.7rem;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-time{font-size:.62rem;color:#8ab;white-space:nowrap}
+.medal-gold{color:#ffd700}
+.medal-silver{color:#c0c0c0}
+.medal-bronze{color:#cd7f32}
+
+/* ── IMPORT MODAL ── */
+#modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;
+  align-items:center;justify-content:center;
+}
+#modal.open{display:flex}
+#modal-box{
+  background:#0d1b2e;border:1px solid #1e3a5f;border-radius:12px;
+  padding:20px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;
+}
+#modal-box h2{font-size:.95rem;font-weight:700;color:#e85d04;margin-bottom:4px}
+#modal-box p{font-size:.72rem;color:#6a8caf;margin-bottom:12px;line-height:1.5}
+.modal-tabs{display:flex;gap:6px;margin-bottom:12px}
+.mtab{
+  flex:1;text-align:center;padding:6px;font-size:.7rem;font-weight:700;
+  border-radius:6px;cursor:pointer;border:1px solid #1e3a5f;color:#5a7090;transition:all .15s;
+}
+.mtab.active{background:#e85d04;border-color:#e85d04;color:#fff}
+textarea#importText{
+  width:100%;height:200px;background:#060e1a;border:1px solid #1e3a5f;border-radius:6px;
+  color:#e8eaf0;font-family:'Courier New',monospace;font-size:.75rem;padding:10px;
+  resize:vertical;line-height:1.6;
+}
+textarea#importText:focus{outline:none;border-color:#e85d04}
+.import-hint{
+  background:#060e1a;border:1px solid #1a2a3e;border-radius:6px;
+  padding:8px 10px;font-size:.65rem;color:#5a7090;font-family:'Courier New',monospace;
+  margin-bottom:10px;line-height:1.7;white-space:pre;
+}
+.modal-actions{display:flex;gap:8px;margin-top:12px}
+#importFeedback{font-size:.72rem;color:#4ade80;margin-top:8px;min-height:16px}
+
+/* ── TOOLTIP ── */
+#tt{
+  position:fixed;background:rgba(6,15,35,.96);border:1px solid #e85d04;
+  border-radius:8px;padding:10px 14px;font-size:.75rem;pointer-events:none;
+  display:none;z-index:200;box-shadow:0 4px 24px rgba(0,0,0,.7);max-width:220px;
+}
+#tt strong{color:#e85d04;display:block;margin-bottom:4px;font-size:.8rem}
+#tt .tt-team{color:#8ab;font-size:.65rem;margin-bottom:3px}
+#tt .tt-row{display:flex;justify-content:space-between;gap:14px;font-size:.68rem;color:#c0d0e0;margin-top:2px}
+
+/* ── PROGRESS ── */
+#prog-bar{height:2px;background:#0d1b2e;flex-shrink:0;position:relative}
+#prog-fill{height:100%;background:linear-gradient(90deg,#e85d04,#ff8c00);width:0%;transition:width .2s}
+#prog-km{position:absolute;right:8px;top:-14px;font-size:.6rem;color:#5a7090}
+
+/* ── HINT ── */
+#hint{
+  position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
+  background:rgba(6,10,20,.75);border:1px solid #1a2a3e;border-radius:16px;
+  padding:3px 12px;font-size:.62rem;color:#445;pointer-events:none;white-space:nowrap;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hdr-left">
+      <span style="font-size:1.5rem">🚴</span>
+      <div class="hdr-title">
+        <h1>CHAMPIONNATS DE FRANCE CLM 2026</h1>
+        <p>Aoste → La Tour du Pin · Isère · 29.700 km · 433m D+</p>
+      </div>
+    </div>
+    <div class="hdr-badges">
+      <div class="badge">PC1 · 7.500 km · Romagnieu</div>
+      <div class="badge">PC2 · 19.850 km · La Bâtie-Montgascon</div>
+      <div class="badge orange">Arrivée · 29.700 km · Les Vals du Dauphiné</div>
+    </div>
+  </header>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="tb-group">
+      <button class="btn btn-primary" onclick="openImport()">📂 Importer résultats</button>
+    </div>
+    <div class="sep"></div>
+    <div class="tb-group">
+      <span class="tb-label">Vue :</span>
+      <button class="btn btn-ghost active" id="btnSide" onclick="setView('side')">Côté</button>
+      <button class="btn btn-ghost" id="btnTop" onclick="setView('top')">Dessus</button>
+      <button class="btn btn-ghost" id="btnFree" onclick="setView('free')">Libre</button>
+    </div>
+    <div class="sep"></div>
+    <div class="tb-group">
+      <button class="btn btn-ghost" id="btnPlay" onclick="togglePlay()">⏸</button>
+      <span class="tb-label">Vitesse</span>
+      <input type="range" class="anim-speed" id="speedRange" min="0.3" max="5" step="0.1" value="1">
+    </div>
+    <div class="sep"></div>
+    <div class="tb-group">
+      <button class="btn btn-ghost" onclick="resetCam()">🔄 Caméra</button>
+    </div>
+    <div id="prog-km" style="margin-left:auto;font-size:.7rem;color:#8ab"></div>
+  </div>
+
+  <!-- CANVAS -->
+  <canvas id="c3d"></canvas>
+
+  <!-- ELEVATION PROFILE -->
+  <div id="profile-bar">
+    <canvas id="profileCanvas"></canvas>
+  </div>
+
+</div>
+
+<!-- SIDE PANEL -->
+<div id="panel">
+  <div id="panel-tabs">
+    <div class="ptab active" onclick="showTab('pc1')">PC1</div>
+    <div class="ptab" onclick="showTab('pc2')">PC2</div>
+    <div class="ptab" onclick="showTab('arr')">Arrivée</div>
+  </div>
+  <div id="panel-content"></div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div id="modal">
+  <div id="modal-box">
+    <h2>📂 Import Résultats</h2>
+    <p>Colle le texte issu du classement officiel.<br>Format attendu par bloc :</p>
+    <div class="import-hint">1	 NOM PRÉNOM
+ÉQUIPE
+11'58".468
+42,591 km/h
+
+2	 NOM PRÉNOM
+ÉQUIPE
+12'05".123
+42,123 km/h</div>
+    <div class="modal-tabs">
+      <div class="mtab active" onclick="setImportTab('pc1')" id="mtab-pc1">PC1 · 7.5km</div>
+      <div class="mtab" onclick="setImportTab('pc2')" id="mtab-pc2">PC2 · 19.85km</div>
+      <div class="mtab" onclick="setImportTab('arr')" id="mtab-arr">Arrivée · 29.7km</div>
+    </div>
+    <textarea id="importText" placeholder="Colle ici le classement officiel..."></textarea>
+    <div id="importFeedback"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="doImport()">✅ Importer</button>
+      <button class="btn btn-ghost" onclick="closeImport()">Annuler</button>
+      <button class="btn btn-ghost" onclick="clearCP()">🗑 Effacer ce CP</button>
+    </div>
+  </div>
+</div>
+
+<div id="tt"></div>
+<div id="hint">🖱 Glisser: rotation · Molette: zoom</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// PARCOURS RÉEL — coordonnées normalisées depuis la carte
+// Aoste (départ) → Romagnieu (PC1 7.5) → La Bâtie-Montgascon (PC2 19.85) → La Tour du Pin (arrivée 29.7)
+// Tracé reconstruit d'après le parcours officiel procyclingmaps
+// ═══════════════════════════════════════════════════════════
+const TOTAL_KM = 29.7;
+const CPS = [
+  { name:'Départ',              km:0,      label:'Aoste',                  isArr:false, isPPO:true  },
+  { name:'PC1',                 km:7.5,    label:'Romagnieu',              isArr:false, isPPO:false },
+  { name:'PC2',                 km:19.85,  label:'La Bâtie-Montgascon',    isArr:false, isPPO:false },
+  { name:'Arrivée',             km:29.7,   label:'Les Vals du Dauphiné',   isArr:true,  isPPO:false },
+];
+
+// Profil altimétrique réel (d'après la coupe fournie)
+// km → altitude (m) : départ ~250m, montée progressive, crête Les Abrets ~455m, descente finale ~230m
+const ELEV_PROFILE = [
+  [0,    252],
+  [2,    265],
+  [4,    290],
+  [5.5,  310],
+  [7.5,  295], // PC1 Romagnieu — légère descente
+  [9,    305],
+  [11,   330],
+  [13,   360],
+  [15,   395],
+  [17,   430],
+  [18.5, 452],
+  [19.85,445], // PC2 La Bâtie-Montgascon
+  [21,   440],
+  [22,   420],
+  [23,   395],
+  [24,   368],
+  [25,   340],
+  [26,   300],
+  [27,   265],
+  [28,   248],
+  [29.7, 235],
+];
+
+function getElev(km) {
+  for (let i = 0; i < ELEV_PROFILE.length - 1; i++) {
+    const [k0,e0] = ELEV_PROFILE[i];
+    const [k1,e1] = ELEV_PROFILE[i+1];
+    if (km >= k0 && km <= k1) {
+      const t = (km - k0) / (k1 - k0);
+      return e0 + (e1 - e0) * t;
+    }
+  }
+  return 250;
+}
+
+// Tracé horizontal (vue dessus) reconstruit d'après carte officielle
+// Aoste est à droite (est), La Tour du Pin à gauche (ouest), le parcours fait une boucle par le sud
+// On mappe en coordonnées 3D : X=horizontal, Z=latéral, Y=élévation normalisée
+function buildTrack(n=500) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const km = t * TOTAL_KM;
+
+    // Tracé en plan fidèle à la carte :
+    // Aoste (est) → direction ouest-sud → Romagnieu (sud-est) → grande boucle sud →
+    // La Bâtie-Montgascon (centre-sud) → remontée nord-ouest → La Tour du Pin (ouest)
+    let x, z;
+
+    if (km <= 7.5) {
+      // Aoste → Romagnieu : descend vers le sud-est puis sud
+      const s = km / 7.5;
+      x = 820 - s * 380;           // recule vers l'ouest
+      z = -20 + s * 120;           // descend vers le sud
+    } else if (km <= 12) {
+      // Romagnieu → vers le sud (D142)
+      const s = (km - 7.5) / 4.5;
+      x = 440 - s * 80;
+      z = 100 + s * 180;
+    } else if (km <= 19.85) {
+      // Grande boucle sud → remontée vers La Bâtie
+      const s = (km - 12) / 7.85;
+      const angle = s * Math.PI * 0.9 - 0.1;
+      x = 360 - s * 130 - 60 * Math.sin(s * Math.PI);
+      z = 280 + 60 * Math.sin(angle) - s * 100;
+    } else if (km <= 29.7) {
+      // La Bâtie-Montgascon → La Tour du Pin : remontée vers nord-ouest
+      const s = (km - 19.85) / 9.85;
+      x = 230 - s * 230;
+      z = 180 - s * 180 - 30 * Math.sin(s * Math.PI * 1.5);
+    }
+
+    // Petites sinuosités routières
+    const jitter = 8 * Math.sin(t * Math.PI * 18 + 0.5) + 5 * Math.cos(t * Math.PI * 31);
+    z += jitter;
+
+    // Élévation réelle normalisée pour la 3D (1m = 0.12 unités)
+    const elev = getElev(km);
+    const y = (elev - 230) * 0.18;
+
+    pts.push({ x, y, z, km, elev, t });
+  }
+  return pts;
+}
+
+const TRACK = buildTrack(600);
+
+function getTrackPos(km) {
+  const t = Math.max(0, Math.min(1, km / TOTAL_KM));
+  const fi = t * (TRACK.length - 1);
+  const i = Math.floor(fi);
+  const f = fi - i;
+  const a = TRACK[i], b = TRACK[Math.min(i+1, TRACK.length-1)];
+  return {
+    x: a.x + (b.x - a.x) * f,
+    y: a.y + (b.y - a.y) * f,
+    z: a.z + (b.z - a.z) * f,
+    elev: a.elev + (b.elev - a.elev) * f,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA STORE — coureurs et leurs temps
+// ═══════════════════════════════════════════════════════════
+// cpData[cpIndex] = [{pos, name, team, timeStr, timeSec, speed, color}]
+const cpData = { pc1:[], pc2:[], arr:[] };
+const CP_KM = { pc1:7.5, pc2:19.85, arr:29.7 };
+const CP_IDX = { pc1:1, pc2:2, arr:3 };
+
+// Palette cycliste — 30 couleurs distinctes
+const PALETTE = [
+  '#e85d04','#60a5fa','#4ade80','#fbbf24','#f472b6','#a78bfa','#34d399','#fb923c',
+  '#38bdf8','#f87171','#86efac','#fde68a','#c084fc','#67e8f9','#fdba74','#a3e635',
+  '#e879f9','#2dd4bf','#fb7185','#93c5fd','#6ee7b7','#fcd34d','#d8b4fe','#7dd3fc',
+  '#fca5a5','#bbf7d0','#fef08a','#f5d0fe','#bae6fd','#99f6e4',
+];
+
+let riderColors = {}; // name → color (persistent across imports)
+let colorIdx = 0;
+function getRiderColor(name) {
+  if (!riderColors[name]) {
+    riderColors[name] = PALETTE[colorIdx % PALETTE.length];
+    colorIdx++;
+  }
+  return riderColors[name];
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARSE IMPORT TEXT
+// Format : "1\t NOM\nÉQUIPE\n11'58\".468\n42,591 km/h"
+// ═══════════════════════════════════════════════════════════
+function parseImportText(text) {
+  const riders = [];
+  // Split en blocs séparés par lignes vides
+  const raw = text.trim();
+  const blocks = raw.split(/\n{2,}/);
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length < 3) continue;
+
+    // Ligne 1 : position + nom
+    const line0 = lines[0];
+    // Numéro en début (peut être séparé par tab ou espaces)
+    const posMatch = line0.match(/^(\d+)\s+(.+)/);
+    if (!posMatch) continue;
+    const pos = parseInt(posMatch[1]);
+    const name = posMatch[2].trim();
+
+    // Ligne 2 : équipe
+    const team = lines[1].trim();
+
+    // Ligne 3 : temps — format 11'58".468 ou 11'58"468 ou 11:58.468
+    const timeLine = lines[2].trim();
+    const timeSec = parseTimeStr(timeLine);
+    if (timeSec === null) continue;
+
+    // Ligne 4 (optionnelle) : vitesse
+    let speed = null;
+    if (lines[3]) {
+      const sMatch = lines[3].match(/([\d,\.]+)/);
+      if (sMatch) speed = parseFloat(sMatch[1].replace(',', '.'));
+    }
+
+    riders.push({ pos, name: name.toUpperCase(), team: team.toUpperCase(), timeStr: timeLine, timeSec, speed });
+  }
+
+  // Trier par temps
+  riders.sort((a, b) => a.timeSec - b.timeSec);
+  return riders;
+}
+
+function parseTimeStr(s) {
+  // Formats : 11'58".468  11'58"468  11:58.468  11'58  718.468
+  s = s.replace(/\s/g,'');
+  // mm'ss".mmm
+  let m = s.match(/^(\d+)['''](\d+)["""]\.*(\d*)/);
+  if (m) {
+    const mins = parseInt(m[1]);
+    const secs = parseInt(m[2]);
+    const ms   = m[3] ? parseInt(m[3].padEnd(3,'0').slice(0,3)) : 0;
+    return mins * 60 + secs + ms / 1000;
+  }
+  // mm:ss.mmm
+  m = s.match(/^(\d+):(\d+)[.,](\d*)/);
+  if (m) return parseInt(m[1])*60 + parseInt(m[2]) + parseInt((m[3]+'000').slice(0,3))/1000;
+  // secondes brutes
+  m = s.match(/^(\d+)[.,](\d*)/);
+  if (m) return parseInt(m[1]) + parseInt((m[2]+'000').slice(0,3))/1000;
+  return null;
+}
+
+function fmtTime(s) {
+  if (s === null || s === undefined) return '—';
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  const sInt = Math.floor(sec);
+  const ms = Math.round((sec - sInt) * 1000);
+  return `${m}'${String(sInt).padStart(2,'0')}"${String(ms).padStart(3,'0')}`;
+}
+
+function fmtTimeDelta(s) {
+  if (!s) return '';
+  const sign = s >= 0 ? '+' : '-';
+  const abs = Math.abs(s);
+  const m = Math.floor(abs / 60);
+  const sec = Math.floor(abs % 60);
+  return `${sign}${m ? m+"'" : ''}${String(sec).padStart(2,'0')}"`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3D ENGINE
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('c3d');
+const ctx    = canvas.getContext('2d');
+
+// Camera
+let cam = { rotX:-0.45, rotY:0.3, dist:680, cx:410, cy:22, cz:40, fov:580 };
+let viewMode = 'side'; // side | top | free
+
+function setView(mode) {
+  viewMode = mode;
+  document.querySelectorAll('[id^=btn]').forEach(b => {
+    if (b.id === 'btnSide' || b.id === 'btnTop' || b.id === 'btnFree')
+      b.classList.toggle('active', b.id === 'btn'+mode.charAt(0).toUpperCase()+mode.slice(1));
+  });
+  if (mode === 'side') { cam.rotX=-0.45; cam.rotY=0.3;  cam.dist=680; cam.cx=410; cam.cy=22; cam.cz=40; }
+  if (mode === 'top')  { cam.rotX=-1.35; cam.rotY=0.0;  cam.dist=800; cam.cx=410; cam.cy=22; cam.cz=40; }
+  if (mode === 'free') { cam.rotX=-0.55; cam.rotY=-0.6; cam.dist=750; cam.cx=410; cam.cy=22; cam.cz=40; }
+}
+
+function project(x, y, z) {
+  let dx=x-cam.cx, dy=y-cam.cy, dz=z-cam.cz;
+  const cY=Math.cos(cam.rotY), sY=Math.sin(cam.rotY);
+  let rx= dx*cY + dz*sY; let rz=-dx*sY + dz*cY;
+  dx=rx; dz=rz;
+  const cX=Math.cos(cam.rotX), sX=Math.sin(cam.rotX);
+  let ry= dy*cX - dz*sX; let rz2=dy*sX + dz*cX;
+  dy=ry; dz=rz2;
+  const d = cam.dist + dz;
+  if (d < 5) return null;
+  const W=canvas.width/(window.devicePixelRatio||1);
+  const H=canvas.height/(window.devicePixelRatio||1);
+  return { px: W/2 + dx*cam.fov/d, py: H/2 - dy*cam.fov/d, scale: cam.fov/d, d };
+}
+
+// ═══════════════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════════════
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  canvas.width  = r.width  * dpr;
+  canvas.height = r.height * dpr;
+  ctx.scale(dpr, dpr);
+}
+
+function draw() {
+  resizeCanvas();
+  const W = canvas.getBoundingClientRect().width;
+  const H = canvas.getBoundingClientRect().height;
+
+  // Sky
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#020509');
+  sky.addColorStop(1,'#070e1a');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,W,H);
+
+  drawTerrain();
+  drawMapDecor();
+  drawTrackRoad();
+  drawCheckpointMarkers();
+  drawRiders();
+}
+
+function drawTerrain() {
+  // Ground plane
+  const corners = [
+    project(-100,-2,-450), project(1000,-2,-450),
+    project(1000,-2, 450), project(-100,-2, 450),
+  ].filter(Boolean);
+  if (corners.length === 4) {
+    ctx.beginPath();
+    corners.forEach((c,i) => i===0 ? ctx.moveTo(c.px,c.py) : ctx.lineTo(c.px,c.py));
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, corners[0].py, 0, corners[2].py);
+    g.addColorStop(0,'#0b1f0e');
+    g.addColorStop(1,'#060d07');
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+}
+
+function drawMapDecor() {
+  // Patches de terrain style carte satellite
+  const patches = [
+    {x:0,   z:-350, w:250, d:200, col:'#091a0b', alpha:.7},
+    {x:200, z:-280, w:180, d:150, col:'#0b2010', alpha:.6},
+    {x:550, z:-200, w:220, d:180, col:'#081508', alpha:.65},
+    {x:700, z: 100, w:160, d:200, col:'#0a1c0a', alpha:.6},
+    {x:100, z: 150, w:200, d:180, col:'#091a0b', alpha:.55},
+    {x:400, z: 200, w:180, d:150, col:'#0b200f', alpha:.6},
+    {x:-50, z:-100, w:140, d:250, col:'#0a1c0a', alpha:.5},
+    {x:850, z:-100, w:120, d:220, col:'#091a08', alpha:.55},
+  ];
+  patches.forEach(p => {
+    const pts = [
+      project(p.x,    -1.5, p.z),
+      project(p.x+p.w,-1.5, p.z),
+      project(p.x+p.w,-1.5, p.z+p.d),
+      project(p.x,    -1.5, p.z+p.d),
+    ].filter(Boolean);
+    if (pts.length===4) {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.col;
+      ctx.beginPath();
+      pts.forEach((c,i) => i===0 ? ctx.moveTo(c.px,c.py) : ctx.lineTo(c.px,c.py));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  });
+  // Grid
+  ctx.save();
+  ctx.globalAlpha = .04;
+  ctx.strokeStyle = '#3a8a5a';
+  ctx.lineWidth = .5;
+  for (let x=-100;x<1000;x+=80) {
+    const a=project(x,-1.5,-400), b=project(x,-1.5,400);
+    if(a&&b){ctx.beginPath();ctx.moveTo(a.px,a.py);ctx.lineTo(b.px,b.py);ctx.stroke();}
+  }
+  for (let z=-400;z<400;z+=80) {
+    const a=project(-100,-1.5,z), b=project(1000,-1.5,z);
+    if(a&&b){ctx.beginPath();ctx.moveTo(a.px,a.py);ctx.lineTo(b.px,b.py);ctx.stroke();}
+  }
+  ctx.restore();
+}
+
+function drawTrackRoad() {
+  if (TRACK.length < 2) return;
+
+  // Shadow
+  ctx.save();
+  ctx.globalAlpha = .3;
+  ctx.beginPath();
+  let started = false;
+  TRACK.forEach(p => {
+    const pr = project(p.x, -1.8, p.z);
+    if (!pr) return;
+    if (!started) { ctx.moveTo(pr.px,pr.py); started=true; }
+    else ctx.lineTo(pr.px,pr.py);
+  });
+  ctx.strokeStyle='#000';
+  ctx.lineWidth=11;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.stroke();
+  ctx.restore();
+
+  // Road base (asphalte foncé)
+  ctx.beginPath(); started=false;
+  TRACK.forEach(p => {
+    const pr = project(p.x, p.y, p.z);
+    if (!pr) return;
+    if (!started) { ctx.moveTo(pr.px,pr.py); started=true; }
+    else ctx.lineTo(pr.px,pr.py);
+  });
+  ctx.strokeStyle='#2a3528';
+  ctx.lineWidth=9;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.stroke();
+
+  // Route surface
+  ctx.beginPath(); started=false;
+  TRACK.forEach(p => {
+    const pr = project(p.x, p.y, p.z);
+    if (!pr) return;
+    if (!started) { ctx.moveTo(pr.px,pr.py); started=true; }
+    else ctx.lineTo(pr.px,pr.py);
+  });
+  ctx.strokeStyle='#3c4838';
+  ctx.lineWidth=6;
+  ctx.stroke();
+
+  // Ligne centrale pointillée blanche
+  ctx.setLineDash([14,11]);
+  ctx.beginPath(); started=false;
+  TRACK.forEach(p => {
+    const pr = project(p.x, p.y, p.z);
+    if (!pr) return;
+    if (!started) { ctx.moveTo(pr.px,pr.py); started=true; }
+    else ctx.lineTo(pr.px,pr.py);
+  });
+  ctx.strokeStyle='rgba(255,255,255,.10)';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawCheckpointMarkers() {
+  CPS.forEach((cp, i) => {
+    const pos = getTrackPos(cp.km);
+    const pr  = project(pos.x, pos.y+2, pos.z);
+    if (!pr) return;
+    const col = cp.isArr ? '#e85d04' : cp.isPPO ? '#fb923c' : '#60a5fa';
+    const s   = Math.max(.5, Math.min(1.5, pr.scale * 8));
+
+    // Poteau
+    const base = project(pos.x, pos.y-3,  pos.z);
+    const top  = project(pos.x, pos.y+22, pos.z);
+    if (base && top) {
+      ctx.beginPath();
+      ctx.moveTo(base.px,base.py);
+      ctx.lineTo(top.px, top.py);
+      ctx.strokeStyle = col;
+      ctx.lineWidth   = 2;
+      ctx.stroke();
+
+      // Drapeau
+      ctx.save();
+      ctx.globalAlpha=.9;
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      const fw=15*s, fh=9*s;
+      ctx.moveTo(top.px, top.py);
+      ctx.lineTo(top.px+fw, top.py-fh/2);
+      ctx.lineTo(top.px+fw, top.py+fh/2);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    if (!pr) return;
+    ctx.save();
+    ctx.font=`bold ${Math.round(10*s)}px sans-serif`;
+    ctx.fillStyle=col;
+    ctx.textAlign='center';
+    ctx.shadowColor=col; ctx.shadowBlur=8;
+    ctx.fillText(cp.name, pr.px, pr.py - 20*s);
+    ctx.shadowBlur=0;
+    ctx.font=`${Math.round(7.5*s)}px sans-serif`;
+    ctx.fillStyle='#7090a0';
+    ctx.fillText(cp.label, pr.px, pr.py - 10*s);
+    ctx.restore();
+  });
+}
+
+// ── Riders ──────────────────────────────────────────────────
+let animT   = 0;
+let playing = true;
+const ANIM_DUR = 12; // secondes pour la traversée complète
+
+function drawRiders() {
+  const currentKm = animT * TOTAL_KM;
+  const allRiders  = buildAnimRiders();
+  if (!allRiders.length) return;
+
+  // Sort by depth
+  const positioned = [];
+  allRiders.forEach(r => {
+    const km  = riderKmAt(r, currentKm);
+    if (km === null) return;
+    const pos = getTrackPos(km);
+    const pr  = project(pos.x, pos.y + 5, pos.z);
+    if (!pr) return;
+    positioned.push({ ...r, pos, pr, riderKm: km });
+  });
+  positioned.sort((a,b) => b.pr.d - a.pr.d);
+
+  positioned.forEach(r => {
+    const { pr, riderKm } = r;
+    const s   = Math.max(.35, Math.min(2, pr.scale * 8));
+    const rad = Math.max(4, 7*s);
+
+    // Glow
+    ctx.save();
+    ctx.shadowColor = r.color;
+    ctx.shadowBlur  = 14*s;
+    ctx.beginPath();
+    ctx.arc(pr.px, pr.py, rad, 0, Math.PI*2);
+    ctx.fillStyle = r.color;
+    ctx.fill();
+    ctx.restore();
+
+    // Contour
+    ctx.beginPath();
+    ctx.arc(pr.px, pr.py, rad+1.5, 0, Math.PI*2);
+    ctx.strokeStyle='rgba(0,0,0,.65)';
+    ctx.lineWidth=2;
+    ctx.stroke();
+
+    // Traînée
+    const trailKm  = Math.max(0, riderKm - 1.8);
+    const trailPos = getTrackPos(trailKm);
+    const trailPr  = project(trailPos.x, trailPos.y+5, trailPos.z);
+    if (trailPr) {
+      const g = ctx.createLinearGradient(trailPr.px,trailPr.py,pr.px,pr.py);
+      g.addColorStop(0,'transparent');
+      g.addColorStop(1, r.color+'80');
+      ctx.beginPath();
+      ctx.moveTo(trailPr.px,trailPr.py);
+      ctx.lineTo(pr.px,pr.py);
+      ctx.strokeStyle=g;
+      ctx.lineWidth=2.5*s;
+      ctx.stroke();
+    }
+
+    // Nom (si assez grand)
+    if (s > .55) {
+      const firstName = r.name.split(' ')[0];
+      ctx.font=`bold ${Math.round(8*s)}px sans-serif`;
+      ctx.textAlign='center';
+      ctx.fillStyle=r.color;
+      ctx.shadowColor=r.color; ctx.shadowBlur=5;
+      ctx.fillText(firstName, pr.px, pr.py - rad - 4);
+      ctx.shadowBlur=0;
+    }
+  });
+
+  // Update km display
+  document.getElementById('prog-km').textContent = `Km ${currentKm.toFixed(1)} / ${TOTAL_KM}`;
+}
+
+// Construit la liste des riders avec leurs temps interpolés
+function buildAnimRiders() {
+  const riders = [];
+  const allNames = new Set();
+
+  // Collecter tous les noms connus
+  ['pc1','pc2','arr'].forEach(cp => {
+    cpData[cp].forEach(r => allNames.add(r.name));
+  });
+
+  allNames.forEach(name => {
+    const color = getRiderColor(name);
+    // Temps connus à chaque CP
+    const times = [0]; // départ = 0s
+    CPS.forEach((cp, i) => {
+      if (i === 0) return;
+      const cpKey = i===1?'pc1': i===2?'pc2':'arr';
+      const entry = cpData[cpKey].find(r => r.name === name);
+      times.push(entry ? entry.timeSec : null);
+    });
+    // Interpoler les trous
+    const filled = fillTimes(times);
+    riders.push({ name, color, times: filled });
+  });
+  return riders;
+}
+
+function fillTimes(raw) {
+  const t = [...raw];
+  // Cherche le dernier connu
+  let prev = { i:0, v:0 };
+  for (let i=1; i<t.length; i++) {
+    if (t[i] !== null) {
+      const kmPrev = CPS[prev.i].km, kmCur = CPS[i].km;
+      const dt = t[i] - prev.v;
+      for (let j=prev.i+1; j<i; j++) {
+        const frac = (CPS[j].km - kmPrev) / (kmCur - kmPrev);
+        t[j] = prev.v + dt * frac;
+      }
+      prev = { i, v:t[i] };
+    }
+  }
+  // Projeter la fin si inconnu
+  if (t[t.length-1] === null) {
+    const last = [...t].map((v,i)=>({v,i})).filter(x=>x.v!==null).pop();
+    if (last && last.i > 0) {
+      const pace = last.v / CPS[last.i].km;
+      for (let j=last.i+1; j<t.length; j++) {
+        if (t[j]===null) t[j] = Math.round(pace * CPS[j].km * 10)/10;
+      }
+    }
+  }
+  return t;
+}
+
+function riderKmAt(rider, raceKm) {
+  const maxTime = Math.max(...['pc1','pc2','arr'].flatMap(k => cpData[k].map(r=>r.timeSec)).filter(Boolean), 1);
+  const curTime = (raceKm / TOTAL_KM) * maxTime;
+  const times   = rider.times;
+
+  for (let i=0; i<CPS.length-1; i++) {
+    const t0=times[i], t1=times[i+1];
+    if (t0===null||t1===null) continue;
+    if (curTime >= t0 && curTime <= t1) {
+      const frac = (curTime - t0) / (t1 - t0);
+      return CPS[i].km + (CPS[i+1].km - CPS[i].km) * frac;
+    }
+  }
+  const lastT = times[times.length-1];
+  if (lastT !== null && curTime >= lastT) return TOTAL_KM;
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ELEVATION PROFILE (bas de page)
+// ═══════════════════════════════════════════════════════════
+const pCanvas = document.getElementById('profileCanvas');
+const pCtx    = pCanvas.getContext('2d');
+
+function drawProfile() {
+  const dpr = window.devicePixelRatio || 1;
+  const r   = pCanvas.getBoundingClientRect();
+  pCanvas.width  = r.width  * dpr;
+  pCanvas.height = r.height * dpr;
+  pCtx.scale(dpr, dpr);
+  const W=r.width, H=r.height;
+  const pad={l:38,r:16,t:10,b:22};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+
+  pCtx.fillStyle='#060a14';
+  pCtx.fillRect(0,0,W,H);
+
+  const elvs  = ELEV_PROFILE.map(e=>e[1]);
+  const minE  = Math.min(...elvs)-20;
+  const maxE  = Math.max(...elvs)+20;
+  const toX   = km => pad.l + (km/TOTAL_KM)*iW;
+  const toY   = e  => pad.t + iH - ((e-minE)/(maxE-minE))*iH;
+
+  // Fill
+  const g = pCtx.createLinearGradient(0,pad.t,0,pad.t+iH);
+  g.addColorStop(0,'rgba(232,93,4,.55)');
+  g.addColorStop(1,'rgba(232,93,4,.08)');
+  pCtx.beginPath();
+  pCtx.moveTo(toX(0), H-pad.b);
+  ELEV_PROFILE.forEach(([km,e]) => pCtx.lineTo(toX(km), toY(e)));
+  pCtx.lineTo(toX(TOTAL_KM), H-pad.b);
+  pCtx.closePath();
+  pCtx.fillStyle=g;
+  pCtx.fill();
+
+  // Line
+  pCtx.beginPath();
+  ELEV_PROFILE.forEach(([km,e],i) => i===0?pCtx.moveTo(toX(km),toY(e)):pCtx.lineTo(toX(km),toY(e)));
+  pCtx.strokeStyle='#e85d04';
+  pCtx.lineWidth=2;
+  pCtx.stroke();
+
+  // CPs
+  CPS.forEach((cp,i) => {
+    if (i===0) return;
+    const x   = toX(cp.km);
+    const e   = getElev(cp.km);
+    const y   = toY(e);
+    const col = cp.isArr?'#e85d04':'#60a5fa';
+    pCtx.beginPath();
+    pCtx.moveTo(x, pad.t); pCtx.lineTo(x, H-pad.b);
+    pCtx.strokeStyle=col+'55'; pCtx.lineWidth=1; pCtx.setLineDash([3,3]);
+    pCtx.stroke(); pCtx.setLineDash([]);
+    pCtx.beginPath();
+    pCtx.arc(x,y,4,0,Math.PI*2);
+    pCtx.fillStyle=col; pCtx.fill();
+    pCtx.font='bold 8px sans-serif';
+    pCtx.fillStyle=col;
+    pCtx.textAlign='center';
+    pCtx.fillText(cp.name, x, pad.t+8);
+
+    // Altitude
+    pCtx.font='7px sans-serif';
+    pCtx.fillStyle='#6a8090';
+    pCtx.fillText(Math.round(e)+'m', x, y-8);
+  });
+
+  // Anim cursor
+  const curX = toX(animT * TOTAL_KM);
+  pCtx.beginPath();
+  pCtx.moveTo(curX, pad.t); pCtx.lineTo(curX, H-pad.b);
+  pCtx.strokeStyle='rgba(255,255,255,.35)'; pCtx.lineWidth=1.5; pCtx.setLineDash([]);
+  pCtx.stroke();
+
+  // Y axis labels
+  pCtx.font='7px sans-serif'; pCtx.fillStyle='#445'; pCtx.textAlign='right';
+  [250,300,350,400,450].forEach(e => {
+    if (e>=minE&&e<=maxE) {
+      const y=toY(e);
+      pCtx.fillText(e+'m', pad.l-3, y+3);
+    }
+  });
+
+  // X axis
+  pCtx.font='7px sans-serif'; pCtx.fillStyle='#445'; pCtx.textAlign='center';
+  [0,5,10,15,20,25,29.7].forEach(km => {
+    pCtx.fillText(km, toX(km), H-pad.b+10);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDE PANEL
+// ═══════════════════════════════════════════════════════════
+let activeTab = 'pc1';
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.ptab').forEach((el,i) => {
+    el.classList.toggle('active', ['pc1','pc2','arr'][i] === tab);
+  });
+  renderPanel();
+}
+
+function renderPanel() {
+  const data = cpData[activeTab];
+  if (!data.length) {
+    document.getElementById('panel-content').innerHTML =
+      '<p style="color:#445;font-size:.7rem;padding:8px;font-style:italic">Aucun résultat importé</p>';
+    return;
+  }
+  const first = data[0].timeSec;
+  const html = data.map((r,i) => {
+    const col   = getRiderColor(r.name);
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const mCls  = i===0?'medal-gold':i===1?'medal-silver':i===2?'medal-bronze':'';
+    const diff  = r.timeSec - first;
+    const diffStr = diff<.001 ? '' : fmtTimeDelta(diff);
+    return `<div class="rider-row" onclick="focusRider('${r.name}')">
+      <div class="r-dot" style="background:${col};color:${col}"></div>
+      <div class="r-pos ${mCls}">${medal||r.pos}</div>
+      <div class="r-name" style="color:${col}" title="${r.name}">${r.name.split(' ')[0]}</div>
+      <div class="r-time">${diffStr||fmtTime(r.timeSec)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('panel-content').innerHTML = html;
+}
+
+function focusRider(name) {
+  // highlight — future feature
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORT MODAL
+// ═══════════════════════════════════════════════════════════
+let importTab = 'pc1';
+function openImport() { document.getElementById('modal').classList.add('open'); }
+function closeImport(){ document.getElementById('modal').classList.remove('open'); }
+
+function setImportTab(tab) {
+  importTab = tab;
+  ['pc1','pc2','arr'].forEach(t => {
+    document.getElementById('mtab-'+t).classList.toggle('active', t===tab);
+  });
+  // Restore existing text if any
+  document.getElementById('importText').value = '';
+  document.getElementById('importFeedback').textContent = '';
+}
+
+function doImport() {
+  const text    = document.getElementById('importText').value;
+  const riders  = parseImportText(text);
+  const fb      = document.getElementById('importFeedback');
+
+  if (!riders.length) {
+    fb.style.color='#f87171';
+    fb.textContent = '❌ Aucun coureur reconnu — vérifie le format.';
+    return;
+  }
+
+  // Assign colors
+  riders.forEach(r => getRiderColor(r.name));
+  cpData[importTab] = riders;
+
+  fb.style.color='#4ade80';
+  fb.textContent = `✅ ${riders.length} coureur(s) importé(s) pour ${importTab.toUpperCase()}.`;
+
+  renderPanel();
+  if (activeTab !== importTab) showTab(importTab);
+  setTimeout(closeImport, 900);
+}
+
+function clearCP() {
+  cpData[importTab] = [];
+  document.getElementById('importFeedback').textContent = '';
+  document.getElementById('importText').value = '';
+  renderPanel();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANIM LOOP
+// ═══════════════════════════════════════════════════════════
+let lastTs = null;
+
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+
+  if (playing) {
+    const speed = parseFloat(document.getElementById('speedRange').value) || 1;
+    animT += dt * speed / ANIM_DUR;
+    if (animT > 1.05) animT = 0;
+  }
+
+  draw();
+  drawProfile();
+  document.getElementById('prog-fill').style.width = (Math.min(1,animT)*100) + '%';
+  requestAnimationFrame(loop);
+}
+
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('btnPlay');
+  btn.textContent = playing ? '⏸' : '▶';
+  btn.classList.toggle('active', !playing);
+}
+
+function resetCam() { setView(viewMode); }
+
+// ═══════════════════════════════════════════════════════════
+// MOUSE / TOUCH
+// ═══════════════════════════════════════════════════════════
+let drag = null;
+canvas.addEventListener('mousedown', e => {
+  drag = { x:e.clientX, y:e.clientY, rX:cam.rotX, rY:cam.rotY };
+});
+canvas.addEventListener('mousemove', e => {
+  if (!drag) return;
+  cam.rotY = drag.rY + (e.clientX - drag.x) * .006;
+  cam.rotX = Math.max(-1.45, Math.min(-.05, drag.rX + (e.clientY - drag.y) * .004));
+  viewMode = 'free';
+});
+canvas.addEventListener('mouseup',    () => drag = null);
+canvas.addEventListener('mouseleave', () => drag = null);
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  cam.dist = Math.max(200, Math.min(2000, cam.dist + e.deltaY * .9));
+}, { passive:false });
+
+let lTouch = null;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length===1)
+    lTouch = {x:e.touches[0].clientX, y:e.touches[0].clientY, rX:cam.rotX, rY:cam.rotY};
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length===1 && lTouch) {
+    cam.rotY = lTouch.rY + (e.touches[0].clientX-lTouch.x)*.006;
+    cam.rotX = Math.max(-1.45,Math.min(-.05, lTouch.rX+(e.touches[0].clientY-lTouch.y)*.004));
+  }
+},{passive:false});
+canvas.addEventListener('touchend', ()=>lTouch=null);
+
+// Tooltip on hover
+canvas.addEventListener('mousemove', e => {
+  const tt = document.getElementById('tt');
+  // Find nearest rider
+  const allRiders = buildAnimRiders();
+  if (!allRiders.length) { tt.style.display='none'; return; }
+  const curKm = animT * TOTAL_KM;
+  let nearest=null, minDist=999;
+  const rect = canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+
+  allRiders.forEach(r => {
+    const km = riderKmAt(r, curKm);
+    if (km===null) return;
+    const pos=getTrackPos(km);
+    const pr=project(pos.x, pos.y+5, pos.z);
+    if (!pr) return;
+    const d=Math.hypot(pr.px-mx, pr.py-my);
+    if (d<minDist) { minDist=d; nearest={r,km}; }
+  });
+
+  if (!nearest || minDist>30) { tt.style.display='none'; return; }
+  const { r, km } = nearest;
+  const cpKey = km < 7.5 ? 'pc1' : km < 19.85 ? 'pc2' : 'arr';
+  const entry = cpData[cpKey].find(x=>x.name===r.name);
+  tt.innerHTML=`<strong style="color:${r.color}">${r.name}</strong>
+    <div class="tt-team">${entry?.team||''}</div>
+    <div class="tt-row"><span>Km ${km.toFixed(1)}</span>${entry?`<span>⏱ ${fmtTime(entry.timeSec)}</span>`:''}</div>
+    ${entry?.speed?`<div class="tt-row"><span>🚀 ${entry.speed.toFixed(2)} km/h</span></div>`:''}`;
+  tt.style.display='block';
+  tt.style.left=(e.clientX+14)+'px';
+  tt.style.top =(e.clientY-10)+'px';
+});
+canvas.addEventListener('mouseleave',()=>document.getElementById('tt').style.display='none');
+
+// ── INIT ────────────────────────────────────────────────────
+renderPanel();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
