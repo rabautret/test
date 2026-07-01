@@ -2,1175 +2,732 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Grand Livre — Calcul des rétentions</title>
+<meta name="theme-color" content="#161c1a">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CLM France">
-<meta name="theme-color" content="#0b0f1a">
-<title>CLM France 2026</title>
-
-<!-- PWA Manifest inline -->
-<script>
-const manifest = {
-  name:"CLM Championnats de France 2026",
-  short_name:"CLM France",
-  description:"Suivi en temps réel du CLM Championnats de France Cyclisme 2026",
-  start_url:"./",
-  display:"standalone",
-  background_color:"#0b0f1a",
-  theme_color:"#0b0f1a",
-  orientation:"portrait",
-  icons:[
-    {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230b0f1a'/><text y='320' font-size='300' text-anchor='middle' x='256'>🚴</text></svg>",sizes:"512x512",type:"image/svg+xml"}
-  ]
-};
-const blob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
-const url  = URL.createObjectURL(blob);
-const link = document.createElement('link');
-link.rel='manifest'; link.href=url;
-document.head.appendChild(link);
-</script>
-
+<meta name="apple-mobile-web-app-title" content="Grand Livre">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ═══ RESET & BASE ═══ */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --orange:#e85d04;
-  --blue:#60a5fa;
-  --bg:#0b0f1a;
-  --bg2:#0d1525;
-  --bg3:#111e35;
-  --border:#1a2a3e;
-  --text:#e8eaf0;
-  --muted:#5a7090;
-  --safe-top:env(safe-area-inset-top, 0px);
-  --safe-bot:env(safe-area-inset-bottom, 0px);
-}
-html,body{
-  width:100%;height:100%;overflow:hidden;
-  background:var(--bg);color:var(--text);
-  font-family:-apple-system,'SF Pro Display','Segoe UI',sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
+  :root{
+    --ink:#161c1a;
+    --surface:#202824;
+    --surface-2:#28322d;
+    --line: rgba(241,240,234,0.10);
+    --cream:#f1f0ea;
+    --muted:#8b9a94;
+    --green:#4ade9a;
+    --green-dim: rgba(74,222,154,0.14);
+    --rose:#e8735c;
+    --amber:#e0b04a;
+    --amber-dim: rgba(224,176,74,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--cream);font-family:'Inter',sans-serif;}
+  body{min-height:100vh; padding-bottom:40px;}
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px;}
 
-/* ═══ LAYOUT IPHONE ═══ */
-#app{
-  display:flex;flex-direction:column;
-  height:100vh;height:100dvh;
-  padding-top:var(--safe-top);
-  padding-bottom:var(--safe-bot);
-}
+  header{
+    padding:26px 16px 16px;
+    border-bottom:1px solid var(--line);
+    background: linear-gradient(180deg, rgba(74,222,154,0.06), transparent 70%);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.18em;
+    color:var(--green); text-transform:uppercase; margin:0 0 6px;
+  }
+  h1{font-family:'Fraunces', serif; font-weight:600; font-size:26px; margin:0 0 4px; letter-spacing:-0.01em;}
+  .sub{color:var(--muted); font-size:13px; margin:0;}
 
-/* ═══ TOP BAR ═══ */
-#topbar{
-  flex-shrink:0;
-  background:linear-gradient(180deg,#0d1b3e,#0b1530);
-  border-bottom:2px solid var(--orange);
-  padding:10px 16px 8px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.top-title{
-  display:flex;align-items:center;gap:8px;
-}
-.top-title .icon{font-size:1.4rem;line-height:1}
-.top-title h1{font-size:.82rem;font-weight:800;letter-spacing:.06em;color:#fff;line-height:1.2}
-.top-title p{font-size:.58rem;color:var(--muted);margin-top:1px}
-.top-actions{display:flex;gap:6px}
-.icon-btn{
-  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-size:.9rem;width:34px;height:34px;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-  transition:background .15s;
-}
-.icon-btn:active{background:#1a3060;transform:scale(.94)}
-.icon-btn.orange{background:var(--orange);border-color:var(--orange)}
+  /* tabs — scroll horizontal, 5 onglets */
+  .tabs-outer{
+    position:sticky; top:0; z-index:5; background:var(--ink);
+    border-bottom:1px solid var(--line);
+  }
+  .tabs{
+    display:flex; gap:6px; max-width:520px; margin:0 auto; padding:10px 16px;
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex:none; text-align:center; padding:10px 14px; border-radius:10px; white-space:nowrap;
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:.05em;
+    color:var(--muted); background:var(--surface); border:1px solid var(--line);
+    cursor:pointer; user-select:none; transition:all .15s ease;
+  }
+  .tab.active{color:var(--ink); background:var(--green); border-color:var(--green); font-weight:700;}
 
-/* ═══ PAGES ═══ */
-#pages{flex:1;overflow:hidden;position:relative}
-.page{
-  position:absolute;inset:0;overflow:hidden;
-  display:none;flex-direction:column;
-}
-.page.active{display:flex}
+  .panel{display:none; padding:18px 16px 8px;}
+  .panel.active{display:block;}
 
-/* ═══ TAB BAR (bottom) ═══ */
-#tabbar{
-  flex-shrink:0;
-  background:rgba(11,15,26,.96);
-  border-top:1px solid var(--border);
-  display:flex;
-  padding-bottom:max(var(--safe-bot), 4px);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-}
-.tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  gap:2px;padding:8px 4px 6px;cursor:pointer;
-  font-size:.58rem;color:var(--muted);font-weight:600;
-  letter-spacing:.04em;text-transform:uppercase;transition:color .15s;
-}
-.tab .tab-icon{font-size:1.2rem;line-height:1}
-.tab.active{color:var(--orange)}
-.tab.active .tab-icon{filter:drop-shadow(0 0 6px var(--orange))}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px;}
+  .card-title{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--green); margin:0 0 14px; display:flex; align-items:center; gap:8px;
+  }
+  .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
 
-/* ═══ PAGE 3D ═══ */
-#page-3d{position:relative}
-#c3d{display:block;width:100%;flex:1;touch-action:none}
+  label{display:block; font-size:12.5px; color:var(--muted); margin:0 0 6px;}
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  input[type=text]{
+    width:100%; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--cream); font-family:'JetBrains Mono', monospace; font-size:16px;
+    padding:11px 12px; border-radius:9px; outline:none; transition:border-color .15s ease;
+  }
+  input:focus{border-color:var(--green);}
+  input::placeholder{color:#5c6864;}
 
-/* Profile strip */
-#profile-strip{
-  flex-shrink:0;height:72px;background:#060a14;
-  border-top:1px solid var(--border);position:relative;
-}
-#profileCanvas{display:block;width:100%;height:100%}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .suffix-wrap{position:relative;}
+  .suffix-wrap input{padding-right:34px;}
+  .suffix{position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:13px; pointer-events:none;}
 
-/* Overlay controls on 3D */
-#view-btns{
-  position:absolute;top:10px;left:10px;
-  display:flex;flex-direction:column;gap:5px;z-index:10;
-}
-.vbtn{
-  background:rgba(11,15,26,.82);border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-size:.65rem;font-weight:700;padding:5px 9px;cursor:pointer;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  transition:all .15s;white-space:nowrap;
-}
-.vbtn.active{background:rgba(232,93,4,.25);border-color:var(--orange);color:var(--orange)}
-.vbtn:active{transform:scale(.92)}
+  .split-bar{height:8px; border-radius:99px; overflow:hidden; display:flex; margin:10px 0 4px; border:1px solid var(--line);}
+  .split-bar div{height:100%;}
+  .split-labels{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); font-family:'JetBrains Mono', monospace;}
 
-#play-btn{
-  position:absolute;bottom:80px;right:12px;z-index:10;
-  background:rgba(11,15,26,.88);border:1px solid var(--border);border-radius:50%;
-  width:44px;height:44px;font-size:1.2rem;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;backdrop-filter:blur(8px);transition:all .15s;
-}
-#play-btn:active{transform:scale(.9);background:rgba(232,93,4,.3)}
+  .result-line{display:flex; justify-content:space-between; align-items:baseline; padding:9px 0; border-top:1px dashed var(--line); font-size:13.5px;}
+  .result-line:first-of-type{border-top:none; padding-top:2px;}
+  .result-line .amt{font-family:'JetBrains Mono', monospace; font-weight:700; color:var(--cream);}
+  .result-line.total{border-top:1px solid var(--line); margin-top:4px; padding-top:12px;}
+  .result-line.total .amt{color:var(--green); font-size:16px;}
 
-#km-badge{
-  position:absolute;bottom:80px;left:10px;z-index:10;
-  background:rgba(11,15,26,.88);border:1px solid var(--border);border-radius:8px;
-  padding:4px 8px;font-size:.65rem;color:var(--blue);font-weight:700;
-  backdrop-filter:blur(8px);font-variant-numeric:tabular-nums;
-}
+  .bank-card{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px;}
+  .bank-head{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
+  .bank-head .name-wrap{position:relative; flex:1;}
+  .bank-head input[type=text]{
+    width:100%; font-family:'Fraunces',serif; font-size:16px; font-weight:600; background:var(--surface);
+    border:1px solid var(--line); border-radius:8px; padding:9px 30px 9px 11px; color:var(--cream);
+  }
+  .bank-head input[type=text]:focus{border-color:var(--green);}
+  .bank-head .pencil{position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none;}
+  .bank-label{font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; font-family:'JetBrains Mono', monospace; margin:0 0 12px;}
 
-/* ═══ PAGE CLASSEMENT ═══ */
-#page-class{overflow:hidden}
-.class-header{
-  flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:10px 14px;
-}
-.cp-tabs{display:flex;gap:0;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:0}
-.cp-tab{
-  flex:1;text-align:center;padding:8px 4px;font-size:.7rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
-  cursor:pointer;transition:all .15s;border-right:1px solid var(--border);
-}
-.cp-tab:last-child{border-right:none}
-.cp-tab.active{background:var(--orange);color:#fff}
+  .bank-title-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .bank-title{font-family:'Fraunces',serif; font-size:16px; font-weight:600;}
 
-.class-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 12px}
-.class-list::-webkit-scrollbar{display:none}
+  .remove-btn{width:26px; height:26px; flex:none; border-radius:50%; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:14px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .remove-btn:hover{color:var(--rose); border-color:var(--rose);}
 
-.rider-card{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 12px;margin-bottom:6px;
-  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-  transition:background .1s;
-}
-.rider-card:active{background:#1a2a3e}
-.rc-num{font-size:.8rem;font-weight:800;min-width:28px;text-align:center}
-.rc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.rc-info{flex:1;min-width:0}
-.rc-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rc-team{font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
-.rc-times{text-align:right;flex-shrink:0}
-.rc-time{font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--blue)}
-.rc-speed{font-size:.6rem;color:var(--muted);margin-top:2px}
-.rc-delta{font-size:.62rem;color:#f87171}
+  .add-btn{width:100%; padding:12px; border-radius:10px; background:transparent; border:1px dashed var(--green); color:var(--green); font-family:'JetBrains Mono', monospace; font-size:12.5px; letter-spacing:.06em; cursor:pointer; margin-top:2px;}
+  .add-btn:active{background:var(--green-dim);}
 
-/* ═══ PAGE IMPORT ═══ */
-#page-import{padding:14px;gap:12px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-#page-import::-webkit-scrollbar{display:none}
-.section-title{
-  font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;
-  color:var(--muted);margin-bottom:6px;
-}
-.import-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
-.import-card h3{font-size:.82rem;font-weight:700;color:var(--orange);margin-bottom:4px}
-.import-card p{font-size:.68rem;color:var(--muted);line-height:1.5;margin-bottom:10px}
+  .hint{font-size:11px; color:var(--muted); margin-top:8px; line-height:1.5;}
 
-.cp-select{
-  display:flex;gap:0;border-radius:10px;overflow:hidden;border:1px solid var(--border);
-  margin-bottom:10px;
-}
-.cs-opt{
-  flex:1;text-align:center;padding:9px 4px;font-size:.72rem;font-weight:700;
-  color:var(--muted);cursor:pointer;transition:all .15s;border-right:1px solid var(--border);
-}
-.cs-opt:last-child{border-right:none}
-.cs-opt.active{background:var(--orange);color:#fff}
+  /* Bilan */
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .stat-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px;}
+  .stat-card .lbl{font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px;}
+  .stat-card .val{font-family:'JetBrains Mono', monospace; font-size:19px; font-weight:700; color:var(--green);}
 
-.format-hint{
-  background:rgba(6,10,20,.8);border:1px solid var(--border);border-radius:8px;
-  padding:8px 10px;font-size:.62rem;color:#445;font-family:'SF Mono','Courier New',monospace;
-  margin-bottom:10px;line-height:1.8;white-space:pre;overflow-x:auto;
-}
-textarea#importTxt{
-  width:100%;height:160px;background:#060e1a;
-  border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-family:'SF Mono','Courier New',monospace;
-  font-size:.72rem;padding:10px;resize:none;line-height:1.6;
-  -webkit-appearance:none;
-}
-textarea#importTxt:focus{outline:none;border-color:var(--orange)}
+  .bilan-row{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .bilan-bank-name{font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 10px;}
+  .bilan-metrics{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .bilan-metric .m-lbl{font-size:10px; color:var(--muted); font-family:'JetBrains Mono', monospace; text-transform:uppercase; letter-spacing:.04em; margin-bottom:3px;}
+  .bilan-metric .m-val{font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700;}
 
-.btn-row{display:flex;gap:8px;margin-top:8px}
-.btn{
-  border:none;border-radius:9px;font-size:.78rem;font-weight:700;
-  padding:11px 18px;cursor:pointer;letter-spacing:.04em;transition:all .12s;
-  flex:1;
-}
-.btn:active{transform:scale(.96)}
-.btn-primary{background:var(--orange);color:#fff}
-.btn-ghost{background:var(--bg3);border:1px solid var(--border);color:var(--muted)}
+  .section-divider{display:flex; align-items:center; gap:10px; margin:22px 0 14px;}
+  .section-divider .line{flex:1; height:1px; background:var(--line);}
+  .section-divider .txt{font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); white-space:nowrap;}
 
-#importFB{
-  font-size:.72rem;margin-top:8px;min-height:16px;font-weight:600;
-  padding:6px 10px;border-radius:6px;display:none;
-}
-#importFB.ok{display:block;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
-#importFB.err{display:block;background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+  .online-focus-card{background:var(--surface); border:1px solid var(--amber); border-radius:12px; padding:14px; margin-bottom:12px;}
+  .online-focus-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .badge{font-family:'JetBrains Mono', monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber); border-radius:99px; padding:3px 8px;}
 
-/* File import */
-.file-import-area{
-  border:1.5px dashed var(--border);border-radius:10px;
-  padding:16px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:10px;
-}
-.file-import-area:active{border-color:var(--orange);background:rgba(232,93,4,.05)}
-.file-import-area .fi-icon{font-size:1.8rem;margin-bottom:6px}
-.file-import-area p{font-size:.72rem;color:var(--muted)}
-.file-import-area strong{color:var(--blue);font-size:.75rem}
-#fileInput{display:none}
-
-/* Status dots */
-.cp-status{display:flex;gap:6px;margin-top:8px}
-.cs-dot{
-  flex:1;padding:5px;border-radius:6px;text-align:center;
-  font-size:.6rem;font-weight:700;text-transform:uppercase;
-}
-.cs-dot.empty{background:rgba(90,112,144,.1);color:var(--muted);border:1px solid var(--border)}
-.cs-dot.loaded{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
-
-/* ═══ PAGE INFO ═══ */
-#page-info{padding:14px;gap:10px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-#page-info::-webkit-scrollbar{display:none}
-.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
-.info-card h3{font-size:.82rem;font-weight:700;color:var(--orange);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #0d1a2e}
-.info-row:last-child{border-bottom:none}
-.ir-label{font-size:.72rem;color:var(--muted)}
-.ir-val{font-size:.72rem;font-weight:700;color:var(--blue);text-align:right}
-
-.install-card{
-  background:linear-gradient(135deg,rgba(232,93,4,.15),rgba(96,165,250,.08));
-  border:1px solid rgba(232,93,4,.4);border-radius:12px;padding:16px;margin-bottom:10px;
-}
-.install-card h3{font-size:.85rem;font-weight:800;color:#fff;margin-bottom:6px}
-.install-card p{font-size:.7rem;color:var(--muted);line-height:1.6;margin-bottom:8px}
-.install-steps{list-style:none;padding:0}
-.install-steps li{
-  font-size:.7rem;color:var(--muted);padding:4px 0;
-  display:flex;align-items:center;gap:6px;line-height:1.4;
-}
-.install-steps .step-num{
-  background:var(--orange);color:#fff;border-radius:50%;
-  width:18px;height:18px;font-size:.6rem;font-weight:800;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-
-/* Progress bar */
-#prog{
-  flex-shrink:0;height:2px;background:var(--bg3);
-}
-#prog-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ff8c00);width:0%;transition:width .15s}
-
-/* ═══ MAP PAGE ═══ */
-#page-map{position:relative;background:#0d1a0d}
-#cmap{background:#0d1a0d}
-
-/* Speed fab */
-#speed-fab{
-  position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:10;
-  background:rgba(11,15,26,.88);border:1px solid var(--border);border-radius:20px;
-  padding:5px 12px;display:flex;align-items:center;gap:8px;
-  backdrop-filter:blur(8px);
-}
-#speed-fab label{font-size:.6rem;color:var(--muted)}
-#speedRange{width:80px;accent-color:var(--orange)}
+  .empty-state{color:var(--muted); font-size:13px; text-align:center; padding:20px 10px;}
 </style>
 </head>
 <body>
-<div id="app">
 
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <div class="top-title">
-      <div class="icon">🚴</div>
-      <div>
-        <h1>CLM FRANCE 2026</h1>
-        <p>Aoste → La Tour du Pin · 29.7 km · 433m D+</p>
-      </div>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Grand Livre — 01/07/2026</p>
+    <h1>Calcul des rétentions</h1>
+    <p class="sub">Banques, crédits, chiffre d'affaires, paiement en ligne — vue d'ensemble.</p>
+  </div>
+</header>
+
+<div class="tabs-outer">
+  <div class="tabs">
+    <div class="tab active" data-tab="banques">BANQUES</div>
+    <div class="tab" data-tab="credit">CRÉDIT</div>
+    <div class="tab" data-tab="ca">CHIFFRE D'AFFAIRES</div>
+    <div class="tab" data-tab="online">PAIEMENT EN LIGNE</div>
+    <div class="tab" data-tab="bilan">BILAN</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===== PANEL BANQUES ===== -->
+  <div class="panel active" id="panel-banques">
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Vos banques</p>
+      <div id="banques-list"></div>
+      <button class="add-btn" id="banques-add">+ Ajouter une banque</button>
+      <p class="hint">Ces banques sont ensuite disponibles dans les onglets Crédit, Chiffre d'affaires et Paiement en ligne — pas besoin de les recréer.</p>
     </div>
-    <div class="top-actions">
-      <div class="icon-btn orange" onclick="goImport()">📂</div>
-      <div class="icon-btn" onclick="togglePlay()">⏸</div>
+
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Sauvegarde</p>
+      <p class="hint" style="margin-top:0;">Tout est enregistré automatiquement sur cet appareil. Pour garder une copie ou passer sur un autre téléphone, exporte un fichier de sauvegarde.</p>
+      <div class="row2" style="margin-top:12px;">
+        <button class="add-btn" id="export-btn" style="border-color:var(--green); color:var(--green);">↓ Exporter</button>
+        <button class="add-btn" id="import-btn" style="border-color:var(--muted); color:var(--cream);">↑ Importer</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" style="display:none;">
+      <p class="hint" id="save-status"></p>
     </div>
   </div>
 
-  <!-- PROGRESS -->
-  <div id="prog"><div id="prog-fill"></div></div>
-
-  <!-- PAGES -->
-  <div id="pages">
-
-    <!-- PAGE 3D -->
-    <div class="page active" id="page-3d">
-      <canvas id="c3d"></canvas>
-      <div id="profile-strip">
-        <canvas id="profileCanvas"></canvas>
-      </div>
-
-      <!-- Overlay controls -->
-      <div id="view-btns">
-        <div class="vbtn active" id="vb-side" onclick="setView('side')">◀ Côté</div>
-        <div class="vbtn" id="vb-top"  onclick="setView('top')">▲ Dessus</div>
-        <div class="vbtn" id="vb-free" onclick="setView('free')">⟲ Libre</div>
-      </div>
-      <div id="km-badge">Km 0.0</div>
-      <div id="play-btn" onclick="togglePlay()">⏸</div>
-      <div id="speed-fab">
-        <label>Vitesse</label>
-        <input type="range" id="speedRange" min="0.3" max="5" step="0.1" value="1">
-      </div>
+  <!-- ===== PANEL CRÉDIT ===== -->
+  <div class="panel" id="panel-credit">
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Crédits en cours</p>
+      <p class="hint" style="margin-top:0;">Montant du prêt par banque.</p>
     </div>
-
-    <!-- PAGE MAP -->
-    <div class="page" id="page-map">
-      <canvas id="cmap" style="display:block;width:100%;flex:1;touch-action:pan-y"></canvas>
-      <div style="flex-shrink:0;height:32px;background:#060a14;border-top:1px solid #1a2a3e;display:flex;align-items:center;padding:0 12px;gap:10px">
-        <div id="map-km-badge" style="font-size:.65rem;color:#60a5fa;font-weight:700;font-variant-numeric:tabular-nums">Km 0.0</div>
-        <div style="font-size:.6rem;color:#445;flex:1">Vue dessus · tracé réel</div>
-        <div id="map-count" style="font-size:.62rem;color:#5a7090">0 coureurs</div>
-      </div>
-    </div>
-
-    <!-- PAGE CLASSEMENT -->
-    <div class="page" id="page-class">
-      <div class="class-header">
-        <div class="cp-tabs">
-          <div class="cp-tab active" onclick="showClassTab('pc1')" id="ctab-pc1">PC1<br><span style="font-size:.55rem;opacity:.7">7.5 km</span></div>
-          <div class="cp-tab" onclick="showClassTab('pc2')"        id="ctab-pc2">PC2<br><span style="font-size:.55rem;opacity:.7">19.85 km</span></div>
-          <div class="cp-tab" onclick="showClassTab('arr')"        id="ctab-arr">Arrivée<br><span style="font-size:.55rem;opacity:.7">29.7 km</span></div>
-        </div>
-      </div>
-      <div class="class-list" id="class-list">
-        <p style="color:#445;font-size:.75rem;text-align:center;padding:24px;font-style:italic">Importe des résultats pour afficher le classement</p>
-      </div>
-    </div>
-
-    <!-- PAGE IMPORT -->
-    <div class="page" id="page-import">
-      <div class="import-card">
-        <h3>📋 Import classement officiel</h3>
-        <p>Sélectionne le point de chronométrage puis colle ou importe le texte du classement.</p>
-
-        <div class="section-title">Point de chronométrage</div>
-        <div class="cp-select">
-          <div class="cs-opt active" onclick="setImportCP('pc1')" id="cs-pc1">PC1</div>
-          <div class="cs-opt" onclick="setImportCP('pc2')"        id="cs-pc2">PC2</div>
-          <div class="cs-opt" onclick="setImportCP('arr')"        id="cs-arr">Arrivée</div>
-        </div>
-
-        <div class="section-title">Importer un fichier .txt</div>
-        <div class="file-import-area" onclick="document.getElementById('fileInput').click()">
-          <div class="fi-icon">📄</div>
-          <strong>Appuie pour choisir un fichier</strong>
-          <p>.txt · depuis Fichiers, Mail ou AirDrop</p>
-        </div>
-        <input type="file" id="fileInput" accept=".txt,text/plain" onchange="loadFile(this)">
-
-        <div class="section-title">Ou colle le texte</div>
-        <div class="format-hint">1	 NOM PRÉNOM
-ÉQUIPE
-11'58".468
-42,591 km/h
-
-2	 NOM PRÉNOM
-ÉQUIPE
-12'10".200
-41,900 km/h</div>
-        <textarea id="importTxt" placeholder="Colle ici le classement..."></textarea>
-        <div id="importFB"></div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="doImport()">✅ Importer</button>
-          <button class="btn btn-ghost"   onclick="clearCP()">🗑 Effacer</button>
-        </div>
-
-        <div class="section-title" style="margin-top:14px">Données chargées</div>
-        <div class="cp-status">
-          <div class="cs-dot" id="st-pc1">PC1<br>—</div>
-          <div class="cs-dot" id="st-pc2">PC2<br>—</div>
-          <div class="cs-dot" id="st-arr">ARR<br>—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE INFO -->
-    <div class="page" id="page-info">
-      <div class="install-card">
-        <h3>📲 Installer sur iPhone</h3>
-        <p>Ajoute cette app à ton écran d'accueil pour un accès instantané, même sans connexion.</p>
-        <ul class="install-steps">
-          <li><span class="step-num">1</span>Appuie sur le bouton <strong style="color:#60a5fa">Partager</strong> en bas de Safari (icône carré ↑)</li>
-          <li><span class="step-num">2</span>Fais défiler et appuie sur <strong style="color:#60a5fa">«&nbsp;Sur l'écran d'accueil&nbsp;»</strong></li>
-          <li><span class="step-num">3</span>Confirme avec <strong style="color:#60a5fa">«&nbsp;Ajouter&nbsp;»</strong> en haut à droite</li>
-          <li><span class="step-num">4</span>L'icône 🚴 apparaît sur ton écran d'accueil !</li>
-        </ul>
-      </div>
-
-      <div class="info-card">
-        <h3>🗺 Parcours</h3>
-        <div class="info-row"><span class="ir-label">Départ</span><span class="ir-val">Aoste</span></div>
-        <div class="info-row"><span class="ir-label">PC1 · 7.5 km</span><span class="ir-val">Romagnieu</span></div>
-        <div class="info-row"><span class="ir-label">PC2 · 19.85 km</span><span class="ir-val">La Bâtie-Montgascon</span></div>
-        <div class="info-row"><span class="ir-label">Arrivée · 29.7 km</span><span class="ir-val">Les Vals du Dauphiné</span></div>
-        <div class="info-row"><span class="ir-label">Dénivelé positif</span><span class="ir-val">433 m D+</span></div>
-        <div class="info-row"><span class="ir-label">Altitude max</span><span class="ir-val">~455 m (Les Abrets)</span></div>
-        <div class="info-row"><span class="ir-label">Altitude départ</span><span class="ir-val">252 m</span></div>
-      </div>
-
-      <div class="info-card">
-        <h3>⚙️ Commandes 3D</h3>
-        <div class="info-row"><span class="ir-label">Rotation</span><span class="ir-val">1 doigt glisser</span></div>
-        <div class="info-row"><span class="ir-label">Zoom</span><span class="ir-val">Pincer (2 doigts)</span></div>
-        <div class="info-row"><span class="ir-label">Lecture/Pause</span><span class="ir-val">Bouton ⏸ / ▶</span></div>
-        <div class="info-row"><span class="ir-label">Vitesse</span><span class="ir-val">Curseur bas gauche</span></div>
-        <div class="info-row"><span class="ir-label">Vue préréglée</span><span class="ir-val">Boutons Côté/Dessus</span></div>
-      </div>
-    </div>
-
-  </div><!-- /pages -->
-
-  <!-- TAB BAR -->
-  <div id="tabbar">
-    <div class="tab active" onclick="switchPage('3d')"    id="tab-3d">
-      <div class="tab-icon">🏔</div>3D
-    </div>
-    <div class="tab" onclick="switchPage('map')"    id="tab-map">
-      <div class="tab-icon">🗺</div>Maps
-    </div>
-    <div class="tab" onclick="switchPage('class')"  id="tab-class">
-      <div class="tab-icon">🏆</div>Résultats
-    </div>
-    <div class="tab" onclick="switchPage('import')" id="tab-import">
-      <div class="tab-icon">📂</div>Import
-    </div>
-    <div class="tab" onclick="switchPage('info')"   id="tab-info">
-      <div class="tab-icon">ℹ️</div>Info
-    </div>
+    <div id="credit-banks"></div>
   </div>
 
-</div><!-- /app -->
+  <!-- ===== PANEL CA ===== -->
+  <div class="panel" id="panel-ca">
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Chiffre d'affaires global</p>
+      <div class="field">
+        <label for="ca-total">Chiffre d'affaires total</label>
+        <div class="suffix-wrap">
+          <input type="text" id="ca-total" placeholder="0" inputmode="decimal">
+          <span class="suffix">€</span>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="ca-pct-carte">Part carte bancaire</label>
+          <div class="suffix-wrap">
+            <input type="text" id="ca-pct-carte" placeholder="70" inputmode="decimal">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ca-pct-liquide">Part liquide</label>
+          <div class="suffix-wrap">
+            <input type="text" id="ca-pct-liquide" placeholder="30" inputmode="decimal">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="split-bar">
+        <div id="split-carte" style="background:var(--green); width:70%;"></div>
+        <div id="split-liquide" style="background:var(--rose); width:30%;"></div>
+      </div>
+      <div class="split-labels"><span id="split-carte-label">Carte 70%</span><span id="split-liquide-label">Liquide 30%</span></div>
+
+      <div class="result-line"><span>Montant carte bancaire</span><span class="amt" id="res-ca-carte">0,00 €</span></div>
+      <div class="result-line"><span>Montant liquide</span><span class="amt" id="res-ca-liquide">0,00 €</span></div>
+    </div>
+
+    <div id="ca-banks"></div>
+    <p class="hint">Pour chaque banque : un taux de frais s'applique sur l'ensemble du CA carte pour « leurs cartes » et un autre pour « CB externes ».</p>
+  </div>
+
+  <!-- ===== PANEL ONLINE ===== -->
+  <div class="panel" id="panel-online">
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Paiement en ligne</p>
+      <div class="field">
+        <label for="online-ca">Chiffre d'affaires en ligne</label>
+        <div class="suffix-wrap">
+          <input type="text" id="online-ca" placeholder="0" inputmode="decimal">
+          <span class="suffix">€</span>
+        </div>
+      </div>
+    </div>
+    <div id="online-banks"></div>
+    <p class="hint">Pour chaque banque : un taux appliqué au CA en ligne, plus un abonnement mensuel fixe et des frais de dossier ponctuels.</p>
+  </div>
+
+  <!-- ===== PANEL BILAN ===== -->
+  <div class="panel" id="panel-bilan">
+    <div class="stat-grid">
+      <div class="stat-card"><p class="lbl">Total crédits</p><p class="val" id="bilan-total-credit">0,00 €</p></div>
+      <div class="stat-card"><p class="lbl">Total CA retenu</p><p class="val" id="bilan-total-ca">0,00 €</p></div>
+      <div class="stat-card"><p class="lbl">Total en ligne</p><p class="val" id="bilan-total-online">0,00 €</p></div>
+      <div class="stat-card"><p class="lbl">Nb. banques</p><p class="val" id="bilan-total-banks">0</p></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title"><span class="dot"></span>Détail par banque</p>
+      <div id="bilan-rows"></div>
+    </div>
+
+    <div class="section-divider">
+      <div class="line"></div>
+      <span class="txt">Focus — Paiement en ligne</span>
+      <div class="line"></div>
+    </div>
+    <p class="hint" style="margin-top:0; margin-bottom:14px;">Certaines banques n'ont que ces données renseignées — détail complet ci-dessous.</p>
+    <div id="bilan-online-focus"></div>
+  </div>
+
+</div>
 
 <script>
-'use strict';
-// ═══════════════════════════════════════════════════════════
-// DATA & GEOMETRY
-// ═══════════════════════════════════════════════════════════
-const TOTAL_KM = 29.7;
-const CPS = [
-  {name:'Départ', km:0,     label:'Aoste'},
-  {name:'PC1',    km:7.5,   label:'Romagnieu'},
-  {name:'PC2',    km:19.85, label:'La Bâtie-Montgascon'},
-  {name:'Arrivée',km:29.7,  label:'Les Vals du Dauphiné', isArr:true},
-];
+const fmt = n => (isFinite(n)?n:0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const num = v => { const n = parseFloat((v||'').toString().replace(',','.')); return isFinite(n) ? n : 0; };
 
-const ELEV = [
-  [0,252],[2,265],[4,290],[5.5,310],[7.5,295],
-  [9,305],[11,330],[13,360],[15,395],[17,430],
-  [18.5,452],[19.85,445],[21,440],[22,420],[23,395],
-  [24,368],[25,340],[26,300],[27,265],[28,248],[29.7,235],
-];
-function getElev(km){
-  for(let i=0;i<ELEV.length-1;i++){
-    const[k0,e0]=ELEV[i],[k1,e1]=ELEV[i+1];
-    if(km>=k0&&km<=k1) return e0+(e1-e0)*(km-k0)/(k1-k0);
-  }
-  return 250;
+// ---- Registre central des banques ----
+let banks = [{id:1, name:'Banque 1'}];
+let bankSeq = 2;
+// Données par banque, indexées par id. Toutes les valeurs numériques sont stockées en chaîne brute
+// (pas de conversion immédiate) pour ne jamais effacer un "0" ou une saisie en cours ("0,5"...).
+let bankData = { 1: { credit:'', tauxLeur:'', tauxExterne:'', pct:'', mensuel:'', dossier:'' } };
+
+function ensureBankData(id){
+  if(!bankData[id]) bankData[id] = { credit:'', tauxLeur:'', tauxExterne:'', pct:'', mensuel:'', dossier:'' };
+  return bankData[id];
 }
 
-function buildTrack(n=500){
-  const pts=[];
-  for(let i=0;i<=n;i++){
-    const t=i/n, km=t*TOTAL_KM;
-    let x,z;
-    if(km<=7.5){const s=km/7.5;x=820-s*380;z=-20+s*120;}
-    else if(km<=12){const s=(km-7.5)/4.5;x=440-s*80;z=100+s*180;}
-    else if(km<=19.85){const s=(km-12)/7.85;x=360-s*130-60*Math.sin(s*Math.PI);z=280+60*Math.sin(s*Math.PI*.9-.1)-s*100;}
-    else{const s=(km-19.85)/9.85;x=230-s*230;z=180-s*180-30*Math.sin(s*Math.PI*1.5);}
-    z+=8*Math.sin(t*Math.PI*18+.5)+5*Math.cos(t*Math.PI*31);
-    const y=(getElev(km)-230)*.18;
-    pts.push({x,y,z,km,t});
-  }
-  return pts;
-}
-const TRACK=buildTrack(600);
-
-function getTrackPos(km){
-  const t=Math.max(0,Math.min(1,km/TOTAL_KM));
-  const fi=t*(TRACK.length-1),i=Math.floor(fi),f=fi-i;
-  const a=TRACK[i],b=TRACK[Math.min(i+1,TRACK.length-1)];
-  return{x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f};
-}
-
-// ═══════════════════════════════════════════════════════════
-// RIDER DATA
-// ═══════════════════════════════════════════════════════════
-const PALETTE=['#e85d04','#60a5fa','#4ade80','#fbbf24','#f472b6','#a78bfa',
-  '#34d399','#fb923c','#38bdf8','#f87171','#86efac','#fde68a','#c084fc',
-  '#67e8f9','#fdba74','#a3e635','#e879f9','#2dd4bf','#fb7185','#93c5fd',
-  '#6ee7b7','#fcd34d','#d8b4fe','#7dd3fc','#fca5a5','#bbf7d0','#fef08a',
-  '#f5d0fe','#bae6fd','#99f6e4'];
-const cpData={pc1:[],pc2:[],arr:[]};
-const riderColors={};let colorIdx=0;
-function getColor(name){if(!riderColors[name]){riderColors[name]=PALETTE[colorIdx++%PALETTE.length];}return riderColors[name];}
-
-// ═══════════════════════════════════════════════════════════
-// PARSE
-// ═══════════════════════════════════════════════════════════
-// ── Détecteurs de type de ligne
-function _isTimeOrDelta(s){
-  s=s.trim();
-  return s.startsWith('+')||s.startsWith('-')||/^\d+[\''\u2019"]/.test(s)||/^\d+:\d/.test(s);
-}
-function _isSpeed(s){return /km\/h/i.test(s);}
-function _isPosition(s){return /^\d+\s+\S/.test(s.trim());}
-
-function _parseAbsTime(s){
-  s=s.trim();
-  let m=s.match(/^(\d+)[\''\u2019](\d+)[\"""\u201c\u201d\.]*?(\d*)/);
-  if(m){const ms=m[3]?parseInt(m[3].padEnd(3,'0').slice(0,3)):0;return parseInt(m[1])*60+parseInt(m[2])+ms/1000;}
-  m=s.match(/^(\d+):(\d+)[.,](\d*)/);
-  if(m)return parseInt(m[1])*60+parseInt(m[2])+parseInt((m[3]+'000').slice(0,3))/1000;
-  return null;
-}
-function _parseDelta(s){
-  s=s.trim();
-  if(!s.startsWith('+')&&!s.startsWith('-'))return null;
-  const sign=s.startsWith('-')?-1:1;
-  s=s.slice(1).trim();
-  let m=s.match(/^(\d+)[\''\u2019](\d+)[\"""\u201c\u201d\.]*?(\d*)/);
-  if(m){const ms=m[3]?parseInt(m[3].padEnd(3,'0').slice(0,3)):0;return sign*(parseInt(m[1])*60+parseInt(m[2])+ms/1000);}
-  m=s.match(/^(\d+)[\"""\u201c\u201d]*\.?(\d*)/);
-  if(m){const ms=m[2]?parseInt(m[2].padEnd(3,'0').slice(0,3)):0;return sign*(parseInt(m[1])+ms/1000);}
-  return null;
-}
-
-function fmtT(s){
-  if(s===null||s===undefined)return'—';
-  const m=Math.floor(s/60),sc=s%60,si=Math.floor(sc),ms=Math.round((sc-si)*1000);
-  return`${m}'${String(si).padStart(2,'0')}"${String(ms).padStart(3,'0')}`;
-}
-function fmtDelta(s){
-  if(!s||s<.001)return'';
-  const m=Math.floor(s/60),sc=Math.floor(s%60);
-  return`+${m?m+"'":''}${String(sc).padStart(2,'0')}"`;
-}
-
-// ── Parser principal : machine à états ligne par ligne
-// Gère : blocs sans ligne vide, coureurs sans temps, écarts et temps absolus mélangés
-function parseImport(text){
-  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
-  const raw=[];
-  let i=0;
-  while(i<lines.length){
-    const posMatch=lines[i].match(/^(\d+)\s+(.+)/);
-    if(!posMatch){i++;continue;}
-    const pos=parseInt(posMatch[1]);
-    const name=posMatch[2].trim().toUpperCase();
-    i++;
-    let team='';
-    if(i<lines.length&&!_isTimeOrDelta(lines[i])&&!_isSpeed(lines[i])&&!_isPosition(lines[i])){
-      team=lines[i].trim().toUpperCase();i++;
-    }
-    let timeVal=null,isDelta=false,speed=null;
-    if(i<lines.length&&_isTimeOrDelta(lines[i])){
-      const tl=lines[i].trim();
-      isDelta=tl.startsWith('+');
-      timeVal=isDelta?_parseDelta(tl):_parseAbsTime(tl);
-      i++;
-      if(i<lines.length&&_isSpeed(lines[i])){
-        const sm=lines[i].match(/([\d,\.]+)/);
-        if(sm)speed=parseFloat(sm[1].replace(',','.'));
-        i++;
-      }
-    }
-    raw.push({pos,name,team,timeVal,isDelta,speed});
-  }
-  raw.sort((a,b)=>a.pos-b.pos);
-  let leaderTime=null;
-  const riders=[];
-  for(const r of raw){
-    let timeSec=null;
-    if(r.timeVal!==null){
-      if(!r.isDelta){timeSec=r.timeVal;if(leaderTime===null)leaderTime=r.timeVal;}
-      else if(leaderTime!==null)timeSec=leaderTime+r.timeVal;
-    }
-    riders.push({pos:r.pos,name:r.name,team:r.team,timeSec,speed:r.speed});
-  }
-  riders.sort((a,b)=>{
-    if(a.timeSec===null&&b.timeSec===null)return a.pos-b.pos;
-    if(a.timeSec===null)return 1;
-    if(b.timeSec===null)return -1;
-    return a.timeSec-b.timeSec;
+// ---- tabs ----
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+    if(t.dataset.tab === 'bilan') renderBilan();
   });
-  return riders;
-}
+});
 
-
-// ═══════════════════════════════════════════════════════════
-// 3D ENGINE
-// ═══════════════════════════════════════════════════════════
-const canvas=document.getElementById('c3d');
-const ctx=canvas.getContext('2d');
-let cam={rotX:-.45,rotY:.3,dist:680,cx:410,cy:22,cz:40,fov:580};
-let viewMode='side';
-
-function project(x,y,z){
-  let dx=x-cam.cx,dy=y-cam.cy,dz=z-cam.cz;
-  const cY=Math.cos(cam.rotY),sY=Math.sin(cam.rotY);
-  let rx=dx*cY+dz*sY;dz=-dx*sY+dz*cY;dx=rx;
-  const cX=Math.cos(cam.rotX),sX=Math.sin(cam.rotX);
-  let ry=dy*cX-dz*sX,rz2=dy*sX+dz*cX;dy=ry;dz=rz2;
-  const d=cam.dist+dz;if(d<5)return null;
-  const W=canvas.width/(window.devicePixelRatio||1);
-  const H=canvas.height/(window.devicePixelRatio||1);
-  return{px:W/2+dx*cam.fov/d,py:H/2-dy*cam.fov/d,scale:cam.fov/d,d};
-}
-
-function setView(mode){
-  viewMode=mode;
-  document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('vb-'+mode);if(el)el.classList.add('active');
-  if(mode==='side'){cam.rotX=-.45;cam.rotY=.3;cam.dist=680;cam.cx=410;cam.cy=22;cam.cz=40;}
-  if(mode==='top') {cam.rotX=-1.35;cam.rotY=0;cam.dist=800;cam.cx=410;cam.cy=22;cam.cz=40;}
-  if(mode==='free'){cam.rotX=-.55;cam.rotY=-.6;cam.dist=750;cam.cx=410;cam.cy=22;cam.cz=40;}
-}
-
-function draw3D(){
-  const dpr=window.devicePixelRatio||1;
-  const r=canvas.getBoundingClientRect();
-  canvas.width=r.width*dpr;canvas.height=r.height*dpr;
-  ctx.scale(dpr,dpr);
-  const W=r.width,H=r.height;
-
-  // Sky
-  const sky=ctx.createLinearGradient(0,0,0,H);
-  sky.addColorStop(0,'#020509');sky.addColorStop(1,'#070e1a');
-  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
-
-  // Ground
-  const gc=[project(-100,-2,-450),project(1000,-2,-450),project(1000,-2,450),project(-100,-2,450)].filter(Boolean);
-  if(gc.length===4){
-    ctx.beginPath();gc.forEach((c,i)=>i===0?ctx.moveTo(c.px,c.py):ctx.lineTo(c.px,c.py));
-    ctx.closePath();
-    const g=ctx.createLinearGradient(0,gc[0].py,0,gc[2].py);
-    g.addColorStop(0,'#0b1f0e');g.addColorStop(1,'#060d07');
-    ctx.fillStyle=g;ctx.fill();
-  }
-
-  // Terrain patches
-  [[0,-350,250,200,'#091a0b'],[200,-280,180,150,'#0b2010'],[550,-200,220,180,'#081508'],
-   [700,100,160,200,'#0a1c0a'],[100,150,200,180,'#091a0b'],[400,200,180,150,'#0b200f'],
-   [-50,-100,140,250,'#0a1c0a'],[850,-100,120,220,'#091a08']].forEach(([x,z,w,d,col])=>{
-    const pts=[project(x,-1.5,z),project(x+w,-1.5,z),project(x+w,-1.5,z+d),project(x,-1.5,z+d)].filter(Boolean);
-    if(pts.length===4){
-      ctx.save();ctx.globalAlpha=.5;ctx.fillStyle=col;
-      ctx.beginPath();pts.forEach((c,i)=>i===0?ctx.moveTo(c.px,c.py):ctx.lineTo(c.px,c.py));
-      ctx.closePath();ctx.fill();ctx.restore();
-    }
+// ===================== BANQUES =====================
+function renderBanques(){
+  const wrap = document.getElementById('banques-list');
+  wrap.innerHTML = '';
+  banks.forEach(bank=>{
+    const row = document.createElement('div');
+    row.className = 'bank-head';
+    row.style.marginBottom = '10px';
+    row.innerHTML = `
+      <div class="name-wrap">
+        <input type="text" value="${bank.name}" data-id="${bank.id}" class="bq-name" placeholder="Ex. BNP, Crédit Mutuel...">
+        <span class="pencil">✎</span>
+      </div>
+      ${banks.length>1 ? `<button class="remove-btn bq-remove" data-id="${bank.id}">✕</button>` : ''}
+    `;
+    wrap.appendChild(row);
   });
 
-  // Track shadow
-  ctx.save();ctx.globalAlpha=.3;ctx.beginPath();let s=false;
-  TRACK.forEach(p=>{const pr=project(p.x,-1.8,p.z);if(!pr)return;if(!s){ctx.moveTo(pr.px,pr.py);s=true;}else ctx.lineTo(pr.px,pr.py);});
-  ctx.strokeStyle='#000';ctx.lineWidth=11;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
+  wrap.querySelectorAll('.bq-name').forEach(i=>i.addEventListener('input', e=>{
+    const b = banks.find(x=>x.id==e.target.dataset.id);
+    b.name = e.target.value;
+    updateAllBankTitles();
+    saveState();
+  }));
+  wrap.querySelectorAll('.bq-remove').forEach(i=>i.addEventListener('click', e=>{
+    const id = e.target.dataset.id;
+    banks = banks.filter(x=>x.id!=id);
+    delete bankData[id];
+    renderBanques();
+    renderCreditBanks();
+    renderCaBanks();
+    renderOnlineBanks();
+    saveState();
+  }));
+}
+document.getElementById('banques-add').addEventListener('click', ()=>{
+  banks.push({id:bankSeq, name:'Banque '+bankSeq});
+  ensureBankData(bankSeq);
+  bankSeq++;
+  renderBanques();
+  renderCreditBanks();
+  renderCaBanks();
+  renderOnlineBanks();
+  saveState();
+});
 
-  // Road
-  ['#2a3528','#3c4838'].forEach((col,idx)=>{
-    ctx.beginPath();s=false;
-    TRACK.forEach(p=>{const pr=project(p.x,p.y,p.z);if(!pr)return;if(!s){ctx.moveTo(pr.px,pr.py);s=true;}else ctx.lineTo(pr.px,pr.py);});
-    ctx.strokeStyle=col;ctx.lineWidth=idx===0?9:6;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-  });
-  ctx.setLineDash([14,11]);ctx.beginPath();s=false;
-  TRACK.forEach(p=>{const pr=project(p.x,p.y,p.z);if(!pr)return;if(!s){ctx.moveTo(pr.px,pr.py);s=true;}else ctx.lineTo(pr.px,pr.py);});
-  ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
-
-  // Checkpoints
-  CPS.forEach((cp,i)=>{
-    if(i===0)return;
-    const pos=getTrackPos(cp.km);
-    const pr=project(pos.x,pos.y+2,pos.z);
-    const col=cp.isArr?'#e85d04':'#60a5fa';
-    const sc=Math.max(.5,Math.min(1.5,pr?.scale*8||1));
-    const base=project(pos.x,pos.y-3,pos.z),top=project(pos.x,pos.y+22,pos.z);
-    if(base&&top){
-      ctx.beginPath();ctx.moveTo(base.px,base.py);ctx.lineTo(top.px,top.py);
-      ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
-      ctx.save();ctx.globalAlpha=.9;ctx.fillStyle=col;
-      ctx.beginPath();const fw=15*sc,fh=9*sc;
-      ctx.moveTo(top.px,top.py);ctx.lineTo(top.px+fw,top.py-fh/2);ctx.lineTo(top.px+fw,top.py+fh/2);
-      ctx.closePath();ctx.fill();ctx.restore();
-    }
-    if(pr){
-      ctx.font=`bold ${Math.round(10*sc)}px sans-serif`;
-      ctx.fillStyle=col;ctx.textAlign='center';
-      ctx.shadowColor=col;ctx.shadowBlur=8;
-      ctx.fillText(cp.name,pr.px,pr.py-20*sc);ctx.shadowBlur=0;
-      ctx.font=`${Math.round(7.5*sc)}px sans-serif`;ctx.fillStyle='#7090a0';
-      ctx.fillText(cp.label,pr.px,pr.py-10*sc);
-    }
-  });
-
-  // Riders
-  const riders=buildRiders();
-  const curKm=animT*TOTAL_KM;
-  const pos3d=[];
-  riders.forEach(r=>{
-    const km=riderKmAt(r,curKm);if(km===null)return;
-    const pos=getTrackPos(km);const pr=project(pos.x,pos.y+5,pos.z);if(!pr)return;
-    pos3d.push({...r,pos,pr,riderKm:km});
-  });
-  pos3d.sort((a,b)=>b.pr.d-a.pr.d);
-  pos3d.forEach(r=>{
-    const{pr,riderKm}=r;
-    const sc=Math.max(.35,Math.min(2,pr.scale*8));
-    const rad=Math.max(4,7*sc);
-    ctx.save();ctx.shadowColor=r.color;ctx.shadowBlur=14*sc;
-    ctx.beginPath();ctx.arc(pr.px,pr.py,rad,0,Math.PI*2);ctx.fillStyle=r.color;ctx.fill();ctx.restore();
-    ctx.beginPath();ctx.arc(pr.px,pr.py,rad+1.5,0,Math.PI*2);ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=2;ctx.stroke();
-    const trailPr=project(...(()=>{const p=getTrackPos(Math.max(0,riderKm-1.8));return[p.x,p.y+5,p.z];})());
-    if(trailPr){const g=ctx.createLinearGradient(trailPr.px,trailPr.py,pr.px,pr.py);g.addColorStop(0,'transparent');g.addColorStop(1,r.color+'80');ctx.beginPath();ctx.moveTo(trailPr.px,trailPr.py);ctx.lineTo(pr.px,pr.py);ctx.strokeStyle=g;ctx.lineWidth=2.5*sc;ctx.stroke();}
-    if(sc>.55){const fn=r.name.split(' ')[0];ctx.font=`bold ${Math.round(8*sc)}px sans-serif`;ctx.textAlign='center';ctx.fillStyle=r.color;ctx.shadowColor=r.color;ctx.shadowBlur=5;ctx.fillText(fn,pr.px,pr.py-rad-4);ctx.shadowBlur=0;}
+// Met à jour uniquement les titres de banque affichés ailleurs (sans reconstruire les champs de saisie)
+function updateAllBankTitles(){
+  document.querySelectorAll('.bank-title[data-id]').forEach(el=>{
+    const b = banks.find(x=>x.id==el.dataset.id);
+    if(b) el.textContent = b.name || 'Banque';
   });
 }
 
-function buildRiders(){
-  const names=new Set([...cpData.pc1,...cpData.pc2,...cpData.arr].map(r=>r.name));
-  return [...names].map(name=>{
-    const color=getColor(name);
-    const times=[0];
-    CPS.forEach((cp,i)=>{
-      if(i===0)return;
-      const key=i===1?'pc1':i===2?'pc2':'arr';
-      const e=cpData[key].find(r=>r.name===name);
-      times.push(e?e.timeSec:null);
-    });
-    return{name,color,times:fillTimes(times)};
+// ===================== CRÉDIT =====================
+function renderCreditBanks(){
+  const wrap = document.getElementById('credit-banks');
+  wrap.innerHTML = '';
+  if(banks.length===0){ wrap.innerHTML = "<p class='empty-state'>Ajoutez une banque dans l'onglet Banques.</p>"; return; }
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const el = document.createElement('div');
+    el.className = 'bank-card';
+    el.innerHTML = `
+      <div class="bank-title-row">
+        <span class="bank-title" data-id="${bank.id}">${bank.name}</span>
+      </div>
+      <div class="field">
+        <label>Montant du prêt</label>
+        <div class="suffix-wrap">
+          <input type="text" class="cr-montant" data-id="${bank.id}" value="${d.credit}" placeholder="0" inputmode="decimal">
+          <span class="suffix">€</span>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(el);
+  });
+  wrap.querySelectorAll('.cr-montant').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).credit = e.target.value;
+    saveState();
+  }));
+}
+
+// ===================== CHIFFRE D'AFFAIRES =====================
+function getCaCarteMontant(){
+  const total = num(document.getElementById('ca-total').value);
+  const pctCarte = num(document.getElementById('ca-pct-carte').value);
+  return total * pctCarte / 100;
+}
+function getCaLiquideMontant(){
+  const total = num(document.getElementById('ca-total').value);
+  const pctLiquide = num(document.getElementById('ca-pct-liquide').value);
+  return total * pctLiquide / 100;
+}
+function getCaBankTotal(bankId){
+  const d = ensureBankData(bankId);
+  const base = getCaCarteMontant();
+  return base * num(d.tauxLeur)/100 + base * num(d.tauxExterne)/100;
+}
+
+function renderCaBanks(){
+  const wrap = document.getElementById('ca-banks');
+  wrap.innerHTML = '';
+  if(banks.length===0){ wrap.innerHTML = "<p class='empty-state'>Ajoutez une banque dans l'onglet Banques.</p>"; return; }
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const el = document.createElement('div');
+    el.className = 'bank-card';
+    el.innerHTML = `
+      <div class="bank-title-row">
+        <span class="bank-title" data-id="${bank.id}">${bank.name}</span>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Rétention leurs cartes</label>
+          <div class="suffix-wrap">
+            <input type="text" class="ca-taux-leur" data-id="${bank.id}" value="${d.tauxLeur}" placeholder="0" inputmode="decimal">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Rétention CB externes</label>
+          <div class="suffix-wrap">
+            <input type="text" class="ca-taux-externe" data-id="${bank.id}" value="${d.tauxExterne}" placeholder="0" inputmode="decimal">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-line"><span>Coût leurs cartes</span><span class="amt" data-role="leur" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line"><span>Coût CB externes</span><span class="amt" data-role="externe" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line total"><span>Total banque</span><span class="amt" data-role="total" data-id="${bank.id}">0,00 €</span></div>
+    `;
+    wrap.appendChild(el);
+  });
+  wrap.querySelectorAll('.ca-taux-leur').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).tauxLeur = e.target.value; updateCaResults(); saveState();
+  }));
+  wrap.querySelectorAll('.ca-taux-externe').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).tauxExterne = e.target.value; updateCaResults(); saveState();
+  }));
+  updateCaResults();
+}
+
+function updateCaResults(){
+  const wrap = document.getElementById('ca-banks');
+  const base = getCaCarteMontant();
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const leurEl = wrap.querySelector(`.amt[data-role="leur"][data-id="${bank.id}"]`);
+    const externeEl = wrap.querySelector(`.amt[data-role="externe"][data-id="${bank.id}"]`);
+    const totalEl = wrap.querySelector(`.amt[data-role="total"][data-id="${bank.id}"]`);
+    if(leurEl) leurEl.textContent = fmt(base * num(d.tauxLeur)/100);
+    if(externeEl) externeEl.textContent = fmt(base * num(d.tauxExterne)/100);
+    if(totalEl) totalEl.textContent = fmt(getCaBankTotal(bank.id));
   });
 }
 
-function fillTimes(raw){
-  const t=[...raw];let prev={i:0,v:0};
-  for(let i=1;i<t.length;i++){
-    if(t[i]!==null){
-      const km0=CPS[prev.i].km,km1=CPS[i].km,dt=t[i]-prev.v;
-      for(let j=prev.i+1;j<i;j++) t[j]=prev.v+dt*(CPS[j].km-km0)/(km1-km0);
-      prev={i,v:t[i]};
-    }
-  }
-  if(t[t.length-1]===null){
-    const last=[...t].map((v,i)=>({v,i})).filter(x=>x.v!==null).pop();
-    if(last&&last.i>0){const pace=last.v/CPS[last.i].km;for(let j=last.i+1;j<t.length;j++)if(t[j]===null)t[j]=Math.round(pace*CPS[j].km*10)/10;}
-  }
-  return t;
+function updateCaTop(){
+  document.getElementById('res-ca-carte').textContent = fmt(getCaCarteMontant());
+  document.getElementById('res-ca-liquide').textContent = fmt(getCaLiquideMontant());
+  const pc = num(document.getElementById('ca-pct-carte').value);
+  const pl = num(document.getElementById('ca-pct-liquide').value);
+  const totalPct = pc + pl || 1;
+  document.getElementById('split-carte').style.width = (pc/totalPct*100)+'%';
+  document.getElementById('split-liquide').style.width = (pl/totalPct*100)+'%';
+  document.getElementById('split-carte-label').textContent = 'Carte ' + pc + '%';
+  document.getElementById('split-liquide-label').textContent = 'Liquide ' + pl + '%';
+}
+document.getElementById('ca-total').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
+document.getElementById('ca-pct-carte').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
+document.getElementById('ca-pct-liquide').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
+
+// ===================== PAIEMENT EN LIGNE =====================
+function getOnlineBankTotal(bankId){
+  const d = ensureBankData(bankId);
+  const caOnline = num(document.getElementById('online-ca').value);
+  return caOnline * num(d.pct)/100 + num(d.mensuel) + num(d.dossier);
 }
 
-function riderKmAt(rider,raceKm){
-  const allT=[...cpData.pc1,...cpData.pc2,...cpData.arr].map(r=>r.timeSec).filter(Boolean);
-  if(!allT.length)return null;
-  const maxT=Math.max(...allT);
-  const cur=(raceKm/TOTAL_KM)*maxT;
-  for(let i=0;i<CPS.length-1;i++){
-    const t0=rider.times[i],t1=rider.times[i+1];
-    if(t0===null||t1===null)continue;
-    if(cur>=t0&&cur<=t1)return CPS[i].km+(CPS[i+1].km-CPS[i].km)*(cur-t0)/(t1-t0);
-  }
-  const lt=rider.times[rider.times.length-1];
-  if(lt!==null&&cur>=lt)return TOTAL_KM;
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// PROFILE
-// ═══════════════════════════════════════════════════════════
-const pCanvas=document.getElementById('profileCanvas');
-const pCtx=pCanvas.getContext('2d');
-function drawProfile(){
-  const dpr=window.devicePixelRatio||1;
-  const r=pCanvas.getBoundingClientRect();
-  pCanvas.width=r.width*dpr;pCanvas.height=r.height*dpr;
-  pCtx.scale(dpr,dpr);
-  const W=r.width,H=r.height,pad={l:30,r:10,t:8,b:18};
-  const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
-  pCtx.fillStyle='#060a14';pCtx.fillRect(0,0,W,H);
-  const elvs=ELEV.map(e=>e[1]),minE=Math.min(...elvs)-20,maxE=Math.max(...elvs)+20;
-  const toX=km=>pad.l+(km/TOTAL_KM)*iW;
-  const toY=e=>pad.t+iH-((e-minE)/(maxE-minE))*iH;
-  const g=pCtx.createLinearGradient(0,pad.t,0,pad.t+iH);
-  g.addColorStop(0,'rgba(232,93,4,.55)');g.addColorStop(1,'rgba(232,93,4,.06)');
-  pCtx.beginPath();pCtx.moveTo(toX(0),H-pad.b);
-  ELEV.forEach(([km,e])=>pCtx.lineTo(toX(km),toY(e)));
-  pCtx.lineTo(toX(TOTAL_KM),H-pad.b);pCtx.closePath();pCtx.fillStyle=g;pCtx.fill();
-  pCtx.beginPath();ELEV.forEach(([km,e],i)=>i===0?pCtx.moveTo(toX(km),toY(e)):pCtx.lineTo(toX(km),toY(e)));
-  pCtx.strokeStyle='#e85d04';pCtx.lineWidth=2;pCtx.stroke();
-  CPS.forEach((cp,i)=>{
-    if(i===0)return;
-    const x=toX(cp.km),y=toY(getElev(cp.km)),col=cp.isArr?'#e85d04':'#60a5fa';
-    pCtx.beginPath();pCtx.moveTo(x,pad.t);pCtx.lineTo(x,H-pad.b);
-    pCtx.strokeStyle=col+'55';pCtx.lineWidth=1;pCtx.setLineDash([3,3]);pCtx.stroke();pCtx.setLineDash([]);
-    pCtx.beginPath();pCtx.arc(x,y,3.5,0,Math.PI*2);pCtx.fillStyle=col;pCtx.fill();
-    pCtx.font='bold 7px sans-serif';pCtx.fillStyle=col;pCtx.textAlign='center';
-    pCtx.fillText(cp.name,x,pad.t+7);
+function renderOnlineBanks(){
+  const wrap = document.getElementById('online-banks');
+  wrap.innerHTML = '';
+  if(banks.length===0){ wrap.innerHTML = "<p class='empty-state'>Ajoutez une banque dans l'onglet Banques.</p>"; return; }
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const el = document.createElement('div');
+    el.className = 'bank-card';
+    el.innerHTML = `
+      <div class="bank-title-row">
+        <span class="bank-title" data-id="${bank.id}">${bank.name}</span>
+      </div>
+      <div class="field">
+        <label>Taux sur transactions</label>
+        <div class="suffix-wrap">
+          <input type="text" class="ol-pct" data-id="${bank.id}" value="${d.pct}" placeholder="0" inputmode="decimal">
+          <span class="suffix">%</span>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Abonnement mensuel</label>
+          <div class="suffix-wrap">
+            <input type="text" class="ol-mensuel" data-id="${bank.id}" value="${d.mensuel}" placeholder="0" inputmode="decimal">
+            <span class="suffix">€</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Frais de dossier</label>
+          <div class="suffix-wrap">
+            <input type="text" class="ol-dossier" data-id="${bank.id}" value="${d.dossier}" placeholder="0" inputmode="decimal">
+            <span class="suffix">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-line"><span>Frais transactions</span><span class="amt" data-role="frais" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line"><span>Abonnement + dossier</span><span class="amt" data-role="fixe" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line total"><span>Total banque</span><span class="amt" data-role="total" data-id="${bank.id}">0,00 €</span></div>
+    `;
+    wrap.appendChild(el);
   });
-  const cx=toX(animT*TOTAL_KM);
-  pCtx.beginPath();pCtx.moveTo(cx,pad.t);pCtx.lineTo(cx,H-pad.b);
-  pCtx.strokeStyle='rgba(255,255,255,.4)';pCtx.lineWidth=1.5;pCtx.stroke();
-  pCtx.font='7px sans-serif';pCtx.fillStyle='#445';pCtx.textAlign='center';
-  [0,10,20,29.7].forEach(km=>pCtx.fillText(km,toX(km),H-pad.b+10));
+  wrap.querySelectorAll('.ol-pct').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).pct = e.target.value; updateOnlineResults();
+  }));
+  wrap.querySelectorAll('.ol-mensuel').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).mensuel = e.target.value; updateOnlineResults();
+  }));
+  wrap.querySelectorAll('.ol-dossier').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).dossier = e.target.value; updateOnlineResults();
+  }));
+  updateOnlineResults();
 }
 
+function updateOnlineResults(){
+  const wrap = document.getElementById('online-banks');
+  const caOnline = num(document.getElementById('online-ca').value);
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const frais = caOnline * num(d.pct)/100;
+    const fixe = num(d.mensuel) + num(d.dossier);
+    const fraisEl = wrap.querySelector(`.amt[data-role="frais"][data-id="${bank.id}"]`);
+    const fixeEl = wrap.querySelector(`.amt[data-role="fixe"][data-id="${bank.id}"]`);
+    const totalEl = wrap.querySelector(`.amt[data-role="total"][data-id="${bank.id}"]`);
+    if(fraisEl) fraisEl.textContent = fmt(frais);
+    if(fixeEl) fixeEl.textContent = fmt(fixe);
+    if(totalEl) totalEl.textContent = fmt(frais + fixe);
+  });
+}
+document.getElementById('online-ca').addEventListener('input', updateOnlineResults);
 
-// ═══════════════════════════════════════════════════════════
-// MAP VIEW — vue dessus style satellite + coureurs colorés
-// ═══════════════════════════════════════════════════════════
-const mapCanvas = document.getElementById('cmap');
-const mCtx = mapCanvas.getContext('2d');
+// ===================== BILAN =====================
+function renderBilan(){
+  let totalCredit = 0, totalCa = 0, totalOnline = 0;
+  const rowsWrap = document.getElementById('bilan-rows');
+  rowsWrap.innerHTML = '';
 
-// Bounding box du tracé pour normalisation
-const _mx0=Math.min(...TRACK.map(p=>p.x))-30;
-const _mx1=Math.max(...TRACK.map(p=>p.x))+30;
-const _mz0=Math.min(...TRACK.map(p=>p.z))-30;
-const _mz1=Math.max(...TRACK.map(p=>p.z))+30;
+  if(banks.length===0){
+    rowsWrap.innerHTML = "<p class='empty-state'>Ajoutez une banque dans l'onglet Banques.</p>";
+  }
 
-function mapToCanvas(x,z,W,H){
-  const pad=28;
+  banks.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const credit = num(d.credit);
+    const ca = getCaBankTotal(bank.id);
+    const online = getOnlineBankTotal(bank.id);
+    totalCredit += credit; totalCa += ca; totalOnline += online;
+
+    const row = document.createElement('div');
+    row.className = 'bilan-row';
+    row.innerHTML = `
+      <p class="bilan-bank-name">${bank.name}</p>
+      <div class="bilan-metrics">
+        <div class="bilan-metric"><p class="m-lbl">Crédit</p><p class="m-val">${fmt(credit)}</p></div>
+        <div class="bilan-metric"><p class="m-lbl">CA retenu</p><p class="m-val">${fmt(ca)}</p></div>
+        <div class="bilan-metric"><p class="m-lbl">En ligne</p><p class="m-val">${fmt(online)}</p></div>
+      </div>
+    `;
+    rowsWrap.appendChild(row);
+  });
+
+  document.getElementById('bilan-total-credit').textContent = fmt(totalCredit);
+  document.getElementById('bilan-total-ca').textContent = fmt(totalCa);
+  document.getElementById('bilan-total-online').textContent = fmt(totalOnline);
+  document.getElementById('bilan-total-banks').textContent = banks.length;
+
+  // Focus paiement en ligne — banques ayant des données en ligne renseignées,
+  // avec repérage des banques qui n'ont QUE cette donnée remplie.
+  const focusWrap = document.getElementById('bilan-online-focus');
+  focusWrap.innerHTML = '';
+  const caOnline = num(document.getElementById('online-ca').value);
+  const banksWithOnline = banks.filter(bank=>{
+    const d = ensureBankData(bank.id);
+    return num(d.pct) > 0 || num(d.mensuel) > 0 || num(d.dossier) > 0;
+  });
+
+  if(banksWithOnline.length===0){
+    focusWrap.innerHTML = "<p class='empty-state'>Aucune donnée de paiement en ligne renseignée pour l'instant.</p>";
+  }
+
+  banksWithOnline.forEach(bank=>{
+    const d = ensureBankData(bank.id);
+    const frais = caOnline * num(d.pct)/100;
+    const fixe = num(d.mensuel) + num(d.dossier);
+    const total = frais + fixe;
+    const credit = num(d.credit);
+    const ca = getCaBankTotal(bank.id);
+    const onlineOnly = credit === 0 && ca === 0;
+
+    const card = document.createElement('div');
+    card.className = 'online-focus-card';
+    card.innerHTML = `
+      <div class="online-focus-head">
+        <span class="bilan-bank-name" style="margin:0;">${bank.name}</span>
+        ${onlineOnly ? '<span class="badge">100% en ligne</span>' : ''}
+      </div>
+      <div class="result-line"><span>Taux transactions</span><span class="amt">${num(d.pct)}%</span></div>
+      <div class="result-line"><span>Frais transactions</span><span class="amt">${fmt(frais)}</span></div>
+      <div class="result-line"><span>Abonnement mensuel</span><span class="amt">${fmt(num(d.mensuel))}</span></div>
+      <div class="result-line"><span>Frais de dossier</span><span class="amt">${fmt(num(d.dossier))}</span></div>
+      <div class="result-line total"><span>Total</span><span class="amt">${fmt(total)}</span></div>
+    `;
+    focusWrap.appendChild(card);
+  });
+}
+
+// ---- Sauvegarde locale (autosave sur cet appareil/navigateur) ----
+const STORAGE_KEY = 'grandLivreRetenues_v1';
+
+function collectState(){
   return {
-    cx: pad+(x-_mx0)/(_mx1-_mx0)*(W-pad*2),
-    cy: pad+(z-_mz0)/(_mz1-_mz0)*(H-pad*2),
+    banks, bankSeq, bankData,
+    caTotal: document.getElementById('ca-total').value,
+    caPctCarte: document.getElementById('ca-pct-carte').value,
+    caPctLiquide: document.getElementById('ca-pct-liquide').value,
+    onlineCa: document.getElementById('online-ca').value
   };
 }
 
-function drawMap(){
-  const dpr=window.devicePixelRatio||1;
-  const r=mapCanvas.getBoundingClientRect();
-  if(r.width===0||r.height===0)return;
-  mapCanvas.width=r.width*dpr;
-  mapCanvas.height=r.height*dpr;
-  mCtx.scale(dpr,dpr);
-  const W=r.width,H=r.height;
-
-  // Fond style satellite
-  mCtx.fillStyle='#0a150a';mCtx.fillRect(0,0,W,H);
-
-  // Patches terrain
-  [[0.05,0.05,0.3,0.4,'#0d200d'],[0.35,0.0,0.3,0.35,'#0b1c0b'],
-   [0.65,0.05,0.3,0.4,'#0e220e'],[0.0,0.5,0.35,0.45,'#0c1e0c'],
-   [0.35,0.55,0.3,0.4,'#0d200d'],[0.65,0.5,0.32,0.45,'#0b1c0b'],
-   [0.1,0.25,0.2,0.2,'#112211'],[0.55,0.3,0.18,0.22,'#0f1f0f']].forEach(([fx,fy,fw,fh,col])=>{
-    mCtx.fillStyle=col;
-    mCtx.fillRect(fx*W,fy*H,fw*W,fh*H);
-  });
-
-  // Grille légère
-  mCtx.save();mCtx.globalAlpha=.07;mCtx.strokeStyle='#4a8a4a';mCtx.lineWidth=.5;
-  for(let i=0;i<10;i++){
-    mCtx.beginPath();mCtx.moveTo(i/10*W,0);mCtx.lineTo(i/10*W,H);mCtx.stroke();
-    mCtx.beginPath();mCtx.moveTo(0,i/10*H);mCtx.lineTo(W,i/10*H);mCtx.stroke();
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+    flashSaveStatus('Enregistré ✓');
+  }catch(err){
+    // Stockage indisponible (navigation privée, etc.) — on continue sans bloquer l'utilisateur.
+    flashSaveStatus('Sauvegarde locale indisponible — pense à exporter.');
   }
-  mCtx.restore();
+}
 
-  // Shadow route
-  mCtx.save();mCtx.globalAlpha=.25;
-  mCtx.beginPath();let s=false;
-  TRACK.forEach(p=>{
-    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
-    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
-  });
-  mCtx.strokeStyle='#000';mCtx.lineWidth=10;mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.stroke();
-  mCtx.restore();
+let flashTimer = null;
+function flashSaveStatus(msg){
+  const el = document.getElementById('save-status');
+  if(!el) return;
+  el.textContent = msg;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(()=>{ el.textContent=''; }, 2200);
+}
 
-  // Route base
-  mCtx.beginPath();s=false;
-  TRACK.forEach(p=>{
-    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
-    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
-  });
-  mCtx.strokeStyle='#3c4838';mCtx.lineWidth=6;mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.stroke();
+function applyState(state){
+  if(!state) return;
+  banks = state.banks && state.banks.length ? state.banks : banks;
+  bankSeq = state.bankSeq || bankSeq;
+  bankData = state.bankData || bankData;
+  document.getElementById('ca-total').value = state.caTotal || '';
+  document.getElementById('ca-pct-carte').value = state.caPctCarte || '';
+  document.getElementById('ca-pct-liquide').value = state.caPctLiquide || '';
+  document.getElementById('online-ca').value = state.onlineCa || '';
 
-  // Route surface
-  mCtx.beginPath();s=false;
-  TRACK.forEach(p=>{
-    const{cx,cy}=mapToCanvas(p.x,p.z,W,H);
-    if(!s){mCtx.moveTo(cx,cy);s=true;}else mCtx.lineTo(cx,cy);
-  });
-  mCtx.strokeStyle='#5a6655';mCtx.lineWidth=3.5;mCtx.stroke();
+  renderBanques();
+  renderCreditBanks();
+  updateCaTop();
+  renderCaBanks();
+  renderOnlineBanks();
+}
 
-  // Checkpoints
-  CPS.forEach((cp,i)=>{
-    const pos=getTrackPos(cp.km);
-    const{cx,cy}=mapToCanvas(pos.x,pos.z,W,H);
-    const col=cp.isArr?'#e85d04':i===0?'#fb923c':'#60a5fa';
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) applyState(JSON.parse(raw));
+  }catch(err){ /* pas de sauvegarde locale disponible, on part d'une page vierge */ }
+}
 
-    // Cercle checkpoint
-    mCtx.beginPath();mCtx.arc(cx,cy,7,0,Math.PI*2);
-    mCtx.fillStyle=col;mCtx.fill();
-    mCtx.beginPath();mCtx.arc(cx,cy,7,0,Math.PI*2);
-    mCtx.strokeStyle='rgba(0,0,0,.6)';mCtx.lineWidth=2;mCtx.stroke();
+// Export / Import manuels (fichier .json), utile pour changer d'appareil ou de navigateur
+document.getElementById('export-btn').addEventListener('click', ()=>{
+  const data = JSON.stringify(collectState(), null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `grand-livre-retenues-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flashSaveStatus('Fichier exporté ✓');
+});
 
-    // Label
-    mCtx.font='bold 9px sans-serif';mCtx.fillStyle=col;mCtx.textAlign='center';
-    mCtx.shadowColor=col;mCtx.shadowBlur=6;
-    mCtx.fillText(cp.name,cx,cy-11);
-    mCtx.shadowBlur=0;
-    mCtx.font='7px sans-serif';mCtx.fillStyle='#6a8a6a';
-    mCtx.fillText(cp.label,cx,cy+20);
-  });
-
-  // Curseur de progression sur la route
-  const curPos=getTrackPos(animT*TOTAL_KM);
-  const{cx:curCx,cy:curCy}=mapToCanvas(curPos.x,curPos.z,W,H);
-  mCtx.beginPath();mCtx.arc(curCx,curCy,4,0,Math.PI*2);
-  mCtx.fillStyle='rgba(255,255,255,.4)';mCtx.fill();
-
-  // ── COUREURS ──────────────────────────────────────────────
-  const riders=buildRiders();
-  const curKm=animT*TOTAL_KM;
-  const riderPts=[];
-
-  riders.forEach(r=>{
-    const km=riderKmAt(r,curKm);if(km===null)return;
-    const pos=getTrackPos(km);
-    const{cx,cy}=mapToCanvas(pos.x,pos.z,W,H);
-    riderPts.push({...r,cx,cy,km});
-  });
-
-  // Traîner d'abord
-  riderPts.forEach(r=>{
-    const trailKm=Math.max(0,r.km-1.2);
-    const tp=getTrackPos(trailKm);
-    const{cx:tx,cy:ty}=mapToCanvas(tp.x,tp.z,W,H);
-    const g=mCtx.createLinearGradient(tx,ty,r.cx,r.cy);
-    g.addColorStop(0,'transparent');g.addColorStop(1,r.color+'70');
-    mCtx.beginPath();mCtx.moveTo(tx,ty);mCtx.lineTo(r.cx,r.cy);
-    mCtx.strokeStyle=g;mCtx.lineWidth=2;mCtx.stroke();
-  });
-
-  // Points coureurs
-  riderPts.forEach(r=>{
-    mCtx.save();
-    mCtx.shadowColor=r.color;mCtx.shadowBlur=10;
-    mCtx.beginPath();mCtx.arc(r.cx,r.cy,5,0,Math.PI*2);
-    mCtx.fillStyle=r.color;mCtx.fill();
-    mCtx.restore();
-    mCtx.beginPath();mCtx.arc(r.cx,r.cy,5,0,Math.PI*2);
-    mCtx.strokeStyle='rgba(0,0,0,.7)';mCtx.lineWidth=1.5;mCtx.stroke();
-    // Nom si pas trop de monde
-    if(riderPts.length<=15){
-      mCtx.font='bold 7.5px sans-serif';mCtx.fillStyle=r.color;mCtx.textAlign='center';
-      mCtx.shadowColor=r.color;mCtx.shadowBlur=4;
-      mCtx.fillText(r.name.split(' ')[0],r.cx,r.cy-8);
-      mCtx.shadowBlur=0;
+document.getElementById('import-btn').addEventListener('click', ()=>{
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const state = JSON.parse(evt.target.result);
+      applyState(state);
+      saveState();
+      flashSaveStatus('Sauvegarde importée ✓');
+    }catch(err){
+      flashSaveStatus('Fichier invalide.');
     }
-  });
-
-  document.getElementById('map-km-badge').textContent='Km '+(animT*TOTAL_KM).toFixed(1);
-  document.getElementById('map-count').textContent=riderPts.length+' coureur'+(riderPts.length>1?'s':'');
-}
-
-// ═══════════════════════════════════════════════════════════
-// ANIMATION
-// ═══════════════════════════════════════════════════════════
-let animT=0,playing=true,lastTs=null;
-const ANIM_DUR=12;
-
-function loop(ts){
-  if(!lastTs)lastTs=ts;
-  const dt=(ts-lastTs)/1000;lastTs=ts;
-  if(playing){
-    const sp=parseFloat(document.getElementById('speedRange').value)||1;
-    animT+=dt*sp/ANIM_DUR;
-    if(animT>1.05)animT=0;
-  }
-  draw3D();drawProfile();drawMap();
-  document.getElementById('prog-fill').style.width=(Math.min(1,animT)*100)+'%';
-  document.getElementById('km-badge').textContent='Km '+(animT*TOTAL_KM).toFixed(1);
-  requestAnimationFrame(loop);
-}
-
-function togglePlay(){
-  playing=!playing;
-  const icon=playing?'⏸':'▶';
-  document.getElementById('play-btn').textContent=icon;
-  document.querySelector('#topbar .icon-btn.orange').textContent=icon;
-}
-
-// ═══════════════════════════════════════════════════════════
-// TOUCH — 1 doigt = rotation, 2 doigts = pinch zoom
-// ═══════════════════════════════════════════════════════════
-let touch1=null,pinchDist0=null,pinchDist=null;
-
-canvas.addEventListener('touchstart',e=>{
-  e.preventDefault();
-  if(e.touches.length===1){
-    touch1={x:e.touches[0].clientX,y:e.touches[0].clientY,rX:cam.rotX,rY:cam.rotY};
-    pinchDist0=null;
-  } else if(e.touches.length===2){
-    const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;
-    pinchDist0=Math.hypot(dx,dy);pinchDist=pinchDist0;
-    touch1=null;
-  }
-},{passive:false});
-
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  if(e.touches.length===1&&touch1){
-    cam.rotY=touch1.rY+(e.touches[0].clientX-touch1.x)*.007;
-    cam.rotX=Math.max(-1.45,Math.min(-.05,touch1.rX+(e.touches[0].clientY-touch1.y)*.005));
-    viewMode='free';
-  } else if(e.touches.length===2&&pinchDist0!==null){
-    const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;
-    const d=Math.hypot(dx,dy);
-    cam.dist=Math.max(180,Math.min(2200,cam.dist*(pinchDist/d)));
-    pinchDist=d;
-  }
-},{passive:false});
-
-canvas.addEventListener('touchend',()=>{touch1=null;pinchDist0=null;},{passive:false});
-
-// ═══════════════════════════════════════════════════════════
-// PAGE NAVIGATION
-// ═══════════════════════════════════════════════════════════
-function switchPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  document.getElementById('tab-'+id).classList.add('active');
-  if(id==='map')drawMap();
-}
-function goImport(){switchPage('import');}
-
-// ═══════════════════════════════════════════════════════════
-// CLASSEMENT PAGE
-// ═══════════════════════════════════════════════════════════
-let classTab='pc1';
-function showClassTab(tab){
-  classTab=tab;
-  ['pc1','pc2','arr'].forEach(t=>{
-    document.getElementById('ctab-'+t).classList.toggle('active',t===tab);
-  });
-  renderClass();
-}
-function renderClass(){
-  const data=cpData[classTab];
-  const el=document.getElementById('class-list');
-  if(!data.length){
-    el.innerHTML='<p style="color:#445;font-size:.75rem;text-align:center;padding:24px;font-style:italic">Aucun résultat pour ce point</p>';
-    return;
-  }
-  const first=data[0].timeSec;
-  el.innerHTML=data.map((r,i)=>{
-    const col=getColor(r.name);
-    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':r.pos;
-    const diff=r.timeSec-first;
-    return`<div class="rider-card">
-      <div class="rc-num" style="color:${i<3?['#ffd700','#c0c0c0','#cd7f32'][i]:'#5a7090'}">${medal}</div>
-      <div class="rc-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div>
-      <div class="rc-info">
-        <div class="rc-name" style="color:${col}">${r.name}</div>
-        <div class="rc-team">${r.team}</div>
-      </div>
-      <div class="rc-times">
-        <div class="rc-time">${fmtT(r.timeSec)}</div>
-        ${diff>.001?`<div class="rc-delta">${fmtDelta(diff)}</div>`:''}
-        ${r.speed?`<div class="rc-speed">${r.speed.toFixed(1)} km/h</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// IMPORT PAGE
-// ═══════════════════════════════════════════════════════════
-let importCP='pc1';
-function setImportCP(cp){
-  importCP=cp;
-  ['pc1','pc2','arr'].forEach(t=>document.getElementById('cs-'+t).classList.toggle('active',t===cp));
-  document.getElementById('importTxt').value='';
-  hideFB();
-}
-
-function loadFile(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{document.getElementById('importTxt').value=e.target.result;};
+  };
   reader.readAsText(file);
-  input.value='';
-}
+  e.target.value = '';
+});
 
-function doImport(){
-  const text=document.getElementById('importTxt').value;
-  const riders=parseImport(text);
-  const fb=document.getElementById('importFB');
-  if(!riders.length){
-    fb.textContent='❌ Aucun coureur reconnu — vérifie le format';
-    fb.className='err';return;
-  }
-  riders.forEach(r=>getColor(r.name));
-  cpData[importCP]=riders;
-  fb.textContent=`✅ ${riders.length} coureur${riders.length>1?'s':''} importé${riders.length>1?'s':''} · ${importCP.toUpperCase()}`;
-  fb.className='ok';
-  updateStatusDots();
-  renderClass();
-  if(classTab!==importCP)showClassTab(importCP);
-}
+// ---- init ----
+loadState();
+renderBanques();
+renderCreditBanks();
+updateCaTop();
+renderCaBanks();
+renderOnlineBanks();
 
-function clearCP(){
-  cpData[importCP]=[];
-  document.getElementById('importTxt').value='';
-  hideFB();
-  updateStatusDots();
-  renderClass();
-}
-
-function hideFB(){document.getElementById('importFB').className='';}
-
-function updateStatusDots(){
-  ['pc1','pc2','arr'].forEach(cp=>{
-    const el=document.getElementById('st-'+cp);
-    const n=cpData[cp].length;
-    el.className='cs-dot '+(n>0?'loaded':'empty');
-    el.innerHTML=`${cp.toUpperCase()}<br>${n>0?n+' coureurs':'—'}`;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-updateStatusDots();
-requestAnimationFrame(loop);
 </script>
+
 </body>
 </html>
