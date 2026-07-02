@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Grand Livre">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23161c1a'/%3E%3Crect x='14' y='14' width='152' height='152' rx='26' fill='%23202824' stroke='%234ade9a' stroke-width='2'/%3E%3Ctext x='90' y='112' font-family='Georgia,serif' font-size='84' font-weight='700' fill='%234ade9a' text-anchor='middle'%3E€%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23161c1a'/%3E%3Ctext x='90' y='112' font-family='Georgia,serif' font-size='84' font-weight='700' fill='%234ade9a' text-anchor='middle'%3E€%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Grand%20Livre%20%E2%80%94%20Calcul%20des%20r%C3%A9tentions%22%2C%22short_name%22%3A%22Grand%20Livre%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23161c1a%22%2C%22theme_color%22%3A%22%23161c1a%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D%2527http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%2527%2520viewBox%3D%25270%25200%2520180%2520180%2527%253E%253Crect%2520width%3D%2527180%2527%2520height%3D%2527180%2527%2520rx%3D%252736%2527%2520fill%3D%2527%2523161c1a%2527%2F%253E%253Ctext%2520x%3D%252790%2527%2520y%3D%2527112%2527%2520font-family%3D%2527Georgia%2Cserif%2527%2520font-size%3D%252784%2527%2520font-weight%3D%2527700%2527%2520fill%3D%2527%25234ade9a%2527%2520text-anchor%3D%2527middle%2527%253E%25E2%2582%25AC%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22180x180%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%22%7D%5D%7D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -145,8 +148,8 @@
 
 <header>
   <div class="wrap">
-    <p class="eyebrow">Grand Livre — 01/07/2026</p>
-    <h1>Calcul des rétentions</h1>
+    <p class="eyebrow">COMPARATIF</p>
+    <h1></h1>
     <p class="sub">Banques, crédits, chiffre d'affaires, paiement en ligne — vue d'ensemble.</p>
   </div>
 </header>
@@ -180,6 +183,7 @@
         <button class="add-btn" id="import-btn" style="border-color:var(--muted); color:var(--cream);">↑ Importer</button>
       </div>
       <input type="file" id="import-file" accept="application/json" style="display:none;">
+      <button class="add-btn" id="reset-btn" style="border-color:var(--rose); color:var(--rose); margin-top:10px;">🗑 Réinitialiser toutes les données</button>
       <p class="hint" id="save-status"></p>
     </div>
   </div>
@@ -278,6 +282,8 @@
 <script>
 const fmt = n => (isFinite(n)?n:0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
 const num = v => { const n = parseFloat((v||'').toString().replace(',','.')); return isFinite(n) ? n : 0; };
+// Pour le % "pris en compte" : un champ vide = 100% (comportement par défaut, tout le CA carte compte).
+const partPct = v => (v === '' || v === undefined || v === null) ? 100 : num(v);
 
 // ---- Registre central des banques ----
 let banks = [{id:1, name:'Banque 1'}];
@@ -287,8 +293,14 @@ let bankSeq = 2;
 let bankData = { 1: { credit:'', tauxLeur:'', tauxExterne:'', pct:'', mensuel:'', dossier:'' } };
 
 function ensureBankData(id){
-  if(!bankData[id]) bankData[id] = { credit:'', tauxLeur:'', tauxExterne:'', pct:'', mensuel:'', dossier:'' };
-  return bankData[id];
+  if(!bankData[id]) bankData[id] = { credit:'', tauxLeurCredit:'', tauxLeurDiffere:'', tauxExterne:'', partCarte:'', pct:'', mensuel:'', dossier:'' };
+  const d = bankData[id];
+  if(d.partCarte === undefined) d.partCarte = '';
+  if(d.tauxLeurCredit === undefined){
+    d.tauxLeurCredit = (d.tauxLeur !== undefined && d.tauxLeur !== '') ? d.tauxLeur : '';
+  }
+  if(d.tauxLeurDiffere === undefined) d.tauxLeurDiffere = '';
+  return d;
 }
 
 // ---- tabs ----
@@ -398,8 +410,12 @@ function getCaLiquideMontant(){
 }
 function getCaBankTotal(bankId){
   const d = ensureBankData(bankId);
-  const base = getCaCarteMontant();
-  return base * num(d.tauxLeur)/100 + base * num(d.tauxExterne)/100;
+  const caCarte = getCaCarteMontant();
+  const partLeur = partPct(d.partCarte);
+  const partExterne = 100 - partLeur;
+  const baseLeur = caCarte * partLeur/100;
+  const baseExterne = caCarte * partExterne/100;
+  return baseLeur * num(d.tauxLeurCredit)/100 + baseLeur * num(d.tauxLeurDiffere)/100 + baseExterne * num(d.tauxExterne)/100;
 }
 
 function renderCaBanks(){
@@ -414,30 +430,58 @@ function renderCaBanks(){
       <div class="bank-title-row">
         <span class="bank-title" data-id="${bank.id}">${bank.name}</span>
       </div>
+      <div class="field">
+        <label>% du CA carte pris en compte pour leurs cartes</label>
+        <div class="suffix-wrap">
+          <input type="text" class="ca-part-carte" data-id="${bank.id}" value="${d.partCarte}" placeholder="100" inputmode="decimal">
+          <span class="suffix">%</span>
+        </div>
+      </div>
+      <div class="result-line"><span>Base retenue — leurs cartes</span><span class="amt" data-role="base" data-id="${bank.id}">0,00 €</span></div>
+
+      <p class="bank-label" style="margin-top:14px;">Leurs cartes bancaires</p>
       <div class="row2">
         <div class="field">
-          <label>Rétention leurs cartes</label>
+          <label>Carte à crédit</label>
           <div class="suffix-wrap">
-            <input type="text" class="ca-taux-leur" data-id="${bank.id}" value="${d.tauxLeur}" placeholder="0" inputmode="decimal">
+            <input type="text" class="ca-taux-leur-credit" data-id="${bank.id}" value="${d.tauxLeurCredit}" placeholder="0" inputmode="decimal">
             <span class="suffix">%</span>
           </div>
         </div>
         <div class="field">
-          <label>Rétention CB externes</label>
+          <label>Carte différé</label>
           <div class="suffix-wrap">
-            <input type="text" class="ca-taux-externe" data-id="${bank.id}" value="${d.tauxExterne}" placeholder="0" inputmode="decimal">
+            <input type="text" class="ca-taux-leur-differe" data-id="${bank.id}" value="${d.tauxLeurDiffere}" placeholder="0" inputmode="decimal">
             <span class="suffix">%</span>
           </div>
         </div>
       </div>
-      <div class="result-line"><span>Coût leurs cartes</span><span class="amt" data-role="leur" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line"><span>Coût carte à crédit</span><span class="amt" data-role="leurCredit" data-id="${bank.id}">0,00 €</span></div>
+      <div class="result-line"><span>Coût carte différé</span><span class="amt" data-role="leurDiffere" data-id="${bank.id}">0,00 €</span></div>
+
+      <p class="bank-label" style="margin-top:14px;">Cartes externes</p>
+      <div class="result-line"><span>% du CA carte pris en compte (auto)</span><span class="amt" data-role="partExterne" data-id="${bank.id}">0%</span></div>
+      <div class="result-line"><span>Base retenue — CB externes</span><span class="amt" data-role="baseExterne" data-id="${bank.id}">0,00 €</span></div>
+      <div class="field">
+        <label>Rétention CB externes</label>
+        <div class="suffix-wrap">
+          <input type="text" class="ca-taux-externe" data-id="${bank.id}" value="${d.tauxExterne}" placeholder="0" inputmode="decimal">
+          <span class="suffix">%</span>
+        </div>
+      </div>
       <div class="result-line"><span>Coût CB externes</span><span class="amt" data-role="externe" data-id="${bank.id}">0,00 €</span></div>
       <div class="result-line total"><span>Total banque</span><span class="amt" data-role="total" data-id="${bank.id}">0,00 €</span></div>
     `;
     wrap.appendChild(el);
   });
-  wrap.querySelectorAll('.ca-taux-leur').forEach(i=>i.addEventListener('input', e=>{
-    ensureBankData(e.target.dataset.id).tauxLeur = e.target.value; updateCaResults(); saveState();
+  wrap.querySelectorAll('.ca-part-carte').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).partCarte = e.target.value; updateCaResults(); saveState();
+  }));
+  wrap.querySelectorAll('.ca-taux-leur-credit').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).tauxLeurCredit = e.target.value; updateCaResults(); saveState();
+  }));
+  wrap.querySelectorAll('.ca-taux-leur-differe').forEach(i=>i.addEventListener('input', e=>{
+    ensureBankData(e.target.dataset.id).tauxLeurDiffere = e.target.value; updateCaResults(); saveState();
   }));
   wrap.querySelectorAll('.ca-taux-externe').forEach(i=>i.addEventListener('input', e=>{
     ensureBankData(e.target.dataset.id).tauxExterne = e.target.value; updateCaResults(); saveState();
@@ -447,14 +491,26 @@ function renderCaBanks(){
 
 function updateCaResults(){
   const wrap = document.getElementById('ca-banks');
-  const base = getCaCarteMontant();
+  const caCarte = getCaCarteMontant();
   banks.forEach(bank=>{
     const d = ensureBankData(bank.id);
-    const leurEl = wrap.querySelector(`.amt[data-role="leur"][data-id="${bank.id}"]`);
+    const partLeur = partPct(d.partCarte);
+    const partExterne = 100 - partLeur;
+    const baseLeur = caCarte * partLeur/100;
+    const baseExterne = caCarte * partExterne/100;
+    const baseEl = wrap.querySelector(`.amt[data-role="base"][data-id="${bank.id}"]`);
+    const leurCreditEl = wrap.querySelector(`.amt[data-role="leurCredit"][data-id="${bank.id}"]`);
+    const leurDiffereEl = wrap.querySelector(`.amt[data-role="leurDiffere"][data-id="${bank.id}"]`);
+    const partExterneEl = wrap.querySelector(`.amt[data-role="partExterne"][data-id="${bank.id}"]`);
+    const baseExterneEl = wrap.querySelector(`.amt[data-role="baseExterne"][data-id="${bank.id}"]`);
     const externeEl = wrap.querySelector(`.amt[data-role="externe"][data-id="${bank.id}"]`);
     const totalEl = wrap.querySelector(`.amt[data-role="total"][data-id="${bank.id}"]`);
-    if(leurEl) leurEl.textContent = fmt(base * num(d.tauxLeur)/100);
-    if(externeEl) externeEl.textContent = fmt(base * num(d.tauxExterne)/100);
+    if(baseEl) baseEl.textContent = fmt(baseLeur);
+    if(leurCreditEl) leurCreditEl.textContent = fmt(baseLeur * num(d.tauxLeurCredit)/100);
+    if(leurDiffereEl) leurDiffereEl.textContent = fmt(baseLeur * num(d.tauxLeurDiffere)/100);
+    if(partExterneEl) partExterneEl.textContent = partExterne + '%';
+    if(baseExterneEl) baseExterneEl.textContent = fmt(baseExterne);
+    if(externeEl) externeEl.textContent = fmt(baseExterne * num(d.tauxExterne)/100);
     if(totalEl) totalEl.textContent = fmt(getCaBankTotal(bank.id));
   });
 }
@@ -470,9 +526,9 @@ function updateCaTop(){
   document.getElementById('split-carte-label').textContent = 'Carte ' + pc + '%';
   document.getElementById('split-liquide-label').textContent = 'Liquide ' + pl + '%';
 }
-document.getElementById('ca-total').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
-document.getElementById('ca-pct-carte').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
-document.getElementById('ca-pct-liquide').addEventListener('input', ()=>{updateCaTop(); updateCaResults();});
+document.getElementById('ca-total').addEventListener('input', ()=>{updateCaTop(); updateCaResults(); saveState();});
+document.getElementById('ca-pct-carte').addEventListener('input', ()=>{updateCaTop(); updateCaResults(); saveState();});
+document.getElementById('ca-pct-liquide').addEventListener('input', ()=>{updateCaTop(); updateCaResults(); saveState();});
 
 // ===================== PAIEMENT EN LIGNE =====================
 function getOnlineBankTotal(bankId){
@@ -523,13 +579,13 @@ function renderOnlineBanks(){
     wrap.appendChild(el);
   });
   wrap.querySelectorAll('.ol-pct').forEach(i=>i.addEventListener('input', e=>{
-    ensureBankData(e.target.dataset.id).pct = e.target.value; updateOnlineResults();
+    ensureBankData(e.target.dataset.id).pct = e.target.value; updateOnlineResults(); saveState();
   }));
   wrap.querySelectorAll('.ol-mensuel').forEach(i=>i.addEventListener('input', e=>{
-    ensureBankData(e.target.dataset.id).mensuel = e.target.value; updateOnlineResults();
+    ensureBankData(e.target.dataset.id).mensuel = e.target.value; updateOnlineResults(); saveState();
   }));
   wrap.querySelectorAll('.ol-dossier').forEach(i=>i.addEventListener('input', e=>{
-    ensureBankData(e.target.dataset.id).dossier = e.target.value; updateOnlineResults();
+    ensureBankData(e.target.dataset.id).dossier = e.target.value; updateOnlineResults(); saveState();
   }));
   updateOnlineResults();
 }
@@ -549,7 +605,7 @@ function updateOnlineResults(){
     if(totalEl) totalEl.textContent = fmt(frais + fixe);
   });
 }
-document.getElementById('online-ca').addEventListener('input', updateOnlineResults);
+document.getElementById('online-ca').addEventListener('input', ()=>{updateOnlineResults(); saveState();});
 
 // ===================== BILAN =====================
 function renderBilan(){
@@ -720,6 +776,24 @@ document.getElementById('import-file').addEventListener('change', (e)=>{
 });
 
 // ---- init ----
+document.getElementById('reset-btn').addEventListener('click', ()=>{
+  if(!confirm('Effacer toutes les banques et tous les montants saisis ? Cette action est irréversible.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  banks = [{id:1, name:'Banque 1'}];
+  bankSeq = 2;
+  bankData = { 1: { credit:'', tauxLeur:'', tauxExterne:'', pct:'', mensuel:'', dossier:'' } };
+  document.getElementById('ca-total').value = '';
+  document.getElementById('ca-pct-carte').value = '';
+  document.getElementById('ca-pct-liquide').value = '';
+  document.getElementById('online-ca').value = '';
+  renderBanques();
+  renderCreditBanks();
+  updateCaTop();
+  renderCaBanks();
+  renderOnlineBanks();
+  flashSaveStatus('Données réinitialisées.');
+});
+
 loadState();
 renderBanques();
 renderCreditBanks();
