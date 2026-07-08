@@ -125,6 +125,16 @@
   .brow:last-child{border-bottom:none}
   .brow .amt{font-weight:700;font-variant-numeric:tabular-nums}
 
+  /* Partage */
+  .sync-box{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
+  .sync-box h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:6px}
+  .sync-box p{font-size:.72rem;color:var(--sky-soft);line-height:1.5;margin-bottom:10px}
+  .sync-btns{display:flex;gap:10px}
+  .btn-sync{
+    flex:1;background:var(--navy);border:1px solid var(--line);color:var(--white);
+    border-radius:10px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;
+  }
+
   /* FAB + modal */
   .fab{
     position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
@@ -182,6 +192,15 @@
     <h3>Détail</h3>
     <div id="gRows"></div>
   </div>
+  <div class="sync-box">
+    <h3>Partage des données</h3>
+    <p>Exporte tes données dans un fichier et partage-le (WhatsApp, mail…). L'autre personne l'importe pour voir exactement la même chose.</p>
+    <div class="sync-btns">
+      <button class="btn-sync" onclick="exportData()">⬇ Exporter</button>
+      <button class="btn-sync" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(this)">
+  </div>
 </div>
 
 <!-- OM -->
@@ -206,7 +225,7 @@
   <div class="list" id="list-pfc"></div>
 </div>
 
-<button class="fab" id="fab" onclick="openModal()"><span>+</span> <span id="fabLabel">Ajouter un match</span></button>
+<button class="fab" id="fab" onclick="openModal()"><span>+</span>&nbsp;Ajout</button>
 
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -508,6 +527,40 @@ function renderAll(){
   renderList('om'); renderList('pfc');
   renderBilan();
 }
+
+// ------- Export / Import -------
+function exportData(){
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = 'revente-billets-'+d.toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!imported.om || !imported.pfc || !imported.om.matches){
+        alert('Fichier invalide : ce n\'est pas un export de cette application.');
+        return;
+      }
+      if(!confirm('Remplacer tes données actuelles par celles du fichier ?')) return;
+      data = imported;
+      save(); renderAll();
+      alert('Données importées ✔');
+    }catch(err){
+      alert('Fichier illisible.');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
 renderAll();
 </script>
 </body>
