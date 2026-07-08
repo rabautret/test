@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Revente Billets 26/27</title>
+<style>
+  :root{
+    --navy:#0B1F3A;
+    --navy2:#122C4F;
+    --sky:#2FAEE0;
+    --sky-soft:#BFE6F7;
+    --pfc:#E63946;
+    --pfc-soft:#F7C6CB;
+    --gold:#D4A017;
+    --white:#F7FAFC;
+    --green:#2FBF71;
+    --red:#E8554E;
+    --line:rgba(191,230,247,.14);
+    --radius:14px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--navy);color:var(--white);min-height:100vh;padding-bottom:100px;
+  }
+  header{
+    background:linear-gradient(160deg,#0B1F3A 0%,#123B63 60%,#16588A 100%);
+    padding:16px 16px 0;border-bottom:1px solid var(--line);
+  }
+  .brand h1{font-size:1.15rem;font-weight:800;letter-spacing:.5px}
+  .brand h1 span{color:var(--sky)}
+  .brand small{color:var(--sky-soft);font-weight:600;font-size:.7rem;letter-spacing:1px}
+
+  /* Onglets */
+  .tabs{display:flex;gap:4px;margin-top:14px}
+  .tab{
+    flex:1;background:transparent;border:none;color:var(--sky-soft);
+    padding:11px 4px;font-size:.8rem;font-weight:800;letter-spacing:.5px;cursor:pointer;
+    border-bottom:3px solid transparent;text-transform:uppercase;
+  }
+  .tab.active{color:var(--white);border-bottom-color:var(--sky)}
+  .tab.active[data-t="pfc"]{border-bottom-color:var(--pfc)}
+  .tab.active[data-t="bilan"]{border-bottom-color:var(--gold)}
+
+  .page{display:none;padding:0 16px}
+  .page.active{display:block}
+
+  /* Bloc abonnements */
+  .abo{
+    margin-top:14px;background:var(--navy2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px;
+  }
+  .abo h2{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:10px}
+  .abo-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end}
+  .abo-info{
+    margin-top:8px;padding-top:10px;border-top:1px solid var(--line);
+    font-size:.75rem;color:var(--sky-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;
+  }
+  .abo-info b{color:var(--white)}
+  .abo-add{
+    background:none;border:1px dashed var(--line);color:var(--sky-soft);border-radius:8px;
+    padding:8px;width:100%;font-size:.75rem;font-weight:700;cursor:pointer;margin-top:2px;
+  }
+  .abo-del{
+    background:none;border:none;color:var(--sky-soft);font-size:1rem;cursor:pointer;
+    padding:10px 8px;opacity:.6;
+  }
+
+  /* Champs */
+  .field label{display:block;font-size:.6rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;font-weight:700}
+  .field input{
+    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
+    color:var(--white);padding:9px 8px;font-size:16px;font-weight:700;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .field input:focus{outline:none;border-color:var(--sky)}
+  .field input::placeholder{color:rgba(191,230,247,.3)}
+
+  /* Cartes match */
+  .list{padding-top:10px;display:flex;flex-direction:column;gap:10px}
+  .card{
+    background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;
+  }
+  .card.done{border-left:3px solid var(--green)}
+  .card.loss{border-left:3px solid var(--red)}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .match-name{font-weight:800;font-size:.98rem}
+  .match-meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+  .match-date{font-size:.7rem;color:var(--sky-soft)}
+  .tag{font-size:.58rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:99px}
+  .tag.L1{background:rgba(47,174,224,.18);color:var(--sky)}
+  .tag.CDF{background:rgba(47,191,113,.18);color:var(--green)}
+  .tag.CE{background:rgba(212,160,23,.18);color:var(--gold)}
+  select{
+    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
+    color:var(--white);padding:11px 10px;font-size:16px;font-weight:600;
+  }
+  .card-net{font-weight:800;font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .del-btn{background:none;border:none;color:var(--sky-soft);font-size:1.05rem;cursor:pointer;padding:2px 6px;opacity:.6;line-height:1}
+  .inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--sky-soft)}
+
+  /* Bilan */
+  .bilan-hero{
+    margin-top:14px;background:linear-gradient(160deg,#122C4F,#0F3A5F);
+    border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;text-align:center;
+  }
+  .bilan-hero .label{font-size:.72rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:2px;font-weight:700}
+  .bilan-hero .value{font-size:2.3rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
+  .bilan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .bcard{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px}
+  .bcard h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .bcard h3.om{color:var(--sky)} .bcard h3.pfc{color:var(--pfc)}
+  .bcard .big{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .bcard .sub{font-size:.68rem;color:var(--sky-soft);margin-top:6px;line-height:1.5}
+  .bcard .sub b{color:var(--white)}
+  .bilan-table{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
+  .bilan-table h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:8px}
+  .brow{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--line)}
+  .brow:last-child{border-bottom:none}
+  .brow .amt{font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* FAB + modal */
+  .fab{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--sky);color:var(--navy);border:none;border-radius:99px;
+    padding:13px 24px;font-size:.85rem;font-weight:800;cursor:pointer;
+    box-shadow:0 6px 20px rgba(47,174,224,.4);display:none;align-items:center;gap:8px;
+  }
+  .fab.show{display:flex}
+  .fab span{font-size:1.2rem;line-height:0}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(4,12,24,.75);z-index:50;align-items:flex-end;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--navy2);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;border-top:3px solid var(--sky)}
+  .modal h2{font-size:1rem;margin-bottom:14px}
+  .modal .field{margin-bottom:12px}
+  .modal .field input{text-align:left;padding:11px 10px;font-weight:600}
+  .modal-actions{display:flex;gap:10px;margin-top:14px}
+  .modal-actions button{flex:1;padding:13px;border-radius:10px;font-size:.9rem;font-weight:800;cursor:pointer;border:none}
+  .btn-cancel{background:transparent;color:var(--sky-soft);border:1px solid var(--line)!important}
+  .btn-ok{background:var(--sky);color:var(--navy)}
+  .hint{font-size:.66rem;color:var(--sky-soft);opacity:.75;margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>REVENTE <span>BILLETS</span> <small>· SAISON 2026-2027</small></h1>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-t="bilan">Bilan</button>
+    <button class="tab" data-t="om">OM</button>
+    <button class="tab" data-t="pfc">Paris FC</button>
+  </div>
+</header>
+
+<!-- BILAN -->
+<div class="page active" id="page-bilan">
+  <div class="bilan-hero">
+    <div class="label">Bilan net global</div>
+    <div class="value zero" id="gNet">0,00 €</div>
+  </div>
+  <div class="bilan-grid">
+    <div class="bcard">
+      <h3 class="om">OM</h3>
+      <div class="big zero" id="bNetOM">0 €</div>
+      <div class="sub" id="bSubOM"></div>
+    </div>
+    <div class="bcard">
+      <h3 class="pfc">Paris FC</h3>
+      <div class="big zero" id="bNetPFC">0 €</div>
+      <div class="sub" id="bSubPFC"></div>
+    </div>
+  </div>
+  <div class="bilan-table">
+    <h3>Détail</h3>
+    <div id="gRows"></div>
+  </div>
+</div>
+
+<!-- OM -->
+<div class="page" id="page-om">
+  <div class="abo">
+    <h2>Abonnements OM (Vélodrome)</h2>
+    <div id="abos-om"></div>
+    <button class="abo-add" onclick="addAbo('om')">+ Ajouter un abonnement (tarif différent)</button>
+    <div class="abo-info" id="aboInfo-om"></div>
+  </div>
+  <div class="list" id="list-om"></div>
+</div>
+
+<!-- PARIS FC -->
+<div class="page" id="page-pfc">
+  <div class="abo">
+    <h2>Abonnements Paris FC (Jean-Bouin)</h2>
+    <div id="abos-pfc"></div>
+    <button class="abo-add" onclick="addAbo('pfc')">+ Ajouter un abonnement (tarif différent)</button>
+    <div class="abo-info" id="aboInfo-pfc"></div>
+  </div>
+  <div class="list" id="list-pfc"></div>
+</div>
+
+<button class="fab" id="fab" onclick="openModal()"><span>+</span> <span id="fabLabel">Ajouter un match</span></button>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">Ajouter un match</h2>
+    <div class="field" id="mCompetField">
+      <label>Compétition</label>
+      <select id="mCompet">
+        <option value="CE">Coupe d'Europe</option>
+        <option value="CDF">Coupe de France</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Adversaire</label>
+      <input type="text" id="mAdv" placeholder="Ex : Real Madrid">
+    </div>
+    <div class="field">
+      <label>Date (optionnel)</label>
+      <input type="text" id="mDate" placeholder="Ex : 15/01/2027">
+    </div>
+    <p class="hint">Les billets de coupe ne sont pas inclus dans l'abonnement : renseigne le nombre et le prix d'achat à la main sur la carte du match.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-ok" onclick="addMatch()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'revente_om_pfc_2627_v2';
+const NB_MATCHS_L1 = 17;
+
+// Matchs à domicile Ligue 1 2026-27 (calendrier LFP du 10 juin 2026)
+const SEED_OM = [
+  {adv:'Strasbourg', date:'21/08/2026'},
+  {adv:'Paris FC',   date:'05/09/2026'},
+  {adv:'PSG',        date:'20/09/2026'},
+  {adv:'Le Havre',   date:'24/10/2026'},
+  {adv:'Toulouse',   date:'31/10/2026'},
+  {adv:'Le Mans',    date:'21/11/2026'},
+  {adv:'Nice',       date:'05/12/2026'},
+  {adv:'Lille',      date:'16/01/2027'},
+  {adv:'Troyes',     date:'30/01/2027'},
+  {adv:'Angers',     date:'13/02/2027'},
+  {adv:'Rennes',     date:'27/02/2027'},
+  {adv:'Monaco',     date:'13/03/2027'},
+  {adv:'Lyon',       date:'21/03/2027'},
+  {adv:'Brest',      date:'10/04/2027'},
+  {adv:'Auxerre',    date:'24/04/2027'},
+  {adv:'Lens',       date:'16/05/2027'},
+  {adv:'Lorient',    date:'29/05/2027'},
+];
+const SEED_PFC = [
+  {adv:'Nice',       date:'30/08/2026'},
+  {adv:'Lyon',       date:'12/09/2026'},
+  {adv:'Strasbourg', date:'19/09/2026'},
+  {adv:'Rennes',     date:'17/10/2026'},
+  {adv:'Monaco',     date:'31/10/2026'},
+  {adv:'Angers',     date:'21/11/2026'},
+  {adv:'Le Mans',    date:'05/12/2026'},
+  {adv:'Le Havre',   date:'02/01/2027'},
+  {adv:'Toulouse',   date:'16/01/2027'},
+  {adv:'Auxerre',    date:'30/01/2027'},
+  {adv:'Troyes',     date:'13/02/2027'},
+  {adv:'Brest',      date:'06/03/2027'},
+  {adv:'Lorient',    date:'13/03/2027'},
+  {adv:'PSG',        date:'03/04/2027'},
+  {adv:'Lens',       date:'24/04/2027'},
+  {adv:'Lille',      date:'08/05/2027'},
+  {adv:'Marseille',  date:'22/05/2027'},
+];
+
+const CLUB_NAMES = {om:'OM', pfc:'Paris FC'};
+const COMPET_NAMES = {L1:'Ligue 1', CE:"Coupe d'Europe", CDF:'Coupe de France'};
+let data = load();
+let currentTab = 'bilan';
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const mk = (seed, club) => seed.map((m,i)=>({
+    id:club+'_l1_'+i, compet:'L1', adv:m.adv, date:m.date, qty:'', buy:'', sell:''
+  }));
+  return {
+    om:  {abos:[{n:'',price:''}], matches: mk(SEED_OM,'om')},
+    pfc: {abos:[{n:'',price:''}], matches: mk(SEED_PFC,'pfc')},
+  };
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+
+function fmt(n){ return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function fmt0(n){ return n.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €'; }
+function sign(n){ return (n>0?'+':'')+fmt(n); }
+function cls(n){ return n>0?'pos':(n<0?'neg':'zero'); }
+function net(m){
+  const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
+  return q*(s-b);
+}
+function esc(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+// ------- Abonnements -------
+function aboStats(club){
+  let nb=0, cost=0;
+  data[club].abos.forEach(a=>{
+    const n=parseFloat(a.n)||0, p=parseFloat(a.price)||0;
+    nb+=n; cost+=n*p;
+  });
+  const perTicket = nb>0 ? (cost/nb)/NB_MATCHS_L1 : 0;
+  return {nb, cost, perTicket};
+}
+
+function renderAbos(club){
+  const box = document.getElementById('abos-'+club);
+  box.innerHTML = '';
+  data[club].abos.forEach((a,i)=>{
+    const row = document.createElement('div');
+    row.className = 'abo-row';
+    row.innerHTML = `
+      <div class="field">
+        <label>Nb abonnements</label>
+        <input type="number" inputmode="numeric" min="0" placeholder="0"
+          value="${a.n}" onchange="updAbo('${club}',${i},'n',this.value)">
+      </div>
+      <div class="field">
+        <label>Prix / abonnement</label>
+        <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+          value="${a.price}" onchange="updAbo('${club}',${i},'price',this.value)">
+      </div>
+      ${data[club].abos.length>1 ? `<button class="abo-del" onclick="delAbo('${club}',${i})">✕</button>` : '<div></div>'}
+    `;
+    box.appendChild(row);
+  });
+  const s = aboStats(club);
+  document.getElementById('aboInfo-'+club).innerHTML =
+    `<span>Total : <b>${s.nb} abo${s.nb>1?'s':''}</b> · <b>${fmt0(s.cost)}</b></span>` +
+    `<span>Coût / billet L1 : <b>${fmt(s.perTicket)}</b> <small>(÷ ${NB_MATCHS_L1} matchs)</small></span>`;
+}
+
+function updAbo(club,i,field,value){
+  data[club].abos[i][field]=value;
+  applyAboToMatches(club);
+  save(); renderAll();
+}
+function addAbo(club){
+  data[club].abos.push({n:'',price:''});
+  save(); renderAbos(club);
+}
+function delAbo(club,i){
+  data[club].abos.splice(i,1);
+  applyAboToMatches(club);
+  save(); renderAll();
+}
+
+// Remplit nb billets + prix d'achat sur tous les matchs L1 du club
+function applyAboToMatches(club){
+  const s = aboStats(club);
+  data[club].matches.forEach(m=>{
+    if(m.compet!=='L1') return;
+    m.qty = s.nb>0 ? String(s.nb) : '';
+    m.buy = s.nb>0 ? s.perTicket.toFixed(2) : '';
+  });
+}
+
+// ------- Matchs -------
+function renderList(club){
+  const list = document.getElementById('list-'+club);
+  list.innerHTML = '';
+  data[club].matches.forEach(m=>{
+    const n = net(m);
+    const hasData = (parseFloat(m.qty)||0)>0 && (parseFloat(m.sell)||0)>0;
+    const card = document.createElement('div');
+    card.className = 'card' + (hasData ? (n>=0?' done':' loss') : '');
+    card.innerHTML = `
+      <div class="card-top">
+        <div>
+          <div class="match-name">${CLUB_NAMES[club]} – ${esc(m.adv)}</div>
+          <div class="match-meta">
+            <span class="tag ${m.compet}">${COMPET_NAMES[m.compet]}</span>
+            <span class="match-date">${esc(m.date||'Date à définir')}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="card-net ${hasData?cls(n):'zero'}">${hasData ? sign(n) : '—'}</div>
+          ${m.compet!=='L1' ? `<button class="del-btn" onclick="delMatch('${club}','${m.id}')">✕</button>` : ''}
+        </div>
+      </div>
+      <div class="inputs">
+        <div class="field">
+          <label>Nb billets</label>
+          <input type="number" inputmode="numeric" min="0" placeholder="0"
+            value="${m.qty}" onchange="updMatch('${club}','${m.id}','qty',this.value)">
+        </div>
+        <div class="field">
+          <label>Achat / billet</label>
+          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+            value="${m.buy}" onchange="updMatch('${club}','${m.id}','buy',this.value)">
+        </div>
+        <div class="field">
+          <label>Vente / billet</label>
+          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+            value="${m.sell}" onchange="updMatch('${club}','${m.id}','sell',this.value)">
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function updMatch(club,id,field,value){
+  const m = data[club].matches.find(x=>x.id===id);
+  if(!m) return;
+  m[field]=value;
+  save(); renderAll();
+}
+function delMatch(club,id){
+  if(!confirm('Supprimer ce match ?')) return;
+  data[club].matches = data[club].matches.filter(m=>m.id!==id);
+  save(); renderAll();
+}
+
+// ------- Bilan -------
+function clubStats(club){
+  let buy=0, sell=0, qty=0, netL1=0, netCDF=0, netCE=0;
+  data[club].matches.forEach(m=>{
+    const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
+    qty+=q; buy+=q*b; sell+=q*s;
+    if(m.compet==='L1') netL1+=q*(s-b);
+    else if(m.compet==='CE') netCE+=q*(s-b);
+    else netCDF+=q*(s-b);
+  });
+  return {buy, sell, qty, net:sell-buy, netL1, netCDF, netCE};
+}
+
+function renderBilan(){
+  const om = clubStats('om'), pfc = clubStats('pfc');
+  const total = om.net + pfc.net;
+
+  const g = document.getElementById('gNet');
+  g.textContent = sign(total);
+  g.className = 'value '+cls(total);
+
+  const setClub = (id, subId, st) => {
+    const el = document.getElementById(id);
+    el.textContent = sign(st.net);
+    el.className = 'big '+cls(st.net);
+    document.getElementById(subId).innerHTML =
+      `<b>${st.qty}</b> billets · Achats <b>${fmt0(st.buy)}</b> · Ventes <b>${fmt0(st.sell)}</b>`;
+  };
+  setClub('bNetOM','bSubOM',om);
+  setClub('bNetPFC','bSubPFC',pfc);
+
+  const rows = [
+    ['OM · Ligue 1', om.netL1],
+    ["OM · Coupe d'Europe", om.netCE],
+    ['OM · Coupe de France', om.netCDF],
+    ['Paris FC · Ligue 1', pfc.netL1],
+    ['Paris FC · Coupe de France', pfc.netCDF],
+  ];
+  document.getElementById('gRows').innerHTML = rows
+    .map(([name,v])=>`<div class="brow"><span>${name}</span><span class="amt ${cls(v)}">${sign(v)}</span></div>`)
+    .join('');
+}
+
+// ------- Modal Coupe de France -------
+function openModal(){
+  document.getElementById('modalTitle').textContent =
+    'Ajouter un match – '+CLUB_NAMES[currentTab];
+  // Coupe d'Europe uniquement pour l'OM
+  document.getElementById('mCompetField').style.display = currentTab==='om' ? 'block' : 'none';
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+function addMatch(){
+  const adv = document.getElementById('mAdv').value.trim();
+  if(!adv){ alert("Indique l'adversaire"); return; }
+  const compet = currentTab==='om' ? document.getElementById('mCompet').value : 'CDF';
+  data[currentTab].matches.push({
+    id:'cup_'+Date.now(), compet, adv,
+    date: document.getElementById('mDate').value.trim(),
+    qty:'', buy:'', sell:''
+  });
+  document.getElementById('mAdv').value='';
+  document.getElementById('mDate').value='';
+  save(); closeModal(); renderAll();
+}
+
+// ------- Onglets -------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    currentTab = t.dataset.t;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+currentTab));
+    document.getElementById('fab').classList.toggle('show', currentTab!=='bilan');
+    document.getElementById('fabLabel').textContent =
+      currentTab==='om' ? "Match Coupe d'Europe / France" : 'Match Coupe de France';
+  });
+});
+
+function renderAll(){
+  renderAbos('om'); renderAbos('pfc');
+  renderList('om'); renderList('pfc');
+  renderBilan();
+}
+renderAll();
+</script>
+</body>
+</html>
