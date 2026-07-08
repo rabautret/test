@@ -500,8 +500,6 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+currentTab));
     document.getElementById('fab').classList.toggle('show', currentTab!=='bilan');
-    document.getElementById('fabLabel').textContent =
-      currentTab==='om' ? "Match Coupe d'Europe / France" : 'Match Coupe de France';
   });
 });
 
