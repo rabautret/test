@@ -11,6 +11,7 @@
     --navy:#0B1F3A;
     --navy2:#122C4F;
     --sky:#2FAEE0;
+    --om:#6FD3FF;
     --sky-soft:#BFE6F7;
     --pfc:#E63946;
     --pfc-soft:#F7C6CB;
@@ -43,8 +44,21 @@
     border-bottom:3px solid transparent;text-transform:uppercase;
   }
   .tab.active{color:var(--white);border-bottom-color:var(--sky)}
-  .tab.active[data-t="pfc"]{border-bottom-color:var(--pfc)}
-  .tab.active[data-t="bilan"]{border-bottom-color:var(--gold)}
+  .tab.active[data-t="om"]{color:var(--om);border-bottom-color:var(--om)}
+  .tab.active[data-t="pfc"]{color:var(--pfc);border-bottom-color:var(--pfc)}
+  .tab.active[data-t="bilan"]{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* Thème par club */
+  #page-om .abo{border-top:3px solid var(--om)}
+  #page-om .abo h2{color:var(--om)}
+  #page-om .card{border-left:3px solid rgba(111,211,255,.35)}
+  #page-om .card.done{border-left-color:var(--green)}
+  #page-om .card.loss{border-left-color:var(--red)}
+  #page-pfc .abo{border-top:3px solid var(--pfc)}
+  #page-pfc .abo h2{color:var(--pfc)}
+  #page-pfc .card{border-left:3px solid rgba(230,57,70,.35)}
+  #page-pfc .card.done{border-left-color:var(--green)}
+  #page-pfc .card.loss{border-left-color:var(--red)}
 
   .page{display:none;padding:0 16px}
   .page.active{display:block}
@@ -122,7 +136,7 @@
   .bilan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
   .bcard{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px}
   .bcard h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-  .bcard h3.om{color:var(--sky)} .bcard h3.pfc{color:var(--pfc)}
+  .bcard h3.om{color:var(--om)} .bcard h3.pfc{color:var(--pfc)}
   .bcard .big{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
   .bcard .sub{font-size:.68rem;color:var(--sky-soft);margin-top:6px;line-height:1.5}
   .bcard .sub b{color:var(--white)}
@@ -442,10 +456,25 @@ function applyAboToMatches(club){
 }
 
 // ------- Matchs -------
+function parseDate(str){
+  if(!str) return null;
+  const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(!m) return null;
+  return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+}
+
 function renderList(club){
   const list = document.getElementById('list-'+club);
   list.innerHTML = '';
-  data[club].matches.forEach(m=>{
+  // Tri par date du match le plus proche au plus lointain ; matchs sans date en dernier
+  const sorted = [...data[club].matches].sort((a,b)=>{
+    const da = parseDate(a.date), db = parseDate(b.date);
+    if(da===null && db===null) return 0;
+    if(da===null) return 1;
+    if(db===null) return -1;
+    return da - db;
+  });
+  sorted.forEach(m=>{
     const n = net(m);
     const hasData = (parseFloat(m.qty)||0)>0 && (parseFloat(m.sell)||0)>0;
     const card = document.createElement('div');
