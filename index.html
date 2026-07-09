@@ -96,6 +96,7 @@
   .tag.L1{background:rgba(47,174,224,.18);color:var(--sky)}
   .tag.CDF{background:rgba(47,191,113,.18);color:var(--green)}
   .tag.CE{background:rgba(212,160,23,.18);color:var(--gold)}
+  .tag.ABO{background:rgba(247,250,252,.12);color:var(--white)}
   select{
     width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
     color:var(--white);padding:11px 10px;font-size:16px;font-weight:600;
@@ -207,6 +208,13 @@
 <div class="page" id="page-om">
   <div class="abo">
     <h2>Abonnements OM (Vélodrome)</h2>
+    <div class="abo-row" style="grid-template-columns:1fr">
+      <div class="field">
+        <label>Nb de matchs inclus dans l'abonnement</label>
+        <input type="number" inputmode="numeric" min="1" placeholder="17"
+          value="" id="nbMatchs-om" onchange="updNbMatchs('om',this.value)">
+      </div>
+    </div>
     <div id="abos-om"></div>
     <button class="abo-add" onclick="addAbo('om')">+ Ajouter un abonnement (tarif différent)</button>
     <div class="abo-info" id="aboInfo-om"></div>
@@ -218,6 +226,13 @@
 <div class="page" id="page-pfc">
   <div class="abo">
     <h2>Abonnements Paris FC (Jean-Bouin)</h2>
+    <div class="abo-row" style="grid-template-columns:1fr">
+      <div class="field">
+        <label>Nb de matchs inclus dans l'abonnement</label>
+        <input type="number" inputmode="numeric" min="1" placeholder="17"
+          value="" id="nbMatchs-pfc" onchange="updNbMatchs('pfc',this.value)">
+      </div>
+    </div>
     <div id="abos-pfc"></div>
     <button class="abo-add" onclick="addAbo('pfc')">+ Ajouter un abonnement (tarif différent)</button>
     <div class="abo-info" id="aboInfo-pfc"></div>
@@ -245,7 +260,14 @@
       <label>Date (optionnel)</label>
       <input type="text" id="mDate" placeholder="Ex : 15/01/2027">
     </div>
-    <p class="hint">Les billets de coupe ne sont pas inclus dans l'abonnement : renseigne le nombre et le prix d'achat à la main sur la carte du match.</p>
+    <div class="field">
+      <label>Inclus dans l'abonnement ?</label>
+      <select id="mInAbo">
+        <option value="non">Non — billets achetés à part</option>
+        <option value="oui">Oui — inclus dans l'abonnement</option>
+      </select>
+    </div>
+    <p class="hint">Si le match est inclus dans l'abonnement, le nombre de billets et le prix d'achat seront remplis automatiquement (pense à ajuster le nb de matchs de l'abonnement en haut de page). Sinon, renseigne-les à la main.</p>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Annuler</button>
       <button class="btn-ok" onclick="addMatch()">Ajouter</button>
@@ -303,17 +325,28 @@ let data = load();
 let currentTab = 'bilan';
 
 function load(){
+  let d = null;
   try{
     const raw = localStorage.getItem(KEY);
-    if(raw) return JSON.parse(raw);
+    if(raw) d = JSON.parse(raw);
   }catch(e){}
-  const mk = (seed, club) => seed.map((m,i)=>({
-    id:club+'_l1_'+i, compet:'L1', adv:m.adv, date:m.date, qty:'', buy:'', sell:''
-  }));
-  return {
-    om:  {abos:[{n:'',price:''}], matches: mk(SEED_OM,'om')},
-    pfc: {abos:[{n:'',price:''}], matches: mk(SEED_PFC,'pfc')},
-  };
+  if(!d){
+    const mk = (seed, club) => seed.map((m,i)=>({
+      id:club+'_l1_'+i, compet:'L1', adv:m.adv, date:m.date, qty:'', buy:'', sell:'', inAbo:true
+    }));
+    d = {
+      om:  {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_OM,'om')},
+      pfc: {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_PFC,'pfc')},
+    };
+  }
+  // Migration des anciennes données
+  ['om','pfc'].forEach(c=>{
+    if(d[c].nbMatchs===undefined) d[c].nbMatchs='17';
+    d[c].matches.forEach(m=>{
+      if(m.inAbo===undefined) m.inAbo = (m.compet==='L1');
+    });
+  });
+  return d;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
 
@@ -328,14 +361,18 @@ function net(m){
 function esc(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 
 // ------- Abonnements -------
+function nbMatchsAbo(club){
+  return parseFloat(data[club].nbMatchs) || 17;
+}
 function aboStats(club){
   let nb=0, cost=0;
   data[club].abos.forEach(a=>{
     const n=parseFloat(a.n)||0, p=parseFloat(a.price)||0;
     nb+=n; cost+=n*p;
   });
-  const perTicket = nb>0 ? (cost/nb)/NB_MATCHS_L1 : 0;
-  return {nb, cost, perTicket};
+  const nm = nbMatchsAbo(club);
+  const perTicket = nb>0 ? (cost/nb)/nm : 0;
+  return {nb, cost, perTicket, nm};
 }
 
 function renderAbos(club){
@@ -360,9 +397,16 @@ function renderAbos(club){
     box.appendChild(row);
   });
   const s = aboStats(club);
+  document.getElementById('nbMatchs-'+club).value = data[club].nbMatchs;
   document.getElementById('aboInfo-'+club).innerHTML =
     `<span>Total : <b>${s.nb} abo${s.nb>1?'s':''}</b> · <b>${fmt0(s.cost)}</b></span>` +
-    `<span>Coût / billet L1 : <b>${fmt(s.perTicket)}</b> <small>(÷ ${NB_MATCHS_L1} matchs)</small></span>`;
+    `<span>Coût / billet abo : <b>${fmt(s.perTicket)}</b> <small>(÷ ${s.nm} matchs)</small></span>`;
+}
+
+function updNbMatchs(club, value){
+  data[club].nbMatchs = value;
+  applyAboToMatches(club);
+  save(); renderAll();
 }
 
 function updAbo(club,i,field,value){
@@ -380,11 +424,11 @@ function delAbo(club,i){
   save(); renderAll();
 }
 
-// Remplit nb billets + prix d'achat sur tous les matchs L1 du club
+// Remplit nb billets + prix d'achat sur tous les matchs inclus dans l'abonnement
 function applyAboToMatches(club){
   const s = aboStats(club);
   data[club].matches.forEach(m=>{
-    if(m.compet!=='L1') return;
+    if(!m.inAbo) return;
     m.qty = s.nb>0 ? String(s.nb) : '';
     m.buy = s.nb>0 ? s.perTicket.toFixed(2) : '';
   });
@@ -405,6 +449,7 @@ function renderList(club){
           <div class="match-name">${CLUB_NAMES[club]} – ${esc(m.adv)}</div>
           <div class="match-meta">
             <span class="tag ${m.compet}">${COMPET_NAMES[m.compet]}</span>
+            ${m.inAbo ? '<span class="tag ABO">Abo</span>' : ''}
             <span class="match-date">${esc(m.date||'Date à définir')}</span>
           </div>
         </div>
@@ -502,11 +547,17 @@ function addMatch(){
   const adv = document.getElementById('mAdv').value.trim();
   if(!adv){ alert("Indique l'adversaire"); return; }
   const compet = currentTab==='om' ? document.getElementById('mCompet').value : 'CDF';
-  data[currentTab].matches.push({
-    id:'cup_'+Date.now(), compet, adv,
+  const inAbo = document.getElementById('mInAbo').value === 'oui';
+  const m = {
+    id:'cup_'+Date.now(), compet, adv, inAbo,
     date: document.getElementById('mDate').value.trim(),
     qty:'', buy:'', sell:''
-  });
+  };
+  if(inAbo){
+    const s = aboStats(currentTab);
+    if(s.nb>0){ m.qty = String(s.nb); m.buy = s.perTicket.toFixed(2); }
+  }
+  data[currentTab].matches.push(m);
   document.getElementById('mAdv').value='';
   document.getElementById('mDate').value='';
   save(); closeModal(); renderAll();
