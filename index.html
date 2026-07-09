@@ -96,7 +96,13 @@
   .tag.L1{background:rgba(47,174,224,.18);color:var(--sky)}
   .tag.CDF{background:rgba(47,191,113,.18);color:var(--green)}
   .tag.CE{background:rgba(212,160,23,.18);color:var(--gold)}
-  .tag.ABO{background:rgba(247,250,252,.12);color:var(--white)}
+  .abo-check{
+    display:inline-flex;align-items:center;gap:4px;margin-right:6px;
+    background:rgba(247,250,252,.08);border:1px solid var(--line);border-radius:7px;
+    padding:2px 7px;cursor:pointer;vertical-align:middle;
+  }
+  .abo-check input{width:15px;height:15px;accent-color:var(--sky);cursor:pointer}
+  .abo-check-txt{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sky-soft)}
   select{
     width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
     color:var(--white);padding:11px 10px;font-size:16px;font-weight:600;
@@ -210,9 +216,8 @@
     <h2>Abonnements OM (Vélodrome)</h2>
     <div class="abo-row" style="grid-template-columns:1fr">
       <div class="field">
-        <label>Nb de matchs inclus dans l'abonnement</label>
-        <input type="number" inputmode="numeric" min="1" placeholder="17"
-          value="" id="nbMatchs-om" onchange="updNbMatchs('om',this.value)">
+        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
+        <input type="number" readonly id="nbMatchs-om" style="opacity:.8">
       </div>
     </div>
     <div id="abos-om"></div>
@@ -228,9 +233,8 @@
     <h2>Abonnements Paris FC (Jean-Bouin)</h2>
     <div class="abo-row" style="grid-template-columns:1fr">
       <div class="field">
-        <label>Nb de matchs inclus dans l'abonnement</label>
-        <input type="number" inputmode="numeric" min="1" placeholder="17"
-          value="" id="nbMatchs-pfc" onchange="updNbMatchs('pfc',this.value)">
+        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
+        <input type="number" readonly id="nbMatchs-pfc" style="opacity:.8">
       </div>
     </div>
     <div id="abos-pfc"></div>
@@ -362,7 +366,7 @@ function esc(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;',
 
 // ------- Abonnements -------
 function nbMatchsAbo(club){
-  return parseFloat(data[club].nbMatchs) || 17;
+  return data[club].matches.filter(m=>m.inAbo).length;
 }
 function aboStats(club){
   let nb=0, cost=0;
@@ -371,7 +375,7 @@ function aboStats(club){
     nb+=n; cost+=n*p;
   });
   const nm = nbMatchsAbo(club);
-  const perTicket = nb>0 ? (cost/nb)/nm : 0;
+  const perTicket = (nb>0 && nm>0) ? (cost/nb)/nm : 0;
   return {nb, cost, perTicket, nm};
 }
 
@@ -397,14 +401,17 @@ function renderAbos(club){
     box.appendChild(row);
   });
   const s = aboStats(club);
-  document.getElementById('nbMatchs-'+club).value = data[club].nbMatchs;
+  document.getElementById('nbMatchs-'+club).value = s.nm;
   document.getElementById('aboInfo-'+club).innerHTML =
     `<span>Total : <b>${s.nb} abo${s.nb>1?'s':''}</b> · <b>${fmt0(s.cost)}</b></span>` +
-    `<span>Coût / billet abo : <b>${fmt(s.perTicket)}</b> <small>(÷ ${s.nm} matchs)</small></span>`;
+    `<span>Coût / billet abo : <b>${fmt(s.perTicket)}</b> <small>(÷ ${s.nm} match${s.nm>1?'s':''})</small></span>`;
 }
 
-function updNbMatchs(club, value){
-  data[club].nbMatchs = value;
+function toggleAbo(club, id, checked){
+  const m = data[club].matches.find(x=>x.id===id);
+  if(!m) return;
+  m.inAbo = checked;
+  if(!checked){ m.qty=''; m.buy=''; } // billet hors abo : à saisir à la main
   applyAboToMatches(club);
   save(); renderAll();
 }
@@ -446,10 +453,16 @@ function renderList(club){
     card.innerHTML = `
       <div class="card-top">
         <div>
-          <div class="match-name">${CLUB_NAMES[club]} – ${esc(m.adv)}</div>
+          <div class="match-name">
+            <label class="abo-check">
+              <input type="checkbox" ${m.inAbo?'checked':''}
+                onchange="toggleAbo('${club}','${m.id}',this.checked)">
+              <span class="abo-check-txt">Abo</span>
+            </label>
+            ${CLUB_NAMES[club]} – ${esc(m.adv)}
+          </div>
           <div class="match-meta">
             <span class="tag ${m.compet}">${COMPET_NAMES[m.compet]}</span>
-            ${m.inAbo ? '<span class="tag ABO">Abo</span>' : ''}
             <span class="match-date">${esc(m.date||'Date à définir')}</span>
           </div>
         </div>
