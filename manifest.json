@@ -1,0 +1,13 @@
+{
+  "name": "Fais-le comme Tarzan",
+  "short_name": "Tarzan",
+  "description": "Ton programme d'abdos, semaine par semaine, ambiance jungle.",
+  "start_url": "./fais-le-comme-tarzan.html",
+  "display": "standalone",
+  "background_color": "#14301F",
+  "theme_color": "#14301F",
+  "lang": "fr",
+  "icons": [
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

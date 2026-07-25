@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fais-le comme Tarzan</title>
+<meta name="theme-color" content="#14301F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --jungle:#14301F;
+    --jungle2:#1E4630;
+    --leaf:#3E8E5A;
+    --banane:#F7C948;
+    --banane2:#E0AF2B;
+    --ivoire:#FDF8EA;
+    --peau:#F2C49B;
+    --peauF:#EAB68E;
+    --rouge:#D9534F;
+    --r:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Nunito',sans-serif;
+    background:var(--jungle);
+    background-image:radial-gradient(ellipse at 20% -10%, #245538 0%, transparent 55%),
+                     radial-gradient(ellipse at 90% 110%, #0E2416 0%, transparent 60%);
+    color:var(--ivoire);
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;
+    padding:0 16px 80px;
+  }
+  header{width:100%;max-width:560px;text-align:center;padding:28px 0 10px}
+  h1{
+    font-family:'Lilita One',cursive;
+    font-size:clamp(2rem,8vw,3rem);
+    color:var(--banane);
+    letter-spacing:.5px;
+    text-shadow:0 3px 0 rgba(0,0,0,.35);
+    line-height:1.05;
+  }
+  .tagline{color:#BFD9C6;font-weight:600;margin-top:6px;font-size:.95rem}
+  /* Liane stepper */
+  .liane{width:100%;max-width:560px;display:flex;align-items:center;margin:18px 0 22px}
+  .noeud{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--jungle2);border:3px solid var(--leaf);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Lilita One',cursive;font-size:1rem;color:#9CC8AA;
+    flex-shrink:0;transition:.3s;
+  }
+  .noeud.actif{background:var(--banane);border-color:var(--banane2);color:var(--jungle);transform:scale(1.15)}
+  .noeud.fait{background:var(--leaf);color:var(--ivoire)}
+  .corde{flex:1;height:5px;background:var(--jungle2);border-radius:3px;position:relative;overflow:hidden}
+  .corde::after{content:"";position:absolute;inset:0;background:var(--leaf);transform:scaleX(0);transform-origin:left;transition:.4s}
+  .corde.fait::after{transform:scaleX(1)}
+  main{width:100%;max-width:560px}
+  .carte{
+    background:var(--jungle2);
+    border:1px solid #2C5E40;
+    border-radius:var(--r);
+    padding:22px;
+    box-shadow:0 8px 24px rgba(0,0,0,.3);
+  }
+  h2{font-family:'Lilita One',cursive;font-size:1.5rem;color:var(--ivoire);margin-bottom:4px}
+  .sous{color:#A9C9B4;font-size:.92rem;margin-bottom:18px}
+  label{display:block;font-weight:700;font-size:.9rem;margin:14px 0 6px;color:#D7E8DD}
+  input[type=number], select{
+    width:100%;padding:12px 14px;border-radius:12px;border:2px solid #2C5E40;
+    background:var(--jungle);color:var(--ivoire);font-family:'Nunito';font-size:1rem;font-weight:700;
+    outline:none;transition:.2s;
+  }
+  input:focus,select:focus{border-color:var(--banane)}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pills{display:flex;gap:10px;flex-wrap:wrap}
+  .pill{
+    padding:10px 18px;border-radius:999px;border:2px solid #2C5E40;background:var(--jungle);
+    color:#CFE3D6;font-weight:800;cursor:pointer;transition:.2s;font-size:.95rem;
+  }
+  .pill.on{background:var(--banane);border-color:var(--banane2);color:var(--jungle)}
+  .pill:focus-visible,.ventre:focus-visible,button:focus-visible{outline:3px solid var(--banane);outline-offset:2px}
+  /* Galerie de ventres */
+  .ventres{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  .ventre{
+    background:var(--jungle);border:3px solid #2C5E40;border-radius:16px;
+    padding:12px 8px 10px;cursor:pointer;text-align:center;transition:.2s;
+  }
+  .ventre:hover{border-color:var(--leaf);transform:translateY(-2px)}
+  .ventre.on{border-color:var(--banane);background:#233;background:#1A3B27;box-shadow:0 0 0 3px rgba(247,201,72,.25)}
+  .ventre svg{width:100%;max-width:120px;height:auto}
+  .ventre .nom{font-weight:800;font-size:.9rem;margin-top:6px;color:var(--ivoire)}
+  .ventre .desc{font-size:.78rem;color:#9CC0A9}
+  .btns{display:flex;gap:12px;margin-top:22px}
+  button{
+    font-family:'Nunito';font-weight:800;font-size:1rem;
+    padding:14px 22px;border-radius:14px;border:none;cursor:pointer;transition:.15s;
+  }
+  .principal{
+    flex:1;background:var(--banane);color:var(--jungle);
+    box-shadow:0 4px 0 var(--banane2);
+  }
+  .principal:hover{transform:translateY(-2px)}
+  .principal:active{transform:translateY(2px);box-shadow:none}
+  .principal:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .secondaire{background:transparent;color:#A9C9B4;border:2px solid #2C5E40}
+  .secondaire:hover{border-color:var(--leaf);color:var(--ivoire)}
+  .cachee{display:none}
+  /* Programme */
+  .badgeimc{display:inline-block;background:var(--jungle);border:2px solid var(--leaf);border-radius:999px;padding:6px 14px;font-weight:800;font-size:.85rem;margin:4px 6px 12px 0}
+  .semaine{margin-top:18px;background:var(--jungle);border-radius:14px;border:1px solid #2C5E40;overflow:hidden}
+  .semaine>summary{
+    list-style:none;cursor:pointer;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
+    font-family:'Lilita One',cursive;font-size:1.1rem;color:var(--banane);
+  }
+  .semaine>summary::-webkit-details-marker{display:none}
+  .semaine>summary .fleche{transition:.25s;color:#7FAE90}
+  .semaine[open]>summary .fleche{transform:rotate(90deg)}
+  .jour{border-top:1px solid #24503A;padding:12px 16px}
+  .jour h4{font-size:.95rem;color:var(--ivoire);margin-bottom:8px}
+  .jour h4 .type{color:#8FC49F;font-weight:600;font-size:.8rem;margin-left:6px}
+  .exo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #24503A}
+  .exo:last-child{border-bottom:none}
+  .exo .n{font-weight:700;font-size:.92rem}
+  .exo .d{font-size:.8rem;color:#9CC0A9}
+  .exo a{
+    flex-shrink:0;text-decoration:none;background:var(--rouge);color:#fff;
+    font-weight:800;font-size:.75rem;padding:6px 10px;border-radius:8px;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .exo a:hover{filter:brightness(1.1)}
+  .repos{color:#8FC49F;font-style:italic;font-size:.9rem}
+  .conseils{margin-top:18px;background:#1A3B27;border-left:4px solid var(--banane);border-radius:0 12px 12px 0;padding:14px 16px;font-size:.9rem}
+  .conseils b{color:var(--banane)}
+  .conseils ul{margin:8px 0 0 18px;line-height:1.6}
+  .cri{text-align:center;font-family:'Lilita One',cursive;color:var(--banane);font-size:1.2rem;margin-top:20px;letter-spacing:1px}
+  /* Mascotte */
+  .mascotte{width:110px;height:110px;margin:0 auto 6px;display:block;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+  /* Suivi des séances */
+  .fait{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;color:#8FC49F;cursor:pointer;margin-left:auto}
+  .fait input{width:18px;height:18px;accent-color:var(--banane);cursor:pointer}
+  .jour h4{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+  .jour.coche{opacity:.55}
+  .jour.coche h4{color:var(--banane)}
+  .prog{height:14px;background:var(--jungle);border:2px solid #2C5E40;border-radius:999px;overflow:hidden;margin:10px 0 4px}
+  .prog-fill{height:100%;background:linear-gradient(90deg,var(--leaf),var(--banane));width:0%;transition:.4s;border-radius:999px}
+  .prog-txt{font-size:.85rem;font-weight:800;color:#BFD9C6;margin-bottom:6px;display:block}
+  .reprendre{margin-top:14px;width:100%;background:var(--leaf);color:var(--ivoire);box-shadow:0 4px 0 #2C5E40}
+  .reprendre:hover{transform:translateY(-2px)}
+  @media(max-width:420px){.ventres{grid-template-columns:1fr 1fr}.duo{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <svg class="mascotte" viewBox="0 0 120 120" role="img" aria-label="Tarzan, cheveux longs blonds et abdos">
+    <circle cx="60" cy="60" r="58" fill="#2E7D4F"/>
+    <path d="M18 78 Q30 60 26 44 M102 78 Q90 60 94 44" stroke="#245538" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <!-- cheveux longs blonds -->
+    <path d="M60 10 Q30 12 28 42 Q26 68 34 84 L42 80 Q36 60 38 44 L44 50 Q42 30 60 26 Q78 30 76 50 L82 44 Q84 60 78 80 L86 84 Q94 68 92 42 Q90 12 60 10 Z" fill="#F7C948" stroke="#C89A1E" stroke-width="2"/>
+    <!-- visage -->
+    <ellipse cx="60" cy="44" rx="17" ry="18" fill="#F2C49B" stroke="#8A5A34" stroke-width="2"/>
+    <circle cx="53" cy="42" r="2.2" fill="#3B2A1A"/>
+    <circle cx="67" cy="42" r="2.2" fill="#3B2A1A"/>
+    <path d="M52 52 Q60 58 68 52" stroke="#8A5A34" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <!-- torse avec abdos -->
+    <path d="M42 64 Q60 60 78 64 L76 96 Q60 106 44 96 Z" fill="#F2C49B" stroke="#8A5A34" stroke-width="2"/>
+    <path d="M60 66 L60 96 M50 74 L58 74 M62 74 L70 74 M50 82 L58 82 M62 82 L70 82 M51 90 L58 90 M62 90 L69 90" stroke="#8A5A34" stroke-width="2" opacity=".8"/>
+    <!-- pagne léopard -->
+    <path d="M44 96 Q60 104 76 96 L76 110 Q60 118 44 110 Z" fill="#E0AF2B" stroke="#8A5A34" stroke-width="2"/>
+    <circle cx="52" cy="104" r="2" fill="#5C4012"/><circle cx="62" cy="107" r="2" fill="#5C4012"/><circle cx="70" cy="102" r="2" fill="#5C4012"/>
+  </svg>
+  <h1>FAIS-LE COMME TARZAN</h1>
+  <p class="tagline">Attrape la liane. Sculpte tes abdos. 🌿</p>
+</header>
+
+<div class="liane" id="liane">
+  <div class="noeud actif" data-s="1">1</div><div class="corde"></div>
+  <div class="noeud" data-s="2">2</div><div class="corde"></div>
+  <div class="noeud" data-s="3">3</div><div class="corde"></div>
+  <div class="noeud" data-s="4">4</div><div class="corde"></div>
+  <div class="noeud" data-s="5">🦍</div>
+</div>
+
+<main>
+  <!-- ÉTAPE 1 : PROFIL -->
+  <section class="carte" id="etape1">
+    <h2>Ton profil</h2>
+    <p class="sous">Quelques infos pour adapter ton programme.</p>
+    <label>Silhouette des dessins</label>
+    <div class="pills" id="sexe">
+      <div class="pill on" data-v="H" tabindex="0">Homme</div>
+      <div class="pill" data-v="F" tabindex="0">Femme</div>
+    </div>
+    <div class="duo">
+      <div><label for="age">Âge</label><input type="number" id="age" min="14" max="90" placeholder="ex : 32"></div>
+      <div><label for="taille">Taille (cm)</label><input type="number" id="taille" min="120" max="230" placeholder="ex : 178"></div>
+    </div>
+    <label for="poids">Poids (kg)</label>
+    <input type="number" id="poids" min="35" max="250" placeholder="ex : 80">
+    <div class="btns">
+      <button class="principal" onclick="valideProfil()">C'est parti ➜</button>
+    </div>
+    <button class="reprendre cachee" id="btnReprendre" onclick="reprendre()">🌿 Reprendre mon programme en cours</button>
+  </section>
+
+  <!-- ÉTAPE 2 : NIVEAU ACTUEL -->
+  <section class="carte cachee" id="etape2">
+    <h2>Ton ventre aujourd'hui</h2>
+    <p class="sous">Sois honnête, Tarzan ne juge pas. Touche le dessin qui te ressemble.</p>
+    <div class="ventres" id="niveauActuel"></div>
+    <div class="btns">
+      <button class="secondaire" onclick="va(1)">← Retour</button>
+      <button class="principal" id="btn2" disabled onclick="va(3)">Suivant ➜</button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 3 : OBJECTIF -->
+  <section class="carte cachee" id="etape3">
+    <h2>Ton objectif</h2>
+    <p class="sous">Là où tu veux arriver au bout du programme.</p>
+    <div class="ventres" id="objectif"></div>
+    <div class="btns">
+      <button class="secondaire" onclick="va(2)">← Retour</button>
+      <button class="principal" id="btn3" disabled onclick="va(4)">Suivant ➜</button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 4 : DURÉE -->
+  <section class="carte cachee" id="etape4">
+    <h2>Ton entraînement</h2>
+    <p class="sous">Sur combien de temps tu penses t'entraîner ?</p>
+    <label>Durée du programme</label>
+    <div class="pills" id="duree">
+      <div class="pill" data-v="4" tabindex="0">4 semaines</div>
+      <div class="pill on" data-v="8" tabindex="0">8 semaines</div>
+      <div class="pill" data-v="12" tabindex="0">12 semaines</div>
+    </div>
+    <label>Séances par semaine</label>
+    <div class="pills" id="jours">
+      <div class="pill" data-v="3" tabindex="0">3 jours</div>
+      <div class="pill on" data-v="4" tabindex="0">4 jours</div>
+      <div class="pill" data-v="5" tabindex="0">5 jours</div>
+    </div>
+    <div class="btns">
+      <button class="secondaire" onclick="va(3)">← Retour</button>
+      <button class="principal" onclick="genere()">AHHH-AH-AH ! Génère 🦍</button>
+    </div>
+  </section>
+
+  <!-- ÉTAPE 5 : PROGRAMME -->
+  <section class="carte cachee" id="etape5">
+    <h2>Ton programme jungle</h2>
+    <div id="resume"></div>
+    <div id="programme"></div>
+    <div class="conseils" id="conseils"></div>
+    <div class="btns">
+      <button class="secondaire" onclick="reset()">↺ Recommencer</button>
+      <button class="principal" onclick="window.print()">Imprimer / PDF</button>
+    </div>
+    <p class="cri">AAAAH-AH-AH-AAAAH ! 💪</p>
+  </section>
+</main>
+
+<script>
+/* ================= DONNÉES ================= */
+const etat = { sexe:'H', age:null, taille:null, poids:null, niveau:null, objectif:null, duree:8, jours:4 };
+let coches = {};   // séances cochées { "s1j0": true, ... }
+
+/* Sauvegarde locale (localStorage si dispo, sinon mémoire de session) */
+let memTmp = null;
+const store = {
+  get(){ try{ return JSON.parse(localStorage.getItem('tarzan')) || memTmp; }catch(e){ return memTmp; } },
+  set(v){ memTmp = v; try{ localStorage.setItem('tarzan', JSON.stringify(v)); }catch(e){} },
+  clear(){ memTmp = null; try{ localStorage.removeItem('tarzan'); }catch(e){} }
+};
+function sauvegarde(){ store.set({ etat:{...etat}, coches:{...coches}, date:Date.now() }); }
+function reprendre(){
+  const s = store.get(); if(!s) return;
+  Object.assign(etat, s.etat); coches = s.coches || {};
+  genere();
+}
+window.addEventListener('DOMContentLoaded', ()=>{
+  const s = store.get();
+  if(s && s.etat && s.etat.niveau) document.getElementById('btnReprendre').classList.remove('cachee');
+  if('serviceWorker' in navigator && location.protocol === 'https:'){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+});
+
+/* Dessins SVG de ventres (H = homme, F = femme) */
+function svgVentre(type, sexe){
+  const peau = sexe==='H' ? '#F2C49B' : '#EAB68E';
+  const ombre = '#C88E5F', trait = '#8A5A34';
+  // formes du torse selon le type
+  let torse='', details='';
+  if(type==='gros'){
+    torse = `<path d="M30 8 Q60 2 90 8 L94 40 Q98 78 60 96 Q22 78 26 40 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>
+             <ellipse cx="60" cy="62" rx="30" ry="26" fill="${peau}" stroke="${ombre}" stroke-width="1.5" opacity=".9"/>`;
+    details = `<circle cx="60" cy="66" r="3" fill="${ombre}"/>
+               <path d="M36 50 Q40 58 38 66" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".6"/>
+               <path d="M84 50 Q80 58 82 66" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".6"/>`;
+  } else if(type==='mou'){
+    torse = `<path d="M32 8 Q60 3 88 8 L90 42 Q92 76 60 94 Q28 76 30 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
+    details = `<circle cx="60" cy="62" r="2.6" fill="${ombre}"/>
+               <path d="M44 78 Q60 84 76 78" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".5"/>`;
+  } else if(type==='maigre'){
+    torse = `<path d="M36 8 Q60 4 84 8 L84 44 Q84 76 60 92 Q36 76 36 44 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
+    details = `<circle cx="60" cy="60" r="2.4" fill="${ombre}"/>
+               <path d="M40 26 Q46 30 52 30 M80 26 Q74 30 68 30" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".55"/>`;
+  } else if(type==='plat'){
+    torse = `<path d="M34 8 Q60 3 86 8 L86 42 Q86 76 60 93 Q34 76 34 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
+    details = `<circle cx="60" cy="60" r="2.4" fill="${ombre}"/>
+               <path d="M60 20 L60 50" stroke="${ombre}" stroke-width="1.3" opacity=".4"/>
+               <path d="M42 46 Q50 50 58 50 M78 46 Q70 50 62 50" stroke="${ombre}" stroke-width="1.2" fill="none" opacity=".35"/>`;
+  } else if(type==='unpeu'){
+    torse = `<path d="M34 8 Q60 3 86 8 L86 42 Q86 76 60 93 Q34 76 34 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
+    details = `<circle cx="60" cy="62" r="2.4" fill="${ombre}"/>
+               <path d="M60 18 L60 56" stroke="${ombre}" stroke-width="1.6" opacity=".55"/>
+               <path d="M46 34 L58 34 M62 34 L74 34 M47 46 L58 46 M62 46 L73 46" stroke="${ombre}" stroke-width="1.6" opacity=".55"/>`;
+  } else { // dessine
+    torse = `<path d="M32 8 Q60 2 88 8 L87 42 Q87 76 60 93 Q33 76 33 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
+    details = `<circle cx="60" cy="64" r="2.4" fill="${ombre}"/>
+               <path d="M60 16 L60 60" stroke="${trait}" stroke-width="2.4" opacity=".8"/>
+               <path d="M44 30 L58 30 M62 30 L76 30 M44 42 L58 42 M62 42 L76 42 M46 54 L58 54 M62 54 L74 54" stroke="${trait}" stroke-width="2.4" opacity=".8"/>
+               <path d="M38 24 Q42 40 40 56 M82 24 Q78 40 80 56" stroke="${ombre}" stroke-width="1.8" fill="none" opacity=".7"/>`;
+  }
+  // détail féminin : nombril légèrement plus haut + hanches marquées
+  const hanches = sexe==='F' ? `<path d="M34 70 Q40 82 52 90 M86 70 Q80 82 68 90" stroke="${ombre}" stroke-width="1.4" fill="none" opacity=".4"/>` : '';
+  return `<svg viewBox="0 0 120 100" role="img">${torse}${details}${hanches}</svg>`;
+}
+
+const NIVEAUX = [
+  {id:'gros',   nom:'Un peu gros',      desc:'du ventre à perdre',   score:0},
+  {id:'mou',    nom:'Pas du tout',      desc:'ni gras ni muscle',    score:1},
+  {id:'maigre', nom:'Maigre',           desc:'fin, sans tonus',      score:1},
+  {id:'unpeu',  nom:'Un peu d\'abdos',  desc:'ça commence à se voir',score:2},
+];
+const OBJECTIFS = [
+  {id:'plat',    nom:'Ventre plat',        desc:'tonique et gainé',      score:2},
+  {id:'dessine', nom:'Abdos bien dessinés',desc:'la tablette de Tarzan', score:3},
+  {id:'mou',     nom:'Pas de changement',  desc:'juste entretenir',      score:1},
+];
+
+/* Bibliothèque d'exercices : [nom, description, recherche YouTube] */
+const EXOS = {
+  abdos: [
+    ['Crunch','Relevé de buste, dos au sol','crunch abdos technique'],
+    ['Planche','Gainage sur les avant-bras','planche gainage technique'],
+    ['Relevé de jambes','Allongé, jambes tendues vers le ciel','releve de jambes abdos'],
+    ['Russian twist','Rotations du buste, assis','russian twist technique'],
+    ['Mountain climbers','Genoux vers la poitrine en planche','mountain climbers technique'],
+    ['Gainage latéral','Planche sur le côté, obliques','gainage lateral obliques'],
+    ['Hollow hold','Corps en banane, bas du dos plaqué','hollow hold technique'],
+    ['Ciseaux','Battements de jambes allongé','ciseaux abdos exercice'],
+    ['Crunch vélo','Coude vers genou opposé','crunch velo bicycle abdos'],
+    ['Dead bug','Bras et jambe opposés, dos plaqué','dead bug exercice technique'],
+  ],
+  cardio: [
+    ['Jumping jacks','Sauts écarts, rythme soutenu','jumping jacks technique'],
+    ['Burpees','L\'exo que Tarzan adore détester','burpees technique debutant'],
+    ['Corde à sauter (ou sur place)','Sauts légers en continu','corde a sauter debutant'],
+    ['Montées de genoux','Course sur place, genoux hauts','montees de genoux exercice'],
+    ['Marche rapide / course','20 à 30 min en extérieur','course a pied debutant conseils'],
+  ],
+  renfo: [
+    ['Squats','Flexions de jambes, dos droit','squat technique sans materiel'],
+    ['Pompes (ou sur genoux)','Poitrine vers le sol','pompes technique debutant'],
+    ['Fentes','Grand pas, genou vers le sol','fentes exercice technique'],
+    ['Superman','Allongé sur le ventre, lombaires','superman exercice dos'],
+    ['Pont fessier','Bassin vers le ciel','pont fessier hip thrust sol'],
+  ]
+};
+const yt = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+
+/* ================= NAVIGATION ================= */
+function va(n){
+  document.querySelectorAll('main section').forEach(s=>s.classList.add('cachee'));
+  document.getElementById('etape'+n).classList.remove('cachee');
+  document.querySelectorAll('.noeud').forEach((el,i)=>{
+    el.classList.toggle('actif', i+1===n);
+    el.classList.toggle('fait', i+1<n);
+  });
+  document.querySelectorAll('.corde').forEach((el,i)=>el.classList.toggle('fait', i+1<n));
+  window.scrollTo({top:0});
+}
+function valideProfil(){
+  etat.age = +document.getElementById('age').value || null;
+  etat.taille = +document.getElementById('taille').value || null;
+  etat.poids = +document.getElementById('poids').value || null;
+  if(!etat.age || !etat.taille || !etat.poids){ alert('Remplis ton âge, ta taille et ton poids, jeune singe ! 🐒'); return; }
+  dessineGaleries(); va(2);
+}
+function reset(){
+  if(!confirm('Recommencer efface ton programme et tes séances cochées. On y va ?')) return;
+  store.clear(); coches = {};
+  etat.niveau=null; etat.objectif=null;
+  document.getElementById('btn2').disabled=true; document.getElementById('btn3').disabled=true;
+  document.getElementById('btnReprendre').classList.add('cachee');
+  va(1);
+}
+function majProgression(){
+  const total = etat.duree * etat.jours;
+  const faits = Object.keys(coches).length;
+  const pct = total ? Math.round(100*faits/total) : 0;
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progTxt').textContent =
+    pct===100 ? '🏆 100 % — Tarzan est fier de toi !' : `Séances faites : ${faits} / ${total} (${pct} %)`;
+}
+
+/* pills génériques */
+function branchePills(id, cle, cast){
+  const c = document.getElementById(id);
+  c.addEventListener('click', e=>{
+    const p = e.target.closest('.pill'); if(!p) return;
+    c.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on'); etat[cle] = cast ? +p.dataset.v : p.dataset.v;
+    if(cle==='sexe' && etat.niveau!==null) dessineGaleries();
+  });
+  c.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.target.click(); }});
+}
+branchePills('sexe','sexe',false);
+branchePills('duree','duree',true);
+branchePills('jours','jours',true);
+
+/* galeries de ventres */
+function dessineGaleries(){
+  const gal = (contId, liste, cle, btnId)=>{
+    const c = document.getElementById(contId); c.innerHTML='';
+    liste.forEach(v=>{
+      const d = document.createElement('div');
+      d.className='ventre'+(etat[cle]===v.id?' on':''); d.tabIndex=0;
+      d.innerHTML = svgVentre(v.id, etat.sexe) + `<div class="nom">${v.nom}</div><div class="desc">${v.desc}</div>`;
+      d.onclick = ()=>{ c.querySelectorAll('.ventre').forEach(x=>x.classList.remove('on')); d.classList.add('on'); etat[cle]=v.id; document.getElementById(btnId).disabled=false; };
+      d.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); d.click(); }};
+      c.appendChild(d);
+    });
+  };
+  gal('niveauActuel', NIVEAUX, 'niveau', 'btn2');
+  gal('objectif', OBJECTIFS, 'objectif', 'btn3');
+}
+
+/* ================= GÉNÉRATION DU PROGRAMME ================= */
+function pioche(liste, n, decal){ const out=[]; for(let i=0;i<n;i++) out.push(liste[(decal+i)%liste.length]); return out; }
+
+function genere(){
+  const imc = etat.poids / ((etat.taille/100)**2);
+  const nivScore = NIVEAUX.find(n=>n.id===etat.niveau).score;
+  const objScore = OBJECTIFS.find(o=>o.id===etat.objectif).score;
+  const perdre = etat.niveau==='gros' || imc>=27;          // besoin de cardio
+  const intensite = Math.max(1, objScore - nivScore);       // 1 = entretien, 2 = gros chantier
+  const entretien = etat.objectif==='mou';
+
+  /* Résumé + IMC */
+  const sexeTxt = etat.sexe==='H'?'Homme':'Femme';
+  document.getElementById('resume').innerHTML = `
+    <span class="badgeimc">${sexeTxt} · ${etat.age} ans</span>
+    <span class="badgeimc">${etat.taille} cm · ${etat.poids} kg</span>
+    <span class="badgeimc">IMC : ${imc.toFixed(1)}</span>
+    <span class="badgeimc">${etat.duree} sem. · ${etat.jours} j/sem.</span>
+    <p class="sous" style="margin-top:8px">${
+      entretien ? 'Objectif entretien : des séances courtes pour garder ton tonus.' :
+      perdre ? 'Pour dessiner tes abdos, on combine gainage + cardio : les abdos se font aussi en brûlant ce qui les cache. 🔥' :
+      'Ton défi est surtout musculaire : on va construire et épaissir tes abdos, séance après séance.'}</p>`;
+
+  /* Structure des jours de la semaine */
+  const nomsJours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const slots = {3:[0,2,4], 4:[0,1,3,5], 5:[0,1,2,4,5]}[etat.jours];
+
+  let html = '';
+  for(let s=1; s<=etat.duree; s++){
+    const phase = s<=Math.ceil(etat.duree/3) ? 'Fondations' : s<=Math.ceil(2*etat.duree/3) ? 'Montée en puissance' : 'Sculpture finale';
+    const reps = 10 + Math.floor((s-1)*2*(entretien?0.5:1));       // progression des répétitions
+    const secs = 20 + Math.floor((s-1)*5*(entretien?0.5:1));       // progression du gainage
+    const series = s<=etat.duree/2 ? 3 : 4;
+
+    let joursHtml = '';
+    for(let j=0;j<7;j++){
+      const idx = slots.indexOf(j);
+      if(idx===-1){ joursHtml += `<div class="jour"><h4>${nomsJours[j]}</h4><p class="repos">Repos — la liane aussi a besoin de souffler. 🌙</p></div>`; continue; }
+      // type de séance selon le jour et le profil
+      let type, exos;
+      if(perdre && !entretien && idx%2===1){
+        type='Cardio + abdos';
+        exos = [...pioche(EXOS.cardio, 2, s+idx), ...pioche(EXOS.abdos, 2, s*2+idx)];
+      } else if(!entretien && idx===slots.length-1){
+        type='Corps entier + abdos';
+        exos = [...pioche(EXOS.renfo, 2, s+idx), ...pioche(EXOS.abdos, 2, s+idx*2)];
+      } else {
+        type='Abdos ciblés';
+        exos = pioche(EXOS.abdos, entretien?3:4, s*3+idx);
+      }
+      const lignes = exos.map(e=>{
+        const estGainage = /planche|gainage|hollow|hold/i.test(e[0]);
+        const dose = estGainage ? `${series} × ${secs} s` : (/marche|course|corde/i.test(e[0]) ? `15-25 min` : `${series} × ${reps}`);
+        return `<div class="exo"><div><div class="n">${e[0]} — <span style="color:var(--banane)">${dose}</span></div><div class="d">${e[1]}</div></div><a href="${yt(e[2])}" target="_blank" rel="noopener">▶ Vidéo</a></div>`;
+      }).join('');
+      const cle = `s${s}j${j}`;
+      joursHtml += `<div class="jour${coches[cle]?' coche':''}" id="jour-${cle}"><h4>${nomsJours[j]}<span class="type">${type}</span><label class="fait"><input type="checkbox" data-cle="${cle}"${coches[cle]?' checked':''}> Fait ✓</label></h4>${lignes}</div>`;
+    }
+    html += `<details class="semaine"${s===1?' open':''}><summary>Semaine ${s} · ${phase}<span class="fleche">➤</span></summary>${joursHtml}</details>`;
+  }
+  document.getElementById('programme').innerHTML =
+    `<span class="prog-txt" id="progTxt"></span><div class="prog"><div class="prog-fill" id="progFill"></div></div>` + html;
+
+  /* cases "Fait" */
+  document.querySelectorAll('#programme input[data-cle]').forEach(ch=>{
+    ch.addEventListener('change', ()=>{
+      coches[ch.dataset.cle] = ch.checked;
+      if(!ch.checked) delete coches[ch.dataset.cle];
+      document.getElementById('jour-'+ch.dataset.cle).classList.toggle('coche', ch.checked);
+      majProgression(); sauvegarde();
+    });
+  });
+  majProgression();
+  sauvegarde();
+
+  /* Conseils personnalisés */
+  let conseils = `<b>Les lois de la jungle 🌿</b><ul>`;
+  if(perdre) conseils += `<li>Les abdos se dessinent aussi dans l'assiette : réduis sucres et grignotage, privilégie protéines et légumes.</li>`;
+  if(etat.niveau==='maigre') conseils += `<li>Tu es fin : mange suffisamment (protéines à chaque repas) pour que le muscle se construise.</li>`;
+  conseils += `<li>Repos entre les séries : 30 à 60 secondes.</li>
+    <li>Qualité avant quantité : mieux vaut 10 répétitions propres que 30 bâclées. Regarde les vidéos !</li>
+    <li>Bois de l'eau, dors 7-8 h : c'est là que le muscle pousse.</li>
+    <li>Une douleur vive au dos ou ailleurs = stop, et avis d'un professionnel de santé.</li></ul>`;
+  document.getElementById('conseils').innerHTML = conseils;
+
+  va(5);
+}
+</script>
+</body>
+</html>
