@@ -2,534 +2,659 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fais-le comme Tarzan</title>
-<meta name="theme-color" content="#14301F">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icone.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Revente Billets 26/27</title>
 <style>
   :root{
-    --jungle:#14301F;
-    --jungle2:#1E4630;
-    --leaf:#3E8E5A;
-    --banane:#F7C948;
-    --banane2:#E0AF2B;
-    --ivoire:#FDF8EA;
-    --peau:#F2C49B;
-    --peauF:#EAB68E;
-    --rouge:#D9534F;
-    --r:18px;
+    --navy:#0B1F3A;
+    --navy2:#122C4F;
+    --sky:#2FAEE0;
+    --om:#6FD3FF;
+    --sky-soft:#BFE6F7;
+    --pfc:#E63946;
+    --pfc-soft:#F7C6CB;
+    --gold:#D4A017;
+    --white:#F7FAFC;
+    --green:#2FBF71;
+    --red:#E8554E;
+    --line:rgba(191,230,247,.14);
+    --radius:14px;
+    font-size:16px;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{
-    font-family:'Nunito',sans-serif;
-    background:var(--jungle);
-    background-image:radial-gradient(ellipse at 20% -10%, #245538 0%, transparent 55%),
-                     radial-gradient(ellipse at 90% 110%, #0E2416 0%, transparent 60%);
-    color:var(--ivoire);
-    min-height:100vh;
-    display:flex;flex-direction:column;align-items:center;
-    padding:0 16px 80px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--navy);color:var(--white);min-height:100vh;padding-bottom:100px;
   }
-  header{width:100%;max-width:560px;text-align:center;padding:28px 0 10px}
-  h1{
-    font-family:'Lilita One',cursive;
-    font-size:clamp(2rem,8vw,3rem);
-    color:var(--banane);
-    letter-spacing:.5px;
-    text-shadow:0 3px 0 rgba(0,0,0,.35);
-    line-height:1.05;
+  header{
+    background:linear-gradient(160deg,#0B1F3A 0%,#123B63 60%,#16588A 100%);
+    padding:16px 16px 0;border-bottom:1px solid var(--line);
   }
-  .tagline{color:#BFD9C6;font-weight:600;margin-top:6px;font-size:.95rem}
-  /* Liane stepper */
-  .liane{width:100%;max-width:560px;display:flex;align-items:center;margin:18px 0 22px}
-  .noeud{
-    width:34px;height:34px;border-radius:50%;
-    background:var(--jungle2);border:3px solid var(--leaf);
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Lilita One',cursive;font-size:1rem;color:#9CC8AA;
-    flex-shrink:0;transition:.3s;
+  .brand h1{font-size:1.15rem;font-weight:800;letter-spacing:.5px}
+  .brand h1 span{color:var(--sky)}
+  .brand small{color:var(--sky-soft);font-weight:600;font-size:.7rem;letter-spacing:1px}
+
+  /* Onglets */
+  .tabs{display:flex;gap:4px;margin-top:14px}
+  .tab{
+    flex:1;background:transparent;border:none;color:var(--sky-soft);
+    padding:11px 4px;font-size:.8rem;font-weight:800;letter-spacing:.5px;cursor:pointer;
+    border-bottom:3px solid transparent;text-transform:uppercase;
   }
-  .noeud.actif{background:var(--banane);border-color:var(--banane2);color:var(--jungle);transform:scale(1.15)}
-  .noeud.fait{background:var(--leaf);color:var(--ivoire)}
-  .corde{flex:1;height:5px;background:var(--jungle2);border-radius:3px;position:relative;overflow:hidden}
-  .corde::after{content:"";position:absolute;inset:0;background:var(--leaf);transform:scaleX(0);transform-origin:left;transition:.4s}
-  .corde.fait::after{transform:scaleX(1)}
-  main{width:100%;max-width:560px}
-  .carte{
-    background:var(--jungle2);
-    border:1px solid #2C5E40;
-    border-radius:var(--r);
-    padding:22px;
-    box-shadow:0 8px 24px rgba(0,0,0,.3);
+  .tab.active{color:var(--white);border-bottom-color:var(--sky)}
+  .tab.active[data-t="om"]{color:var(--om);border-bottom-color:var(--om)}
+  .tab.active[data-t="pfc"]{color:var(--pfc);border-bottom-color:var(--pfc)}
+  .tab.active[data-t="bilan"]{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* Thème par club */
+  #page-om .abo{border-top:3px solid var(--om)}
+  #page-om .abo h2{color:var(--om)}
+  #page-om .card{border-left:3px solid rgba(111,211,255,.35)}
+  #page-om .card.done{border-left-color:var(--green)}
+  #page-om .card.loss{border-left-color:var(--red)}
+  #page-pfc .abo{border-top:3px solid var(--pfc)}
+  #page-pfc .abo h2{color:var(--pfc)}
+  #page-pfc .card{border-left:3px solid rgba(230,57,70,.35)}
+  #page-pfc .card.done{border-left-color:var(--green)}
+  #page-pfc .card.loss{border-left-color:var(--red)}
+
+  .page{display:none;padding:0 16px}
+  .page.active{display:block}
+
+  /* Bloc abonnements */
+  .abo{
+    margin-top:14px;background:var(--navy2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px;
   }
-  h2{font-family:'Lilita One',cursive;font-size:1.5rem;color:var(--ivoire);margin-bottom:4px}
-  .sous{color:#A9C9B4;font-size:.92rem;margin-bottom:18px}
-  label{display:block;font-weight:700;font-size:.9rem;margin:14px 0 6px;color:#D7E8DD}
-  input[type=number], select{
-    width:100%;padding:12px 14px;border-radius:12px;border:2px solid #2C5E40;
-    background:var(--jungle);color:var(--ivoire);font-family:'Nunito';font-size:1rem;font-weight:700;
-    outline:none;transition:.2s;
+  .abo h2{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:10px}
+  .abo-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end}
+  .abo-info{
+    margin-top:8px;padding-top:10px;border-top:1px solid var(--line);
+    font-size:.75rem;color:var(--sky-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;
   }
-  input:focus,select:focus{border-color:var(--banane)}
-  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .pills{display:flex;gap:10px;flex-wrap:wrap}
-  .pill{
-    padding:10px 18px;border-radius:999px;border:2px solid #2C5E40;background:var(--jungle);
-    color:#CFE3D6;font-weight:800;cursor:pointer;transition:.2s;font-size:.95rem;
+  .abo-info b{color:var(--white)}
+  .abo-add{
+    background:none;border:1px dashed var(--line);color:var(--sky-soft);border-radius:8px;
+    padding:8px;width:100%;font-size:.75rem;font-weight:700;cursor:pointer;margin-top:2px;
   }
-  .pill.on{background:var(--banane);border-color:var(--banane2);color:var(--jungle)}
-  .pill:focus-visible,.ventre:focus-visible,button:focus-visible{outline:3px solid var(--banane);outline-offset:2px}
-  /* Galerie de ventres */
-  .ventres{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
-  .ventre{
-    background:var(--jungle);border:3px solid #2C5E40;border-radius:16px;
-    padding:12px 8px 10px;cursor:pointer;text-align:center;transition:.2s;
+  .abo-del{
+    background:none;border:none;color:var(--sky-soft);font-size:1rem;cursor:pointer;
+    padding:10px 8px;opacity:.6;
   }
-  .ventre:hover{border-color:var(--leaf);transform:translateY(-2px)}
-  .ventre.on{border-color:var(--banane);background:#233;background:#1A3B27;box-shadow:0 0 0 3px rgba(247,201,72,.25)}
-  .ventre svg{width:100%;max-width:120px;height:auto}
-  .ventre .nom{font-weight:800;font-size:.9rem;margin-top:6px;color:var(--ivoire)}
-  .ventre .desc{font-size:.78rem;color:#9CC0A9}
-  .btns{display:flex;gap:12px;margin-top:22px}
-  button{
-    font-family:'Nunito';font-weight:800;font-size:1rem;
-    padding:14px 22px;border-radius:14px;border:none;cursor:pointer;transition:.15s;
+
+  /* Champs */
+  .field label{display:block;font-size:.6rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;font-weight:700}
+  .field input{
+    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
+    color:var(--white);padding:9px 8px;font-size:16px;font-weight:700;text-align:center;
+    font-variant-numeric:tabular-nums;
   }
-  .principal{
-    flex:1;background:var(--banane);color:var(--jungle);
-    box-shadow:0 4px 0 var(--banane2);
+  .field input:focus{outline:none;border-color:var(--sky)}
+  .field input::placeholder{color:rgba(191,230,247,.3)}
+
+  /* Cartes match */
+  .list{padding-top:10px;display:flex;flex-direction:column;gap:10px}
+  .card{
+    background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;
   }
-  .principal:hover{transform:translateY(-2px)}
-  .principal:active{transform:translateY(2px);box-shadow:none}
-  .principal:disabled{opacity:.45;cursor:not-allowed;transform:none}
-  .secondaire{background:transparent;color:#A9C9B4;border:2px solid #2C5E40}
-  .secondaire:hover{border-color:var(--leaf);color:var(--ivoire)}
-  .cachee{display:none}
-  /* Programme */
-  .badgeimc{display:inline-block;background:var(--jungle);border:2px solid var(--leaf);border-radius:999px;padding:6px 14px;font-weight:800;font-size:.85rem;margin:4px 6px 12px 0}
-  .semaine{margin-top:18px;background:var(--jungle);border-radius:14px;border:1px solid #2C5E40;overflow:hidden}
-  .semaine>summary{
-    list-style:none;cursor:pointer;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
-    font-family:'Lilita One',cursive;font-size:1.1rem;color:var(--banane);
+  .card.done{border-left:3px solid var(--green)}
+  .card.loss{border-left:3px solid var(--red)}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .match-name{font-weight:800;font-size:.98rem}
+  .match-meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+  .match-date{font-size:.7rem;color:var(--sky-soft)}
+  .tag{font-size:.58rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:99px}
+  .tag.L1{background:rgba(47,174,224,.18);color:var(--sky)}
+  .tag.CDF{background:rgba(47,191,113,.18);color:var(--green)}
+  .tag.CE{background:rgba(212,160,23,.18);color:var(--gold)}
+  .abo-check{
+    display:inline-flex;align-items:center;gap:4px;margin-right:6px;
+    background:rgba(247,250,252,.08);border:1px solid var(--line);border-radius:7px;
+    padding:2px 7px;cursor:pointer;vertical-align:middle;
   }
-  .semaine>summary::-webkit-details-marker{display:none}
-  .semaine>summary .fleche{transition:.25s;color:#7FAE90}
-  .semaine[open]>summary .fleche{transform:rotate(90deg)}
-  .jour{border-top:1px solid #24503A;padding:12px 16px}
-  .jour h4{font-size:.95rem;color:var(--ivoire);margin-bottom:8px}
-  .jour h4 .type{color:#8FC49F;font-weight:600;font-size:.8rem;margin-left:6px}
-  .exo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #24503A}
-  .exo:last-child{border-bottom:none}
-  .exo .n{font-weight:700;font-size:.92rem}
-  .exo .d{font-size:.8rem;color:#9CC0A9}
-  .exo a{
-    flex-shrink:0;text-decoration:none;background:var(--rouge);color:#fff;
-    font-weight:800;font-size:.75rem;padding:6px 10px;border-radius:8px;
-    display:inline-flex;align-items:center;gap:5px;
+  .abo-check input{width:15px;height:15px;accent-color:var(--sky);cursor:pointer}
+  .abo-check-txt{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sky-soft)}
+  select{
+    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
+    color:var(--white);padding:11px 10px;font-size:16px;font-weight:600;
   }
-  .exo a:hover{filter:brightness(1.1)}
-  .repos{color:#8FC49F;font-style:italic;font-size:.9rem}
-  .conseils{margin-top:18px;background:#1A3B27;border-left:4px solid var(--banane);border-radius:0 12px 12px 0;padding:14px 16px;font-size:.9rem}
-  .conseils b{color:var(--banane)}
-  .conseils ul{margin:8px 0 0 18px;line-height:1.6}
-  .cri{text-align:center;font-family:'Lilita One',cursive;color:var(--banane);font-size:1.2rem;margin-top:20px;letter-spacing:1px}
-  /* Mascotte */
-  .mascotte{width:110px;height:110px;margin:0 auto 6px;display:block;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
-  /* Suivi des séances */
-  .fait{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;color:#8FC49F;cursor:pointer;margin-left:auto}
-  .fait input{width:18px;height:18px;accent-color:var(--banane);cursor:pointer}
-  .jour h4{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
-  .jour.coche{opacity:.55}
-  .jour.coche h4{color:var(--banane)}
-  .prog{height:14px;background:var(--jungle);border:2px solid #2C5E40;border-radius:999px;overflow:hidden;margin:10px 0 4px}
-  .prog-fill{height:100%;background:linear-gradient(90deg,var(--leaf),var(--banane));width:0%;transition:.4s;border-radius:999px}
-  .prog-txt{font-size:.85rem;font-weight:800;color:#BFD9C6;margin-bottom:6px;display:block}
-  .reprendre{margin-top:14px;width:100%;background:var(--leaf);color:var(--ivoire);box-shadow:0 4px 0 #2C5E40}
-  .reprendre:hover{transform:translateY(-2px)}
-  @media(max-width:420px){.ventres{grid-template-columns:1fr 1fr}.duo{grid-template-columns:1fr}}
-  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  .card-net{font-weight:800;font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .del-btn{background:none;border:none;color:var(--sky-soft);font-size:1.05rem;cursor:pointer;padding:2px 6px;opacity:.6;line-height:1}
+  .inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--sky-soft)}
+
+  /* Bilan */
+  .bilan-hero{
+    margin-top:14px;background:linear-gradient(160deg,#122C4F,#0F3A5F);
+    border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;text-align:center;
+  }
+  .bilan-hero .label{font-size:.72rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:2px;font-weight:700}
+  .bilan-hero .value{font-size:2.3rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
+  .bilan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .bcard{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px}
+  .bcard h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .bcard h3.om{color:var(--om)} .bcard h3.pfc{color:var(--pfc)}
+  .bcard .big{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .bcard .sub{font-size:.68rem;color:var(--sky-soft);margin-top:6px;line-height:1.5}
+  .bcard .sub b{color:var(--white)}
+  .bilan-table{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
+  .bilan-table h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:8px}
+  .brow{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--line)}
+  .brow:last-child{border-bottom:none}
+  .brow .amt{font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* Partage */
+  .sync-box{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
+  .sync-box h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:6px}
+  .sync-box p{font-size:.72rem;color:var(--sky-soft);line-height:1.5;margin-bottom:10px}
+  .sync-btns{display:flex;gap:10px}
+  .btn-sync{
+    flex:1;background:var(--navy);border:1px solid var(--line);color:var(--white);
+    border-radius:10px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;
+  }
+
+  /* FAB + modal */
+  .fab{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--sky);color:var(--navy);border:none;border-radius:99px;
+    padding:13px 24px;font-size:.85rem;font-weight:800;cursor:pointer;
+    box-shadow:0 6px 20px rgba(47,174,224,.4);display:none;align-items:center;gap:8px;
+  }
+  .fab.show{display:flex}
+  .fab span{font-size:1.2rem;line-height:0}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(4,12,24,.75);z-index:50;align-items:flex-end;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--navy2);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;border-top:3px solid var(--sky)}
+  .modal h2{font-size:1rem;margin-bottom:14px}
+  .modal .field{margin-bottom:12px}
+  .modal .field input{text-align:left;padding:11px 10px;font-weight:600}
+  .modal-actions{display:flex;gap:10px;margin-top:14px}
+  .modal-actions button{flex:1;padding:13px;border-radius:10px;font-size:.9rem;font-weight:800;cursor:pointer;border:none}
+  .btn-cancel{background:transparent;color:var(--sky-soft);border:1px solid var(--line)!important}
+  .btn-ok{background:var(--sky);color:var(--navy)}
+  .hint{font-size:.66rem;color:var(--sky-soft);opacity:.75;margin-top:8px;line-height:1.5}
 </style>
 </head>
 <body>
+
 <header>
-  <svg class="mascotte" viewBox="0 0 120 120" role="img" aria-label="Tarzan, cheveux longs blonds et abdos">
-    <circle cx="60" cy="60" r="58" fill="#2E7D4F"/>
-    <path d="M18 78 Q30 60 26 44 M102 78 Q90 60 94 44" stroke="#245538" stroke-width="6" fill="none" stroke-linecap="round"/>
-    <!-- cheveux longs blonds -->
-    <path d="M60 10 Q30 12 28 42 Q26 68 34 84 L42 80 Q36 60 38 44 L44 50 Q42 30 60 26 Q78 30 76 50 L82 44 Q84 60 78 80 L86 84 Q94 68 92 42 Q90 12 60 10 Z" fill="#F7C948" stroke="#C89A1E" stroke-width="2"/>
-    <!-- visage -->
-    <ellipse cx="60" cy="44" rx="17" ry="18" fill="#F2C49B" stroke="#8A5A34" stroke-width="2"/>
-    <circle cx="53" cy="42" r="2.2" fill="#3B2A1A"/>
-    <circle cx="67" cy="42" r="2.2" fill="#3B2A1A"/>
-    <path d="M52 52 Q60 58 68 52" stroke="#8A5A34" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-    <!-- torse avec abdos -->
-    <path d="M42 64 Q60 60 78 64 L76 96 Q60 106 44 96 Z" fill="#F2C49B" stroke="#8A5A34" stroke-width="2"/>
-    <path d="M60 66 L60 96 M50 74 L58 74 M62 74 L70 74 M50 82 L58 82 M62 82 L70 82 M51 90 L58 90 M62 90 L69 90" stroke="#8A5A34" stroke-width="2" opacity=".8"/>
-    <!-- pagne léopard -->
-    <path d="M44 96 Q60 104 76 96 L76 110 Q60 118 44 110 Z" fill="#E0AF2B" stroke="#8A5A34" stroke-width="2"/>
-    <circle cx="52" cy="104" r="2" fill="#5C4012"/><circle cx="62" cy="107" r="2" fill="#5C4012"/><circle cx="70" cy="102" r="2" fill="#5C4012"/>
-  </svg>
-  <h1>FAIS-LE COMME TARZAN</h1>
-  <p class="tagline">Attrape la liane. Sculpte tes abdos. 🌿</p>
+  <div class="brand">
+    <h1>REVENTE <span>BILLETS</span> <small>· SAISON 2026-2027</small></h1>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-t="bilan">Bilan</button>
+    <button class="tab" data-t="om">OM</button>
+    <button class="tab" data-t="pfc">Paris FC</button>
+  </div>
 </header>
 
-<div class="liane" id="liane">
-  <div class="noeud actif" data-s="1">1</div><div class="corde"></div>
-  <div class="noeud" data-s="2">2</div><div class="corde"></div>
-  <div class="noeud" data-s="3">3</div><div class="corde"></div>
-  <div class="noeud" data-s="4">4</div><div class="corde"></div>
-  <div class="noeud" data-s="5">🦍</div>
+<!-- BILAN -->
+<div class="page active" id="page-bilan">
+  <div class="bilan-hero">
+    <div class="label">Bilan net global</div>
+    <div class="value zero" id="gNet">0,00 €</div>
+  </div>
+  <div class="bilan-grid">
+    <div class="bcard">
+      <h3 class="om">OM</h3>
+      <div class="big zero" id="bNetOM">0 €</div>
+      <div class="sub" id="bSubOM"></div>
+    </div>
+    <div class="bcard">
+      <h3 class="pfc">Paris FC</h3>
+      <div class="big zero" id="bNetPFC">0 €</div>
+      <div class="sub" id="bSubPFC"></div>
+    </div>
+  </div>
+  <div class="bilan-table">
+    <h3>Détail</h3>
+    <div id="gRows"></div>
+  </div>
+  <div class="sync-box">
+    <h3>Partage des données</h3>
+    <p>Exporte tes données dans un fichier et partage-le (WhatsApp, mail…). L'autre personne l'importe pour voir exactement la même chose.</p>
+    <div class="sync-btns">
+      <button class="btn-sync" onclick="exportData()">⬇ Exporter</button>
+      <button class="btn-sync" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(this)">
+  </div>
 </div>
 
-<main>
-  <!-- ÉTAPE 1 : PROFIL -->
-  <section class="carte" id="etape1">
-    <h2>Ton profil</h2>
-    <p class="sous">Quelques infos pour adapter ton programme.</p>
-    <label>Silhouette des dessins</label>
-    <div class="pills" id="sexe">
-      <div class="pill on" data-v="H" tabindex="0">Homme</div>
-      <div class="pill" data-v="F" tabindex="0">Femme</div>
+<!-- OM -->
+<div class="page" id="page-om">
+  <div class="abo">
+    <h2>Abonnements OM (Vélodrome)</h2>
+    <div class="abo-row" style="grid-template-columns:1fr">
+      <div class="field">
+        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
+        <input type="number" readonly id="nbMatchs-om" style="opacity:.8">
+      </div>
     </div>
-    <div class="duo">
-      <div><label for="age">Âge</label><input type="number" id="age" min="14" max="90" placeholder="ex : 32"></div>
-      <div><label for="taille">Taille (cm)</label><input type="number" id="taille" min="120" max="230" placeholder="ex : 178"></div>
-    </div>
-    <label for="poids">Poids (kg)</label>
-    <input type="number" id="poids" min="35" max="250" placeholder="ex : 80">
-    <div class="btns">
-      <button class="principal" onclick="valideProfil()">C'est parti ➜</button>
-    </div>
-    <button class="reprendre cachee" id="btnReprendre" onclick="reprendre()">🌿 Reprendre mon programme en cours</button>
-  </section>
+    <div id="abos-om"></div>
+    <button class="abo-add" onclick="addAbo('om')">+ Ajouter un abonnement (tarif différent)</button>
+    <div class="abo-info" id="aboInfo-om"></div>
+  </div>
+  <div class="list" id="list-om"></div>
+</div>
 
-  <!-- ÉTAPE 2 : NIVEAU ACTUEL -->
-  <section class="carte cachee" id="etape2">
-    <h2>Ton ventre aujourd'hui</h2>
-    <p class="sous">Sois honnête, Tarzan ne juge pas. Touche le dessin qui te ressemble.</p>
-    <div class="ventres" id="niveauActuel"></div>
-    <div class="btns">
-      <button class="secondaire" onclick="va(1)">← Retour</button>
-      <button class="principal" id="btn2" disabled onclick="va(3)">Suivant ➜</button>
+<!-- PARIS FC -->
+<div class="page" id="page-pfc">
+  <div class="abo">
+    <h2>Abonnements Paris FC (Jean-Bouin)</h2>
+    <div class="abo-row" style="grid-template-columns:1fr">
+      <div class="field">
+        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
+        <input type="number" readonly id="nbMatchs-pfc" style="opacity:.8">
+      </div>
     </div>
-  </section>
+    <div id="abos-pfc"></div>
+    <button class="abo-add" onclick="addAbo('pfc')">+ Ajouter un abonnement (tarif différent)</button>
+    <div class="abo-info" id="aboInfo-pfc"></div>
+  </div>
+  <div class="list" id="list-pfc"></div>
+</div>
 
-  <!-- ÉTAPE 3 : OBJECTIF -->
-  <section class="carte cachee" id="etape3">
-    <h2>Ton objectif</h2>
-    <p class="sous">Là où tu veux arriver au bout du programme.</p>
-    <div class="ventres" id="objectif"></div>
-    <div class="btns">
-      <button class="secondaire" onclick="va(2)">← Retour</button>
-      <button class="principal" id="btn3" disabled onclick="va(4)">Suivant ➜</button>
-    </div>
-  </section>
+<button class="fab" id="fab" onclick="openModal()"><span>+</span>&nbsp;Ajout</button>
 
-  <!-- ÉTAPE 4 : DURÉE -->
-  <section class="carte cachee" id="etape4">
-    <h2>Ton entraînement</h2>
-    <p class="sous">Sur combien de temps tu penses t'entraîner ?</p>
-    <label>Durée du programme</label>
-    <div class="pills" id="duree">
-      <div class="pill" data-v="4" tabindex="0">4 semaines</div>
-      <div class="pill on" data-v="8" tabindex="0">8 semaines</div>
-      <div class="pill" data-v="12" tabindex="0">12 semaines</div>
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">Ajouter un match</h2>
+    <div class="field" id="mCompetField">
+      <label>Compétition</label>
+      <select id="mCompet">
+        <option value="CE">Coupe d'Europe</option>
+        <option value="CDF">Coupe de France</option>
+      </select>
     </div>
-    <label>Séances par semaine</label>
-    <div class="pills" id="jours">
-      <div class="pill" data-v="3" tabindex="0">3 jours</div>
-      <div class="pill on" data-v="4" tabindex="0">4 jours</div>
-      <div class="pill" data-v="5" tabindex="0">5 jours</div>
+    <div class="field">
+      <label>Adversaire</label>
+      <input type="text" id="mAdv" placeholder="Ex : Real Madrid">
     </div>
-    <div class="btns">
-      <button class="secondaire" onclick="va(3)">← Retour</button>
-      <button class="principal" onclick="genere()">AHHH-AH-AH ! Génère 🦍</button>
+    <div class="field">
+      <label>Date (optionnel)</label>
+      <input type="text" id="mDate" placeholder="Ex : 15/01/2027">
     </div>
-  </section>
-
-  <!-- ÉTAPE 5 : PROGRAMME -->
-  <section class="carte cachee" id="etape5">
-    <h2>Ton programme jungle</h2>
-    <div id="resume"></div>
-    <div id="programme"></div>
-    <div class="conseils" id="conseils"></div>
-    <div class="btns">
-      <button class="secondaire" onclick="reset()">↺ Recommencer</button>
-      <button class="principal" onclick="window.print()">Imprimer / PDF</button>
+    <div class="field">
+      <label>Inclus dans l'abonnement ?</label>
+      <select id="mInAbo">
+        <option value="non">Non — billets achetés à part</option>
+        <option value="oui">Oui — inclus dans l'abonnement</option>
+      </select>
     </div>
-    <p class="cri">AAAAH-AH-AH-AAAAH ! 💪</p>
-  </section>
-</main>
+    <p class="hint">Si le match est inclus dans l'abonnement, le nombre de billets et le prix d'achat seront remplis automatiquement (pense à ajuster le nb de matchs de l'abonnement en haut de page). Sinon, renseigne-les à la main.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-ok" onclick="addMatch()">Ajouter</button>
+    </div>
+  </div>
+</div>
 
 <script>
-/* ================= DONNÉES ================= */
-const etat = { sexe:'H', age:null, taille:null, poids:null, niveau:null, objectif:null, duree:8, jours:4 };
-let coches = {};   // séances cochées { "s1j0": true, ... }
+const KEY = 'revente_om_pfc_2627_v2';
+const NB_MATCHS_L1 = 17;
 
-/* Sauvegarde locale (localStorage si dispo, sinon mémoire de session) */
-let memTmp = null;
-const store = {
-  get(){ try{ return JSON.parse(localStorage.getItem('tarzan')) || memTmp; }catch(e){ return memTmp; } },
-  set(v){ memTmp = v; try{ localStorage.setItem('tarzan', JSON.stringify(v)); }catch(e){} },
-  clear(){ memTmp = null; try{ localStorage.removeItem('tarzan'); }catch(e){} }
-};
-function sauvegarde(){ store.set({ etat:{...etat}, coches:{...coches}, date:Date.now() }); }
-function reprendre(){
-  const s = store.get(); if(!s) return;
-  Object.assign(etat, s.etat); coches = s.coches || {};
-  genere();
-}
-window.addEventListener('DOMContentLoaded', ()=>{
-  const s = store.get();
-  if(s && s.etat && s.etat.niveau) document.getElementById('btnReprendre').classList.remove('cachee');
-  if('serviceWorker' in navigator && location.protocol === 'https:'){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Matchs à domicile Ligue 1 2026-27 (calendrier LFP du 10 juin 2026)
+const SEED_OM = [
+  {adv:'Strasbourg', date:'21/08/2026'},
+  {adv:'Paris FC',   date:'05/09/2026'},
+  {adv:'PSG',        date:'20/09/2026'},
+  {adv:'Le Havre',   date:'24/10/2026'},
+  {adv:'Toulouse',   date:'31/10/2026'},
+  {adv:'Le Mans',    date:'21/11/2026'},
+  {adv:'Nice',       date:'05/12/2026'},
+  {adv:'Lille',      date:'16/01/2027'},
+  {adv:'Troyes',     date:'30/01/2027'},
+  {adv:'Angers',     date:'13/02/2027'},
+  {adv:'Rennes',     date:'27/02/2027'},
+  {adv:'Monaco',     date:'13/03/2027'},
+  {adv:'Lyon',       date:'21/03/2027'},
+  {adv:'Brest',      date:'10/04/2027'},
+  {adv:'Auxerre',    date:'24/04/2027'},
+  {adv:'Lens',       date:'16/05/2027'},
+  {adv:'Lorient',    date:'29/05/2027'},
+];
+const SEED_PFC = [
+  {adv:'Nice',       date:'30/08/2026'},
+  {adv:'Lyon',       date:'12/09/2026'},
+  {adv:'Strasbourg', date:'19/09/2026'},
+  {adv:'Rennes',     date:'17/10/2026'},
+  {adv:'Monaco',     date:'31/10/2026'},
+  {adv:'Angers',     date:'21/11/2026'},
+  {adv:'Le Mans',    date:'05/12/2026'},
+  {adv:'Le Havre',   date:'02/01/2027'},
+  {adv:'Toulouse',   date:'16/01/2027'},
+  {adv:'Auxerre',    date:'30/01/2027'},
+  {adv:'Troyes',     date:'13/02/2027'},
+  {adv:'Brest',      date:'06/03/2027'},
+  {adv:'Lorient',    date:'13/03/2027'},
+  {adv:'PSG',        date:'03/04/2027'},
+  {adv:'Lens',       date:'24/04/2027'},
+  {adv:'Lille',      date:'08/05/2027'},
+  {adv:'Marseille',  date:'22/05/2027'},
+];
+
+const CLUB_NAMES = {om:'OM', pfc:'Paris FC'};
+const COMPET_NAMES = {L1:'Ligue 1', CE:"Coupe d'Europe", CDF:'Coupe de France'};
+let data = load();
+let currentTab = 'bilan';
+
+function load(){
+  let d = null;
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) d = JSON.parse(raw);
+  }catch(e){}
+  if(!d){
+    const mk = (seed, club) => seed.map((m,i)=>({
+      id:club+'_l1_'+i, compet:'L1', adv:m.adv, date:m.date, qty:'', buy:'', sell:'', inAbo:true
+    }));
+    d = {
+      om:  {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_OM,'om')},
+      pfc: {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_PFC,'pfc')},
+    };
   }
+  // Migration des anciennes données
+  ['om','pfc'].forEach(c=>{
+    if(d[c].nbMatchs===undefined) d[c].nbMatchs='17';
+    d[c].matches.forEach(m=>{
+      if(m.inAbo===undefined) m.inAbo = (m.compet==='L1');
+    });
+  });
+  return d;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+
+function fmt(n){ return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function fmt0(n){ return n.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €'; }
+function sign(n){ return (n>0?'+':'')+fmt(n); }
+function cls(n){ return n>0?'pos':(n<0?'neg':'zero'); }
+function net(m){
+  const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
+  return q*(s-b);
+}
+function esc(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+// ------- Abonnements -------
+function nbMatchsAbo(club){
+  return data[club].matches.filter(m=>m.inAbo).length;
+}
+function aboStats(club){
+  let nb=0, cost=0;
+  data[club].abos.forEach(a=>{
+    const n=parseFloat(a.n)||0, p=parseFloat(a.price)||0;
+    nb+=n; cost+=n*p;
+  });
+  const nm = nbMatchsAbo(club);
+  const perTicket = (nb>0 && nm>0) ? (cost/nb)/nm : 0;
+  return {nb, cost, perTicket, nm};
+}
+
+function renderAbos(club){
+  const box = document.getElementById('abos-'+club);
+  box.innerHTML = '';
+  data[club].abos.forEach((a,i)=>{
+    const row = document.createElement('div');
+    row.className = 'abo-row';
+    row.innerHTML = `
+      <div class="field">
+        <label>Nb abonnements</label>
+        <input type="number" inputmode="numeric" min="0" placeholder="0"
+          value="${a.n}" onchange="updAbo('${club}',${i},'n',this.value)">
+      </div>
+      <div class="field">
+        <label>Prix / abonnement</label>
+        <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+          value="${a.price}" onchange="updAbo('${club}',${i},'price',this.value)">
+      </div>
+      ${data[club].abos.length>1 ? `<button class="abo-del" onclick="delAbo('${club}',${i})">✕</button>` : '<div></div>'}
+    `;
+    box.appendChild(row);
+  });
+  const s = aboStats(club);
+  document.getElementById('nbMatchs-'+club).value = s.nm;
+  document.getElementById('aboInfo-'+club).innerHTML =
+    `<span>Total : <b>${s.nb} abo${s.nb>1?'s':''}</b> · <b>${fmt0(s.cost)}</b></span>` +
+    `<span>Coût / billet abo : <b>${fmt(s.perTicket)}</b> <small>(÷ ${s.nm} match${s.nm>1?'s':''})</small></span>`;
+}
+
+function toggleAbo(club, id, checked){
+  const m = data[club].matches.find(x=>x.id===id);
+  if(!m) return;
+  m.inAbo = checked;
+  if(!checked){ m.qty=''; m.buy=''; } // billet hors abo : à saisir à la main
+  applyAboToMatches(club);
+  save(); renderAll();
+}
+
+function updAbo(club,i,field,value){
+  data[club].abos[i][field]=value;
+  applyAboToMatches(club);
+  save(); renderAll();
+}
+function addAbo(club){
+  data[club].abos.push({n:'',price:''});
+  save(); renderAbos(club);
+}
+function delAbo(club,i){
+  data[club].abos.splice(i,1);
+  applyAboToMatches(club);
+  save(); renderAll();
+}
+
+// Remplit nb billets + prix d'achat sur tous les matchs inclus dans l'abonnement
+function applyAboToMatches(club){
+  const s = aboStats(club);
+  data[club].matches.forEach(m=>{
+    if(!m.inAbo) return;
+    m.qty = s.nb>0 ? String(s.nb) : '';
+    m.buy = s.nb>0 ? s.perTicket.toFixed(2) : '';
+  });
+}
+
+// ------- Matchs -------
+function parseDate(str){
+  if(!str) return null;
+  const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(!m) return null;
+  return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+}
+
+function renderList(club){
+  const list = document.getElementById('list-'+club);
+  list.innerHTML = '';
+  // Tri par date du match le plus proche au plus lointain ; matchs sans date en dernier
+  const sorted = [...data[club].matches].sort((a,b)=>{
+    const da = parseDate(a.date), db = parseDate(b.date);
+    if(da===null && db===null) return 0;
+    if(da===null) return 1;
+    if(db===null) return -1;
+    return da - db;
+  });
+  sorted.forEach(m=>{
+    const n = net(m);
+    const hasData = (parseFloat(m.qty)||0)>0 && (parseFloat(m.sell)||0)>0;
+    const card = document.createElement('div');
+    card.className = 'card' + (hasData ? (n>=0?' done':' loss') : '');
+    card.innerHTML = `
+      <div class="card-top">
+        <div>
+          <div class="match-name">
+            <label class="abo-check">
+              <input type="checkbox" ${m.inAbo?'checked':''}
+                onchange="toggleAbo('${club}','${m.id}',this.checked)">
+              <span class="abo-check-txt">Abo</span>
+            </label>
+            ${CLUB_NAMES[club]} – ${esc(m.adv)}
+          </div>
+          <div class="match-meta">
+            <span class="tag ${m.compet}">${COMPET_NAMES[m.compet]}</span>
+            <span class="match-date">${esc(m.date||'Date à définir')}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="card-net ${hasData?cls(n):'zero'}">${hasData ? sign(n) : '—'}</div>
+          ${m.compet!=='L1' ? `<button class="del-btn" onclick="delMatch('${club}','${m.id}')">✕</button>` : ''}
+        </div>
+      </div>
+      <div class="inputs">
+        <div class="field">
+          <label>Nb billets</label>
+          <input type="number" inputmode="numeric" min="0" placeholder="0"
+            value="${m.qty}" onchange="updMatch('${club}','${m.id}','qty',this.value)">
+        </div>
+        <div class="field">
+          <label>Achat / billet</label>
+          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+            value="${m.buy}" onchange="updMatch('${club}','${m.id}','buy',this.value)">
+        </div>
+        <div class="field">
+          <label>Vente / billet</label>
+          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
+            value="${m.sell}" onchange="updMatch('${club}','${m.id}','sell',this.value)">
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function updMatch(club,id,field,value){
+  const m = data[club].matches.find(x=>x.id===id);
+  if(!m) return;
+  m[field]=value;
+  save(); renderAll();
+}
+function delMatch(club,id){
+  if(!confirm('Supprimer ce match ?')) return;
+  data[club].matches = data[club].matches.filter(m=>m.id!==id);
+  save(); renderAll();
+}
+
+// ------- Bilan -------
+function clubStats(club){
+  let buy=0, sell=0, qty=0, netL1=0, netCDF=0, netCE=0;
+  data[club].matches.forEach(m=>{
+    const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
+    qty+=q; buy+=q*b; sell+=q*s;
+    if(m.compet==='L1') netL1+=q*(s-b);
+    else if(m.compet==='CE') netCE+=q*(s-b);
+    else netCDF+=q*(s-b);
+  });
+  return {buy, sell, qty, net:sell-buy, netL1, netCDF, netCE};
+}
+
+function renderBilan(){
+  const om = clubStats('om'), pfc = clubStats('pfc');
+  const total = om.net + pfc.net;
+
+  const g = document.getElementById('gNet');
+  g.textContent = sign(total);
+  g.className = 'value '+cls(total);
+
+  const setClub = (id, subId, st) => {
+    const el = document.getElementById(id);
+    el.textContent = sign(st.net);
+    el.className = 'big '+cls(st.net);
+    document.getElementById(subId).innerHTML =
+      `<b>${st.qty}</b> billets · Achats <b>${fmt0(st.buy)}</b> · Ventes <b>${fmt0(st.sell)}</b>`;
+  };
+  setClub('bNetOM','bSubOM',om);
+  setClub('bNetPFC','bSubPFC',pfc);
+
+  const rows = [
+    ['OM · Ligue 1', om.netL1],
+    ["OM · Coupe d'Europe", om.netCE],
+    ['OM · Coupe de France', om.netCDF],
+    ['Paris FC · Ligue 1', pfc.netL1],
+    ['Paris FC · Coupe de France', pfc.netCDF],
+  ];
+  document.getElementById('gRows').innerHTML = rows
+    .map(([name,v])=>`<div class="brow"><span>${name}</span><span class="amt ${cls(v)}">${sign(v)}</span></div>`)
+    .join('');
+}
+
+// ------- Modal Coupe de France -------
+function openModal(){
+  document.getElementById('modalTitle').textContent =
+    'Ajouter un match – '+CLUB_NAMES[currentTab];
+  // Coupe d'Europe uniquement pour l'OM
+  document.getElementById('mCompetField').style.display = currentTab==='om' ? 'block' : 'none';
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+function addMatch(){
+  const adv = document.getElementById('mAdv').value.trim();
+  if(!adv){ alert("Indique l'adversaire"); return; }
+  const compet = currentTab==='om' ? document.getElementById('mCompet').value : 'CDF';
+  const inAbo = document.getElementById('mInAbo').value === 'oui';
+  const m = {
+    id:'cup_'+Date.now(), compet, adv, inAbo,
+    date: document.getElementById('mDate').value.trim(),
+    qty:'', buy:'', sell:''
+  };
+  if(inAbo){
+    const s = aboStats(currentTab);
+    if(s.nb>0){ m.qty = String(s.nb); m.buy = s.perTicket.toFixed(2); }
+  }
+  data[currentTab].matches.push(m);
+  document.getElementById('mAdv').value='';
+  document.getElementById('mDate').value='';
+  save(); closeModal(); renderAll();
+}
+
+// ------- Onglets -------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    currentTab = t.dataset.t;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+currentTab));
+    document.getElementById('fab').classList.toggle('show', currentTab!=='bilan');
+  });
 });
 
-/* Dessins SVG de ventres (H = homme, F = femme) */
-function svgVentre(type, sexe){
-  const peau = sexe==='H' ? '#F2C49B' : '#EAB68E';
-  const ombre = '#C88E5F', trait = '#8A5A34';
-  // formes du torse selon le type
-  let torse='', details='';
-  if(type==='gros'){
-    torse = `<path d="M30 8 Q60 2 90 8 L94 40 Q98 78 60 96 Q22 78 26 40 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>
-             <ellipse cx="60" cy="62" rx="30" ry="26" fill="${peau}" stroke="${ombre}" stroke-width="1.5" opacity=".9"/>`;
-    details = `<circle cx="60" cy="66" r="3" fill="${ombre}"/>
-               <path d="M36 50 Q40 58 38 66" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".6"/>
-               <path d="M84 50 Q80 58 82 66" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".6"/>`;
-  } else if(type==='mou'){
-    torse = `<path d="M32 8 Q60 3 88 8 L90 42 Q92 76 60 94 Q28 76 30 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
-    details = `<circle cx="60" cy="62" r="2.6" fill="${ombre}"/>
-               <path d="M44 78 Q60 84 76 78" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".5"/>`;
-  } else if(type==='maigre'){
-    torse = `<path d="M36 8 Q60 4 84 8 L84 44 Q84 76 60 92 Q36 76 36 44 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
-    details = `<circle cx="60" cy="60" r="2.4" fill="${ombre}"/>
-               <path d="M40 26 Q46 30 52 30 M80 26 Q74 30 68 30" stroke="${ombre}" stroke-width="1.5" fill="none" opacity=".55"/>`;
-  } else if(type==='plat'){
-    torse = `<path d="M34 8 Q60 3 86 8 L86 42 Q86 76 60 93 Q34 76 34 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
-    details = `<circle cx="60" cy="60" r="2.4" fill="${ombre}"/>
-               <path d="M60 20 L60 50" stroke="${ombre}" stroke-width="1.3" opacity=".4"/>
-               <path d="M42 46 Q50 50 58 50 M78 46 Q70 50 62 50" stroke="${ombre}" stroke-width="1.2" fill="none" opacity=".35"/>`;
-  } else if(type==='unpeu'){
-    torse = `<path d="M34 8 Q60 3 86 8 L86 42 Q86 76 60 93 Q34 76 34 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
-    details = `<circle cx="60" cy="62" r="2.4" fill="${ombre}"/>
-               <path d="M60 18 L60 56" stroke="${ombre}" stroke-width="1.6" opacity=".55"/>
-               <path d="M46 34 L58 34 M62 34 L74 34 M47 46 L58 46 M62 46 L73 46" stroke="${ombre}" stroke-width="1.6" opacity=".55"/>`;
-  } else { // dessine
-    torse = `<path d="M32 8 Q60 2 88 8 L87 42 Q87 76 60 93 Q33 76 33 42 Z" fill="${peau}" stroke="${trait}" stroke-width="2.5"/>`;
-    details = `<circle cx="60" cy="64" r="2.4" fill="${ombre}"/>
-               <path d="M60 16 L60 60" stroke="${trait}" stroke-width="2.4" opacity=".8"/>
-               <path d="M44 30 L58 30 M62 30 L76 30 M44 42 L58 42 M62 42 L76 42 M46 54 L58 54 M62 54 L74 54" stroke="${trait}" stroke-width="2.4" opacity=".8"/>
-               <path d="M38 24 Q42 40 40 56 M82 24 Q78 40 80 56" stroke="${ombre}" stroke-width="1.8" fill="none" opacity=".7"/>`;
-  }
-  // détail féminin : nombril légèrement plus haut + hanches marquées
-  const hanches = sexe==='F' ? `<path d="M34 70 Q40 82 52 90 M86 70 Q80 82 68 90" stroke="${ombre}" stroke-width="1.4" fill="none" opacity=".4"/>` : '';
-  return `<svg viewBox="0 0 120 100" role="img">${torse}${details}${hanches}</svg>`;
+function renderAll(){
+  renderAbos('om'); renderAbos('pfc');
+  renderList('om'); renderList('pfc');
+  renderBilan();
 }
 
-const NIVEAUX = [
-  {id:'gros',   nom:'Un peu gros',      desc:'du ventre à perdre',   score:0},
-  {id:'mou',    nom:'Pas du tout',      desc:'ni gras ni muscle',    score:1},
-  {id:'maigre', nom:'Maigre',           desc:'fin, sans tonus',      score:1},
-  {id:'unpeu',  nom:'Un peu d\'abdos',  desc:'ça commence à se voir',score:2},
-];
-const OBJECTIFS = [
-  {id:'plat',    nom:'Ventre plat',        desc:'tonique et gainé',      score:2},
-  {id:'dessine', nom:'Abdos bien dessinés',desc:'la tablette de Tarzan', score:3},
-  {id:'mou',     nom:'Pas de changement',  desc:'juste entretenir',      score:1},
-];
-
-/* Bibliothèque d'exercices : [nom, description, recherche YouTube] */
-const EXOS = {
-  abdos: [
-    ['Crunch','Relevé de buste, dos au sol','crunch abdos technique'],
-    ['Planche','Gainage sur les avant-bras','planche gainage technique'],
-    ['Relevé de jambes','Allongé, jambes tendues vers le ciel','releve de jambes abdos'],
-    ['Russian twist','Rotations du buste, assis','russian twist technique'],
-    ['Mountain climbers','Genoux vers la poitrine en planche','mountain climbers technique'],
-    ['Gainage latéral','Planche sur le côté, obliques','gainage lateral obliques'],
-    ['Hollow hold','Corps en banane, bas du dos plaqué','hollow hold technique'],
-    ['Ciseaux','Battements de jambes allongé','ciseaux abdos exercice'],
-    ['Crunch vélo','Coude vers genou opposé','crunch velo bicycle abdos'],
-    ['Dead bug','Bras et jambe opposés, dos plaqué','dead bug exercice technique'],
-  ],
-  cardio: [
-    ['Jumping jacks','Sauts écarts, rythme soutenu','jumping jacks technique'],
-    ['Burpees','L\'exo que Tarzan adore détester','burpees technique debutant'],
-    ['Corde à sauter (ou sur place)','Sauts légers en continu','corde a sauter debutant'],
-    ['Montées de genoux','Course sur place, genoux hauts','montees de genoux exercice'],
-    ['Marche rapide / course','20 à 30 min en extérieur','course a pied debutant conseils'],
-  ],
-  renfo: [
-    ['Squats','Flexions de jambes, dos droit','squat technique sans materiel'],
-    ['Pompes (ou sur genoux)','Poitrine vers le sol','pompes technique debutant'],
-    ['Fentes','Grand pas, genou vers le sol','fentes exercice technique'],
-    ['Superman','Allongé sur le ventre, lombaires','superman exercice dos'],
-    ['Pont fessier','Bassin vers le ciel','pont fessier hip thrust sol'],
-  ]
-};
-const yt = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
-
-/* ================= NAVIGATION ================= */
-function va(n){
-  document.querySelectorAll('main section').forEach(s=>s.classList.add('cachee'));
-  document.getElementById('etape'+n).classList.remove('cachee');
-  document.querySelectorAll('.noeud').forEach((el,i)=>{
-    el.classList.toggle('actif', i+1===n);
-    el.classList.toggle('fait', i+1<n);
-  });
-  document.querySelectorAll('.corde').forEach((el,i)=>el.classList.toggle('fait', i+1<n));
-  window.scrollTo({top:0});
+// ------- Export / Import -------
+function exportData(){
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = 'revente-billets-'+d.toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
-function valideProfil(){
-  etat.age = +document.getElementById('age').value || null;
-  etat.taille = +document.getElementById('taille').value || null;
-  etat.poids = +document.getElementById('poids').value || null;
-  if(!etat.age || !etat.taille || !etat.poids){ alert('Remplis ton âge, ta taille et ton poids, jeune singe ! 🐒'); return; }
-  dessineGaleries(); va(2);
-}
-function reset(){
-  if(!confirm('Recommencer efface ton programme et tes séances cochées. On y va ?')) return;
-  store.clear(); coches = {};
-  etat.niveau=null; etat.objectif=null;
-  document.getElementById('btn2').disabled=true; document.getElementById('btn3').disabled=true;
-  document.getElementById('btnReprendre').classList.add('cachee');
-  va(1);
-}
-function majProgression(){
-  const total = etat.duree * etat.jours;
-  const faits = Object.keys(coches).length;
-  const pct = total ? Math.round(100*faits/total) : 0;
-  document.getElementById('progFill').style.width = pct + '%';
-  document.getElementById('progTxt').textContent =
-    pct===100 ? '🏆 100 % — Tarzan est fier de toi !' : `Séances faites : ${faits} / ${total} (${pct} %)`;
-}
-
-/* pills génériques */
-function branchePills(id, cle, cast){
-  const c = document.getElementById(id);
-  c.addEventListener('click', e=>{
-    const p = e.target.closest('.pill'); if(!p) return;
-    c.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
-    p.classList.add('on'); etat[cle] = cast ? +p.dataset.v : p.dataset.v;
-    if(cle==='sexe' && etat.niveau!==null) dessineGaleries();
-  });
-  c.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.target.click(); }});
-}
-branchePills('sexe','sexe',false);
-branchePills('duree','duree',true);
-branchePills('jours','jours',true);
-
-/* galeries de ventres */
-function dessineGaleries(){
-  const gal = (contId, liste, cle, btnId)=>{
-    const c = document.getElementById(contId); c.innerHTML='';
-    liste.forEach(v=>{
-      const d = document.createElement('div');
-      d.className='ventre'+(etat[cle]===v.id?' on':''); d.tabIndex=0;
-      d.innerHTML = svgVentre(v.id, etat.sexe) + `<div class="nom">${v.nom}</div><div class="desc">${v.desc}</div>`;
-      d.onclick = ()=>{ c.querySelectorAll('.ventre').forEach(x=>x.classList.remove('on')); d.classList.add('on'); etat[cle]=v.id; document.getElementById(btnId).disabled=false; };
-      d.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); d.click(); }};
-      c.appendChild(d);
-    });
-  };
-  gal('niveauActuel', NIVEAUX, 'niveau', 'btn2');
-  gal('objectif', OBJECTIFS, 'objectif', 'btn3');
-}
-
-/* ================= GÉNÉRATION DU PROGRAMME ================= */
-function pioche(liste, n, decal){ const out=[]; for(let i=0;i<n;i++) out.push(liste[(decal+i)%liste.length]); return out; }
-
-function genere(){
-  const imc = etat.poids / ((etat.taille/100)**2);
-  const nivScore = NIVEAUX.find(n=>n.id===etat.niveau).score;
-  const objScore = OBJECTIFS.find(o=>o.id===etat.objectif).score;
-  const perdre = etat.niveau==='gros' || imc>=27;          // besoin de cardio
-  const intensite = Math.max(1, objScore - nivScore);       // 1 = entretien, 2 = gros chantier
-  const entretien = etat.objectif==='mou';
-
-  /* Résumé + IMC */
-  const sexeTxt = etat.sexe==='H'?'Homme':'Femme';
-  document.getElementById('resume').innerHTML = `
-    <span class="badgeimc">${sexeTxt} · ${etat.age} ans</span>
-    <span class="badgeimc">${etat.taille} cm · ${etat.poids} kg</span>
-    <span class="badgeimc">IMC : ${imc.toFixed(1)}</span>
-    <span class="badgeimc">${etat.duree} sem. · ${etat.jours} j/sem.</span>
-    <p class="sous" style="margin-top:8px">${
-      entretien ? 'Objectif entretien : des séances courtes pour garder ton tonus.' :
-      perdre ? 'Pour dessiner tes abdos, on combine gainage + cardio : les abdos se font aussi en brûlant ce qui les cache. 🔥' :
-      'Ton défi est surtout musculaire : on va construire et épaissir tes abdos, séance après séance.'}</p>`;
-
-  /* Structure des jours de la semaine */
-  const nomsJours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  const slots = {3:[0,2,4], 4:[0,1,3,5], 5:[0,1,2,4,5]}[etat.jours];
-
-  let html = '';
-  for(let s=1; s<=etat.duree; s++){
-    const phase = s<=Math.ceil(etat.duree/3) ? 'Fondations' : s<=Math.ceil(2*etat.duree/3) ? 'Montée en puissance' : 'Sculpture finale';
-    const reps = 10 + Math.floor((s-1)*2*(entretien?0.5:1));       // progression des répétitions
-    const secs = 20 + Math.floor((s-1)*5*(entretien?0.5:1));       // progression du gainage
-    const series = s<=etat.duree/2 ? 3 : 4;
-
-    let joursHtml = '';
-    for(let j=0;j<7;j++){
-      const idx = slots.indexOf(j);
-      if(idx===-1){ joursHtml += `<div class="jour"><h4>${nomsJours[j]}</h4><p class="repos">Repos — la liane aussi a besoin de souffler. 🌙</p></div>`; continue; }
-      // type de séance selon le jour et le profil
-      let type, exos;
-      if(perdre && !entretien && idx%2===1){
-        type='Cardio + abdos';
-        exos = [...pioche(EXOS.cardio, 2, s+idx), ...pioche(EXOS.abdos, 2, s*2+idx)];
-      } else if(!entretien && idx===slots.length-1){
-        type='Corps entier + abdos';
-        exos = [...pioche(EXOS.renfo, 2, s+idx), ...pioche(EXOS.abdos, 2, s+idx*2)];
-      } else {
-        type='Abdos ciblés';
-        exos = pioche(EXOS.abdos, entretien?3:4, s*3+idx);
+function importData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!imported.om || !imported.pfc || !imported.om.matches){
+        alert('Fichier invalide : ce n\'est pas un export de cette application.');
+        return;
       }
-      const lignes = exos.map(e=>{
-        const estGainage = /planche|gainage|hollow|hold/i.test(e[0]);
-        const dose = estGainage ? `${series} × ${secs} s` : (/marche|course|corde/i.test(e[0]) ? `15-25 min` : `${series} × ${reps}`);
-        return `<div class="exo"><div><div class="n">${e[0]} — <span style="color:var(--banane)">${dose}</span></div><div class="d">${e[1]}</div></div><a href="${yt(e[2])}" target="_blank" rel="noopener">▶ Vidéo</a></div>`;
-      }).join('');
-      const cle = `s${s}j${j}`;
-      joursHtml += `<div class="jour${coches[cle]?' coche':''}" id="jour-${cle}"><h4>${nomsJours[j]}<span class="type">${type}</span><label class="fait"><input type="checkbox" data-cle="${cle}"${coches[cle]?' checked':''}> Fait ✓</label></h4>${lignes}</div>`;
+      if(!confirm('Remplacer tes données actuelles par celles du fichier ?')) return;
+      data = imported;
+      save(); renderAll();
+      alert('Données importées ✔');
+    }catch(err){
+      alert('Fichier illisible.');
     }
-    html += `<details class="semaine"${s===1?' open':''}><summary>Semaine ${s} · ${phase}<span class="fleche">➤</span></summary>${joursHtml}</details>`;
-  }
-  document.getElementById('programme').innerHTML =
-    `<span class="prog-txt" id="progTxt"></span><div class="prog"><div class="prog-fill" id="progFill"></div></div>` + html;
-
-  /* cases "Fait" */
-  document.querySelectorAll('#programme input[data-cle]').forEach(ch=>{
-    ch.addEventListener('change', ()=>{
-      coches[ch.dataset.cle] = ch.checked;
-      if(!ch.checked) delete coches[ch.dataset.cle];
-      document.getElementById('jour-'+ch.dataset.cle).classList.toggle('coche', ch.checked);
-      majProgression(); sauvegarde();
-    });
-  });
-  majProgression();
-  sauvegarde();
-
-  /* Conseils personnalisés */
-  let conseils = `<b>Les lois de la jungle 🌿</b><ul>`;
-  if(perdre) conseils += `<li>Les abdos se dessinent aussi dans l'assiette : réduis sucres et grignotage, privilégie protéines et légumes.</li>`;
-  if(etat.niveau==='maigre') conseils += `<li>Tu es fin : mange suffisamment (protéines à chaque repas) pour que le muscle se construise.</li>`;
-  conseils += `<li>Repos entre les séries : 30 à 60 secondes.</li>
-    <li>Qualité avant quantité : mieux vaut 10 répétitions propres que 30 bâclées. Regarde les vidéos !</li>
-    <li>Bois de l'eau, dors 7-8 h : c'est là que le muscle pousse.</li>
-    <li>Une douleur vive au dos ou ailleurs = stop, et avis d'un professionnel de santé.</li></ul>`;
-  document.getElementById('conseils').innerHTML = conseils;
-
-  va(5);
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
+
+renderAll();
 </script>
 </body>
 </html>
