@@ -288,6 +288,21 @@ function ballColorScore(r,g,b){
   if(r>200 && g>200 && b>195) return 1;
   return 0;
 }
+function getROI(){
+  // zone d'analyse en coords de traitement : table élargie (joueurs + trajectoires)
+  if(corners.length!==4 || !H) return null;
+  const sx=proc.width/video.videoWidth, sy=proc.height/video.videoHeight;
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const c of corners){
+    x0=Math.min(x0,c.x*sx); x1=Math.max(x1,c.x*sx);
+    y0=Math.min(y0,c.y*sy); y1=Math.max(y1,c.y*sy);
+  }
+  const w=x1-x0, h=y1-y0;
+  return {
+    x0:Math.max(0, x0-w*0.30), x1:Math.min(proc.width,  x1+w*0.30),
+    y0:Math.max(0, y0-h*1.10), y1:Math.min(proc.height, y1+h*0.35)
+  };
+}
 function detectBall(now){
   const vw = video.videoWidth, vh = video.videoHeight;
   if(!vw) return null;
@@ -297,12 +312,15 @@ function detectBall(now){
   const frame = pctx.getImageData(0,0,PROC_W,ph);
   const data = frame.data;
   if(!prevFrame){ prevFrame = data.slice(); return null; }
+  const roi = getROI();
+  const rx0 = roi? roi.x0:0, rx1 = roi? roi.x1:PROC_W;
+  const ry0 = roi? roi.y0:0, ry1 = roi? roi.y1:ph;
 
   // pixels en mouvement + score couleur → cellules 6px
   const CELL=6, cw=Math.ceil(PROC_W/CELL), ch=Math.ceil(ph/CELL);
   const cells = new Map(); // idx -> {n,sx,sy,orange}
-  for(let y=0;y<ph;y+=2){
-    for(let x=0;x<PROC_W;x+=2){
+  for(let y=ry0|0;y<ry1;y+=2){
+    for(let x=rx0|0;x<rx1;x+=2){
       const i=(y*PROC_W+x)*4;
       const dr=Math.abs(data[i]-prevFrame[i]), dg=Math.abs(data[i+1]-prevFrame[i+1]), db=Math.abs(data[i+2]-prevFrame[i+2]);
       if(dr+dg+db < 70) continue;
@@ -332,8 +350,8 @@ function detectBall(now){
         if(cells.has(ni)&&!seen.has(ni)){ seen.add(ni); q.push(ni); }
       }
     }
-    // taille plausible d'une balle (petit blob)
-    if(n<3 || cellCount>60) continue;
+    // taille plausible d'une balle (petit blob compact, pas un joueur)
+    if(n<3 || cellCount>25) continue;
     const x=sx/n, y=sy/n;
     let score = (or/n)*3 + Math.max(0, 1 - n/300);
     if(lastBall && now-lastBall.t < 0.3){
@@ -343,7 +361,7 @@ function detectBall(now){
     }
     if(!best || score>best.score) best={x,y,n,score};
   }
-  if(!best || best.score<0.4) return null;
+  if(!best || best.score < (roi? 0.4 : 0.9)) return null;
   return best;
 }
 
@@ -451,6 +469,14 @@ async function loop(){
   }
 
   // --- dessins ---
+  const roiN = getROI();
+  if(roiN && proc.width){
+    const rsx=vw/proc.width, rsy=vh/proc.height;
+    octx.setLineDash([8,7]);
+    octx.strokeStyle='rgba(143,163,184,.55)'; octx.lineWidth=Math.max(1.5,vw/700);
+    octx.strokeRect(roiN.x0*rsx, roiN.y0*rsy, (roiN.x1-roiN.x0)*rsx, (roiN.y1-roiN.y0)*rsy);
+    octx.setLineDash([]);
+  }
   if(corners.length){
     octx.strokeStyle='rgba(46,111,183,.9)'; octx.lineWidth=Math.max(2,vw/500);
     octx.beginPath();
@@ -533,26 +559,121 @@ function drawTable(){
 }
 
 /* ================= calibration ================= */
-$('btnCalib').addEventListener('click', ()=>{
-  corners=[]; H=null; calibrating=true;
+let adjustMode=false, dragIdx=-1;
+
+function detectTableCorners(){
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw) return null;
+  const ph=Math.round(PROC_W*vh/vw);
+  proc.width=PROC_W; proc.height=ph; prevFrame=null;
+  pctx.drawImage(video,0,0,PROC_W,ph);
+  const d=pctx.getImageData(0,0,PROC_W,ph).data;
+  const isBlue =(r,g,b)=> b>70 && b>r+18 && b>g+8;
+  const isGreen=(r,g,b)=> g>70 && g>r+18 && g>b+8;
+  // quelle couleur de plateau domine ?
+  let nb=0,ng=0;
+  for(let i=0;i<d.length;i+=16){
+    if(isBlue(d[i],d[i+1],d[i+2])) nb++;
+    else if(isGreen(d[i],d[i+1],d[i+2])) ng++;
+  }
+  const test = nb>=ng ? isBlue : isGreen;
+  // masque en cellules
+  const CELL=4, cw=Math.ceil(PROC_W/CELL), ch=Math.ceil(ph/CELL);
+  const mask=new Uint8Array(cw*ch);
+  for(let y=0;y<ph;y+=2)for(let x=0;x<PROC_W;x+=2){
+    const i=(y*PROC_W+x)*4;
+    if(test(d[i],d[i+1],d[i+2])) mask[((y/CELL)|0)*cw+((x/CELL)|0)]=1;
+  }
+  // plus grande composante connexe
+  const lab=new Int32Array(cw*ch).fill(-1);
+  let best=-1,bestN=0,comps=0;
+  for(let s=0;s<mask.length;s++){
+    if(!mask[s]||lab[s]>=0) continue;
+    const q=[s]; lab[s]=comps; let n=0;
+    while(q.length){
+      const c=q.pop(); n++;
+      const cx=c%cw, cy=(c/cw)|0;
+      if(cx+1<cw && mask[c+1]&&lab[c+1]<0){lab[c+1]=comps;q.push(c+1);}
+      if(cx-1>=0 && mask[c-1]&&lab[c-1]<0){lab[c-1]=comps;q.push(c-1);}
+      if(cy+1<ch && mask[c+cw]&&lab[c+cw]<0){lab[c+cw]=comps;q.push(c+cw);}
+      if(cy-1>=0 && mask[c-cw]&&lab[c-cw]<0){lab[c-cw]=comps;q.push(c-cw);}
+    }
+    if(n>bestN){bestN=n;best=comps;}
+    comps++;
+  }
+  if(bestN < cw*ch*0.02) return null; // rien de crédible
+  // coins = points extrêmes du blob sur les diagonales
+  let hg=null,hd=null,bd=null,bg=null;
+  for(let s=0;s<lab.length;s++){
+    if(lab[s]!==best) continue;
+    const x=(s%cw)*CELL+CELL/2, y=((s/cw)|0)*CELL+CELL/2;
+    if(!hg||x+y<hg.x+hg.y) hg={x,y};
+    if(!bd||x+y>bd.x+bd.y) bd={x,y};
+    if(!hd||x-y>hd.x-hd.y) hd={x,y};
+    if(!bg||x-y<bg.x-bg.y) bg={x,y};
+  }
+  const sx=vw/PROC_W, sy=vh/ph;
+  return [hg,hd,bd,bg].map(p=>({x:p.x*sx,y:p.y*sy}));
+}
+
+function enterAdjustMode(auto){
+  adjustMode=true; calibrating=false;
   overlay.classList.add('clickable');
-  showBanner(`<strong>Calibration :</strong> clique les 4 coins de la table dans l'ordre — 
-  ① haut-gauche ② haut-droit ③ bas-droit ④ bas-gauche (coins du plateau, pas des pieds).`);
+  showBanner((auto
+    ? '<strong>Table détectée automatiquement.</strong> Fais glisser un coin pour l\'ajuster si besoin, puis valide. '
+    : '<strong>4 coins placés.</strong> Fais-les glisser pour ajuster, puis valide. ')
+    + '<button class="btn primary" id="btnValidate" style="margin-left:8px">✔ Valider</button>');
+}
+function finishCalibration(){
+  adjustMode=false; overlay.classList.remove('clickable');
+  H = computeHomography(corners, [[0,0],[TABLE_W,0],[TABLE_W,TABLE_H],[0,TABLE_H]]);
+  if(H){ hideBanner(); log('Table calibrée ✔ — analyse limitée à la zone table + joueurs'); }
+  else { showBanner('Calibration invalide (points alignés ?). Recommence.'); corners=[]; }
+  drawTable();
+}
+banner.addEventListener('click', e=>{
+  if(e.target && e.target.id==='btnValidate') finishCalibration();
 });
-overlay.addEventListener('click', e=>{
-  if(!calibrating) return;
+
+$('btnCalib').addEventListener('click', ()=>{
+  H=null;
+  const auto = detectTableCorners();
+  if(auto){ corners=auto; enterAdjustMode(true); }
+  else {
+    corners=[]; calibrating=true; adjustMode=false;
+    overlay.classList.add('clickable');
+    showBanner(`<strong>Table non détectée automatiquement</strong> (plateau bleu ou vert requis, bien visible).
+    Clique les 4 coins dans l'ordre — ① haut-gauche ② haut-droit ③ bas-droit ④ bas-gauche.`);
+  }
+});
+
+function toVideoXY(e){
   const r=overlay.getBoundingClientRect();
   const vw=video.videoWidth, vh=video.videoHeight;
-  const x=(e.clientX-r.left)*vw/r.width, y=(e.clientY-r.top)*vh/r.height;
-  if(x<0||y<0||x>vw||y>vh) return;
-  corners.push({x,y});
-  if(corners.length===4){
-    calibrating=false; overlay.classList.remove('clickable');
-    H = computeHomography(corners, [[0,0],[TABLE_W,0],[TABLE_W,TABLE_H],[0,TABLE_H]]);
-    if(H){ hideBanner(); log('Table calibrée ✔ — vitesses en km/h activées'); }
-    else { showBanner('Calibration invalide (points alignés ?). Réessaie.'); corners=[]; }
-    drawTable();
-  }
+  return {x:(e.clientX-r.left)*vw/r.width, y:(e.clientY-r.top)*vh/r.height};
+}
+overlay.addEventListener('pointerdown', e=>{
+  if(!adjustMode) return;
+  const p=toVideoXY(e);
+  const grab = video.videoWidth/12; // rayon de saisie généreux (tactile)
+  let bi=-1, bd=1e9;
+  corners.forEach((c,i)=>{ const d=Math.hypot(c.x-p.x,c.y-p.y); if(d<grab && d<bd){bd=d;bi=i;} });
+  if(bi>=0){ dragIdx=bi; overlay.setPointerCapture(e.pointerId); e.preventDefault(); }
+});
+overlay.addEventListener('pointermove', e=>{
+  if(dragIdx<0) return;
+  const p=toVideoXY(e);
+  const vw=video.videoWidth, vh=video.videoHeight;
+  corners[dragIdx]={x:Math.min(Math.max(p.x,0),vw), y:Math.min(Math.max(p.y,0),vh)};
+});
+overlay.addEventListener('pointerup', ()=>{ dragIdx=-1; });
+overlay.addEventListener('click', e=>{
+  if(!calibrating) return;
+  const p=toVideoXY(e);
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(p.x<0||p.y<0||p.x>vw||p.y>vh) return;
+  corners.push(p);
+  if(corners.length===4) enterAdjustMode(false);
 });
 
 /* ================= modes & sources ================= */
