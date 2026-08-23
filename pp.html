@@ -149,9 +149,11 @@
   <div class="controls">
     <button class="btn" id="btnPlay" disabled>▶︎ Lecture</button>
     <button class="btn" id="btnAnalyze" disabled>Analyser : OFF</button>
-    <button class="btn ghost" id="btnCalib" disabled>Calibrer la table</button>
+    <button class="btn ghost" id="btnCalib" disabled>① Calibrer la table</button>
+    <button class="btn ghost" id="btnPlayers" disabled>② Détecter les joueurs</button>
     <button class="btn ghost" id="btnReset">Réinitialiser les stats</button>
     <span class="spacer"></span>
+    <span id="status" style="font-size:12px;color:var(--net)">Table ✗ · Joueurs ✗</span>
     <label class="toggle"><input type="checkbox" id="chkTrail" checked> Trajectoire</label>
     <label class="toggle"><input type="checkbox" id="chkPose"> Squelettes (IA)</label>
   </div>
@@ -282,10 +284,11 @@ function applyH(h, x, y){
 
 /* ================= détection de balle ================= */
 function ballColorScore(r,g,b){
+  // blanc : lumineux et peu saturé (balle blanche prioritaire)
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+  if(mx>175 && mx-mn<45) return 2;
   // orange : forte composante rouge, bleu faible
-  if(r>140 && r-b>55 && g>50 && g<190 && b<130) return 2;
-  // blanc très lumineux
-  if(r>200 && g>200 && b>195) return 1;
+  if(r>140 && r-b>55 && g>50 && g<190 && b<130) return 1;
   return 0;
 }
 function getROI(){
@@ -353,7 +356,16 @@ function detectBall(now){
     // taille plausible d'une balle (petit blob compact, pas un joueur)
     if(n<3 || cellCount>25) continue;
     const x=sx/n, y=sy/n;
-    let score = (or/n)*3 + Math.max(0, 1 - n/300);
+    // zone joueur : on n'y accepte qu'un tout petit blob très net (la balle près de la raquette)
+    let inPlayer=false;
+    if(playersOk && players.length){
+      const psx=proc.width/video.videoWidth, psy=proc.height/video.videoHeight;
+      for(const p of players){
+        if(x>p.x*psx-4 && x<(p.x+p.w)*psx+4 && y>p.y*psy-4 && y<(p.y+p.h)*psy+4){ inPlayer=true; break; }
+      }
+    }
+    if(inPlayer && cellCount>8) continue; // mouvement du joueur, pas la balle
+    let score = 1 + Math.max(0, 1 - n/250) - (inPlayer?0.5:0);
     if(lastBall && now-lastBall.t < 0.3){
       const d=Math.hypot(x-lastBall.x,y-lastBall.y);
       score += Math.max(0, 1.5 - d/40);   // continuité
@@ -396,8 +408,17 @@ function onBall(b, now){
           const tSince = stats._lastHitT ? now-stats._lastHitT : 99;
           if(tSince>0.35){
             stats.hits++; stats._lastHitT=now;
-            const midX = corners.length===4 ? (corners[0].x+corners[1].x+corners[2].x+corners[3].x)/4 : vw/2;
-            if(px<midX) stats.hitsA++; else stats.hitsB++;
+            let side;
+            if(playersOk && players.length===2){
+              const d0=Math.abs(px-(players[0].x+players[0].w/2));
+              const d1=Math.abs(px-(players[1].x+players[1].w/2));
+              side = d0<=d1 ? players[0].side : players[1].side;
+            } else {
+              const midX = corners.length===4 ? (corners[0].x+corners[1].x+corners[2].x+corners[3].x)/4 : vw/2;
+              side = px<midX ? 'A' : 'B';
+            }
+            if(side==='A') stats.hitsA++; else stats.hitsB++;
+            trail = trail.slice(-1); // frappe → on repart sur une trajectoire propre
           }
         }
       }
@@ -430,7 +451,7 @@ function onBall(b, now){
 
   lastBall = {x:b.x,y:b.y,t:now};
   trail.push({x:px,y:py,t:now,kmh});
-  while(trail.length && now-trail[0].t>1.2) trail.shift();
+  while(trail.length && now-trail[0].t>2.0) trail.shift();
 }
 function tickRally(now){
   if(stats.rallyActive && now-stats.lastSeen>1.2){
@@ -463,8 +484,10 @@ async function loop(){
     else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; }
     tickRally(now);
     refreshStatsThrottled(now);
-    if(poseWanted && detector && !poseLoading){
+    if(detector && !poseLoading && (poseWanted || playersOk) && Math.abs(now-lastPoseT)>0.15){
+      lastPoseT=now;
       try{ lastPoses = await detector.estimatePoses(video); }catch(e){ lastPoses=[]; }
+      if(playersOk) updatePlayerBoxes();
     }
   }
 
@@ -486,10 +509,20 @@ async function loop(){
     octx.fillStyle='#F2F6FA';
     corners.forEach(c=>{ octx.beginPath(); octx.arc(c.x,c.y,Math.max(4,vw/220),0,7); octx.fill(); });
   }
+  if(players.length){
+    octx.lineWidth=Math.max(2,vw/500);
+    for(const p of players){
+      octx.strokeStyle = p.side==='B' ? 'rgba(255,122,41,.85)' : 'rgba(111,180,255,.85)';
+      octx.strokeRect(p.x,p.y,p.w,p.h);
+      octx.font=`bold ${Math.max(12,vw/60)}px sans-serif`;
+      octx.fillStyle = p.side==='B' ? 'rgba(255,122,41,.95)' : 'rgba(111,180,255,.95)';
+      octx.fillText(p.side==='B'?'Joueur droite':'Joueur gauche', p.x+4, Math.max(14,p.y-6));
+    }
+  }
   if($('chkTrail').checked && trail.length>1){
     for(let i=1;i<trail.length;i++){
       const a=trail[i-1], b=trail[i];
-      const age=(now-b.t)/1.2;
+      const age=(now-b.t)/2.0;
       octx.strokeStyle=`rgba(255,122,41,${Math.max(0,1-age)})`;
       octx.lineWidth=Math.max(2,vw/300)*(1-age*.6);
       octx.beginPath(); octx.moveTo(a.x,a.y); octx.lineTo(b.x,b.y); octx.stroke();
@@ -629,10 +662,14 @@ function finishCalibration(){
   H = computeHomography(corners, [[0,0],[TABLE_W,0],[TABLE_W,TABLE_H],[0,TABLE_H]]);
   if(H){ hideBanner(); log('Table calibrée ✔ — analyse limitée à la zone table + joueurs'); }
   else { showBanner('Calibration invalide (points alignés ?). Recommence.'); corners=[]; }
+  updateStatus();
   drawTable();
 }
 banner.addEventListener('click', e=>{
-  if(e.target && e.target.id==='btnValidate') finishCalibration();
+  const id = e.target && e.target.id;
+  if(id==='btnValidate') finishCalibration();
+  if(id==='btnValidatePlayers') validatePlayers();
+  if(id==='btnRetryPlayers') detectPlayers();
 });
 
 $('btnCalib').addEventListener('click', ()=>{
@@ -668,10 +705,21 @@ overlay.addEventListener('pointermove', e=>{
 });
 overlay.addEventListener('pointerup', ()=>{ dragIdx=-1; });
 overlay.addEventListener('click', e=>{
-  if(!calibrating) return;
   const p=toVideoXY(e);
   const vw=video.videoWidth, vh=video.videoHeight;
   if(p.x<0||p.y<0||p.x>vw||p.y>vh) return;
+  if(manualPlayers && players.length<2){
+    const w=vw*0.16, h=vh*0.38;
+    players.push({x:Math.max(0,p.x-w/2), y:Math.max(0,p.y-h/2), w, h});
+    assignSides();
+    if(players.length===2){
+      showBanner(`<strong>2 joueurs placés.</strong>
+      <button class="btn primary" id="btnValidatePlayers">✔ Valider les joueurs</button>
+      <button class="btn" id="btnRetryPlayers">Recommencer</button>`);
+    }
+    return;
+  }
+  if(!calibrating) return;
   corners.push(p);
   if(corners.length===4) enterAdjustMode(false);
 });
@@ -694,7 +742,7 @@ $('modeCam').addEventListener('click', async ()=>{
     camStream = await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},facingMode:'environment'}});
     video.srcObject=camStream; await video.play();
     placeholder.style.display='none';
-    $('btnAnalyze').disabled=false; $('btnCalib').disabled=false; $('btnPlay').disabled=true;
+    $('btnAnalyze').disabled=false; $('btnCalib').disabled=false; $('btnPlayers').disabled=false; $('btnPlay').disabled=true;
     prevFrame=null; log('Webcam active');
   }catch(err){
     showBanner('Impossible d\'accéder à la webcam : '+err.message);
@@ -706,7 +754,7 @@ $('fileInput').addEventListener('change', e=>{
   video.srcObject=null; video.src=URL.createObjectURL(f);
   video.controls=true; video.muted=true;
   placeholder.style.display='none';
-  $('btnPlay').disabled=false; $('btnAnalyze').disabled=false; $('btnCalib').disabled=false;
+  $('btnPlay').disabled=false; $('btnAnalyze').disabled=false; $('btnCalib').disabled=false; $('btnPlayers').disabled=false;
   prevFrame=null; lastBall=null; trail=[];
   log(`Vidéo chargée : ${f.name}`);
 });
@@ -720,7 +768,13 @@ $('btnAnalyze').addEventListener('click', ()=>{
   analyzing=!analyzing;
   $('btnAnalyze').textContent = 'Analyser : '+(analyzing?'ON':'OFF');
   $('btnAnalyze').classList.toggle('primary', analyzing);
-  if(analyzing){ prevFrame=null; log('Analyse démarrée'); }
+  if(analyzing){
+    prevFrame=null; log('Analyse démarrée');
+    if(!H || !playersOk){
+      showBanner('Conseil : valide d\'abord <strong>① la table</strong> et <strong>② les joueurs</strong> pour des trajectoires propres (balle uniquement) et des vitesses en km/h.');
+      setTimeout(hideBanner, 6000);
+    }
+  }
 });
 $('btnReset').addEventListener('click', ()=>{
   Object.assign(stats,{maxSpeed:0,speeds:[],rallies:0,rallyDurs:[],hits:0,hitsA:0,hitsB:0,bounces:[],rallyActive:false});
@@ -728,25 +782,102 @@ $('btnReset').addEventListener('click', ()=>{
   trail=[]; lastBall=null; refreshStats(); log('Statistiques remises à zéro');
 });
 
-/* ================= pose (optionnelle) ================= */
+/* ================= joueurs ================= */
+let players=[];        // [{x,y,w,h,side:'A'|'B'}] coords vidéo natives
+let playersOk=false, manualPlayers=false, lastPoseT=0;
+
+async function ensureDetector(){
+  if(detector) return true;
+  if(poseLoading) return false;
+  poseLoading=true;
+  try{
+    await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING}
+    );
+    poseLoading=false; return true;
+  }catch(err){ poseLoading=false; return false; }
+}
+function poseToBox(p){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,ok=0;
+  for(const kp of p.keypoints){
+    if(kp.score<0.3) continue; ok++;
+    x0=Math.min(x0,kp.x); x1=Math.max(x1,kp.x);
+    y0=Math.min(y0,kp.y); y1=Math.max(y1,kp.y);
+  }
+  if(ok<5) return null;
+  const mw=(x1-x0)*0.20, mh=(y1-y0)*0.12;
+  return {x:x0-mw, y:y0-mh, w:(x1-x0)+2*mw, h:(y1-y0)+2*mh};
+}
+function assignSides(){
+  players.sort((a,b)=>(a.x+a.w/2)-(b.x+b.w/2));
+  if(players[0]) players[0].side='A';
+  if(players[1]) players[1].side='B';
+}
+async function detectPlayers(){
+  showBanner('Chargement du modèle de détection des joueurs (MoveNet)…');
+  const ok = await ensureDetector();
+  if(!ok){
+    manualPlayers=true; players=[]; playersOk=false;
+    overlay.classList.add('clickable');
+    showBanner('<strong>Modèle IA indisponible</strong> (réseau ?). Placement manuel : clique au centre de chaque joueur (2 clics).');
+    return;
+  }
+  let poses=[];
+  try{ poses = await detector.estimatePoses(video); }catch(e){}
+  const boxes = poses.map(poseToBox).filter(Boolean)
+    .sort((a,b)=>b.w*b.h - a.w*a.h).slice(0,2);
+  players = boxes; assignSides();
+  if(players.length<2){
+    manualPlayers=true; overlay.classList.add('clickable');
+    showBanner(`<strong>${players.length}/2 joueur(s) détecté(s).</strong> Mets en pause une image où les deux sont bien visibles et
+    <button class="btn" id="btnRetryPlayers">Réessayer</button>, ou clique au centre du joueur manquant.`);
+  } else {
+    manualPlayers=false; overlay.classList.remove('clickable');
+    showBanner(`<strong>2 joueurs détectés</strong> (bleu = gauche, orange = droite). Vérifie les cadres puis
+    <button class="btn primary" id="btnValidatePlayers">✔ Valider les joueurs</button>
+    <button class="btn" id="btnRetryPlayers">Réessayer</button>`);
+  }
+}
+$('btnPlayers').addEventListener('click', detectPlayers);
+function validatePlayers(){
+  if(players.length<2){ showBanner('Il faut 2 joueurs avant de valider.'); return; }
+  playersOk=true; manualPlayers=false;
+  overlay.classList.remove('clickable');
+  hideBanner(); updateStatus();
+  log('Joueurs validés ✔ — leurs mouvements sont exclus du suivi de balle');
+}
+function updateStatus(){
+  $('status').textContent = `Table ${H?'✔':'✗'} · Joueurs ${playersOk?'✔':'✗'}`;
+}
+function updatePlayerBoxes(){
+  // suit les joueurs pendant l'analyse : réassocie chaque pose au côté le plus proche
+  const boxes = lastPoses.map(poseToBox).filter(Boolean);
+  if(!boxes.length) return;
+  for(const p of players){
+    const cx=p.x+p.w/2;
+    let best=null,bd=1e9;
+    for(const b of boxes){
+      const d=Math.abs((b.x+b.w/2)-cx);
+      if(d<bd){bd=d;best=b;}
+    }
+    if(best && bd < video.videoWidth*0.25){ p.x=best.x; p.y=best.y; p.w=best.w; p.h=best.h; }
+  }
+}
+
+/* ================= pose (squelettes) ================= */
 $('chkPose').addEventListener('change', async e=>{
   poseWanted = e.target.checked;
-  if(poseWanted && !detector && !poseLoading){
-    poseLoading=true;
+  if(poseWanted && !detector){
     showBanner('Chargement du modèle MoveNet (TensorFlow.js)…');
-    try{
-      await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js');
-      await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');
-      detector = await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        {modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING}
-      );
-      hideBanner(); log('MoveNet chargé — squelettes actifs');
-    }catch(err){
+    const ok = await ensureDetector();
+    if(ok){ hideBanner(); log('MoveNet chargé — squelettes actifs'); }
+    else{
       poseWanted=false; e.target.checked=false;
       showBanner('Le modèle de pose n\'a pas pu être chargé (réseau bloqué ?). Le suivi de balle reste fonctionnel.');
     }
-    poseLoading=false;
   }
 });
 function loadScript(src){
