@@ -378,10 +378,42 @@ function detectBall(now){
 }
 
 /* ================= logique de match ================= */
+let strokeActive=false, strokeFrom=null;
+
 function onBall(b, now){
   const vw=video.videoWidth, vh=video.videoHeight;
   const sx = vw/proc.width, sy = vh/proc.height;
   const px = b.x*sx, py = b.y*sy; // coords vidéo natives
+
+  // continuité stricte : une balle ne se téléporte pas
+  if(lastBall){
+    const dtj = now - lastBall.t;
+    if(dtj>0 && dtj<0.2 && Math.hypot(px-lastBall.x*sx, py-lastBall.y*sy) > vw*0.28) return;
+  }
+
+  // --- machine à états frappe → trajectoire ---
+  if(playersOk && players.length===2){
+    const zone = players.find(p=> px>p.x-p.w*0.15 && px<p.x+p.w*1.15 && py>p.y-p.h*0.15 && py<p.y+p.h*1.15);
+    if(!strokeActive){
+      if(!zone) return; // la balle doit partir d'une raquette
+      strokeActive=true; strokeFrom=zone.side;
+      trail=[]; vxHist=[]; lastBall=null;
+      const tS = stats._lastHitT ? now-stats._lastHitT : 99;
+      if(tS>0.3){
+        stats.hits++; stats._lastHitT=now;
+        if(zone.side==='A') stats.hitsA++; else stats.hitsB++;
+      }
+    } else if(zone && zone.side!==strokeFrom){
+      // la balle atteint la raquette adverse → nouveau coup, nouvelle trajectoire
+      const tS = stats._lastHitT ? now-stats._lastHitT : 99;
+      if(tS>0.3){
+        stats.hits++; stats._lastHitT=now;
+        if(zone.side==='A') stats.hitsA++; else stats.hitsB++;
+        strokeFrom=zone.side;
+        trail=[]; vxHist=[]; lastBall=null;
+      }
+    }
+  }
 
   // vitesses
   let kmh = null;
@@ -399,10 +431,10 @@ function onBall(b, now){
           if(kmh>stats.maxSpeed){ stats.maxSpeed=kmh; }
         } else kmh=null;
       }
-      // détection de coup : inversion du sens horizontal
+      // détection de coup par inversion (repli quand les joueurs ne sont pas validés)
       const vx=(px - lastBall.x*sx)/dt;
       vxHist.push(vx); if(vxHist.length>4) vxHist.shift();
-      if(vxHist.length>=3){
+      if(!playersOk && vxHist.length>=3){
         const a=vxHist[vxHist.length-3], c=vxHist[vxHist.length-1];
         if(Math.sign(a)!==Math.sign(c) && Math.abs(a)>vw*0.25 && Math.abs(c)>vw*0.25){
           const tSince = stats._lastHitT ? now-stats._lastHitT : 99;
@@ -481,13 +513,13 @@ async function loop(){
   if(analyzing && playing){
     const b = detectBall(now);
     if(b) onBall(b, now);
-    else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; }
+    else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; strokeActive=false; }
     tickRally(now);
     refreshStatsThrottled(now);
     if(detector && !poseLoading && (poseWanted || playersOk) && Math.abs(now-lastPoseT)>0.15){
       lastPoseT=now;
       try{ lastPoses = await detector.estimatePoses(video); }catch(e){ lastPoses=[]; }
-      if(playersOk) updatePlayerBoxes();
+      if(playersOk){ updatePlayerBoxes(); await trackFarPlayer(now); }
     }
   }
 
@@ -512,11 +544,16 @@ async function loop(){
   if(players.length){
     octx.lineWidth=Math.max(2,vw/500);
     for(const p of players){
-      octx.strokeStyle = p.side==='B' ? 'rgba(255,122,41,.85)' : 'rgba(111,180,255,.85)';
+      const col = p.side==='B' ? '255,122,41' : '111,180,255';
+      octx.strokeStyle = `rgba(${col},.85)`;
       octx.strokeRect(p.x,p.y,p.w,p.h);
       octx.font=`bold ${Math.max(12,vw/60)}px sans-serif`;
-      octx.fillStyle = p.side==='B' ? 'rgba(255,122,41,.95)' : 'rgba(111,180,255,.95)';
+      octx.fillStyle = `rgba(${col},.95)`;
       octx.fillText(p.side==='B'?'Joueur droite':'Joueur gauche', p.x+4, Math.max(14,p.y-6));
+      if(!playersOk){ // poignée de redimensionnement
+        const s=Math.max(10,vw/45);
+        octx.fillRect(p.x+p.w-s, p.y+p.h-s, s, s);
+      }
     }
   }
   if($('chkTrail').checked && trail.length>1){
@@ -689,26 +726,65 @@ function toVideoXY(e){
   const vw=video.videoWidth, vh=video.videoHeight;
   return {x:(e.clientX-r.left)*vw/r.width, y:(e.clientY-r.top)*vh/r.height};
 }
+let boxDrag=null; // {i, mode:'move'|'resize', ox, oy}
+function playersAdjustable(){ return players.length>0 && !playersOk; }
+
 overlay.addEventListener('pointerdown', e=>{
-  if(!adjustMode) return;
   const p=toVideoXY(e);
-  const grab = video.videoWidth/12; // rayon de saisie généreux (tactile)
-  let bi=-1, bd=1e9;
-  corners.forEach((c,i)=>{ const d=Math.hypot(c.x-p.x,c.y-p.y); if(d<grab && d<bd){bd=d;bi=i;} });
-  if(bi>=0){ dragIdx=bi; overlay.setPointerCapture(e.pointerId); e.preventDefault(); }
+  if(adjustMode){
+    const grab = video.videoWidth/12; // rayon de saisie généreux (tactile)
+    let bi=-1, bd=1e9;
+    corners.forEach((c,i)=>{ const d=Math.hypot(c.x-p.x,c.y-p.y); if(d<grab && d<bd){bd=d;bi=i;} });
+    if(bi>=0){ dragIdx=bi; overlay.setPointerCapture(e.pointerId); e.preventDefault(); }
+    return;
+  }
+  if(playersAdjustable()){
+    const grab = video.videoWidth/22;
+    // poignée de redimensionnement (coin bas-droit) prioritaire
+    for(let i=0;i<players.length;i++){
+      const b=players[i];
+      if(Math.hypot(p.x-(b.x+b.w), p.y-(b.y+b.h))<grab){
+        boxDrag={i,mode:'resize'};
+        overlay.setPointerCapture(e.pointerId); e.preventDefault(); return;
+      }
+    }
+    // sinon : déplacement si le doigt est dans un cadre
+    for(let i=0;i<players.length;i++){
+      const b=players[i];
+      if(p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h){
+        boxDrag={i,mode:'move',ox:p.x-b.x,oy:p.y-b.y};
+        overlay.setPointerCapture(e.pointerId); e.preventDefault(); return;
+      }
+    }
+  }
 });
 overlay.addEventListener('pointermove', e=>{
-  if(dragIdx<0) return;
   const p=toVideoXY(e);
   const vw=video.videoWidth, vh=video.videoHeight;
-  corners[dragIdx]={x:Math.min(Math.max(p.x,0),vw), y:Math.min(Math.max(p.y,0),vh)};
+  if(dragIdx>=0){
+    corners[dragIdx]={x:Math.min(Math.max(p.x,0),vw), y:Math.min(Math.max(p.y,0),vh)};
+    return;
+  }
+  if(boxDrag){
+    const b=players[boxDrag.i], min=vw*0.05;
+    if(boxDrag.mode==='move'){
+      b.x=Math.min(Math.max(p.x-boxDrag.ox,0), vw-b.w);
+      b.y=Math.min(Math.max(p.y-boxDrag.oy,0), vh-b.h);
+    } else {
+      b.w=Math.min(Math.max(p.x-b.x,min), vw-b.x);
+      b.h=Math.min(Math.max(p.y-b.y,min), vh-b.y);
+    }
+    assignSides();
+  }
 });
-overlay.addEventListener('pointerup', ()=>{ dragIdx=-1; });
+overlay.addEventListener('pointerup', ()=>{ dragIdx=-1; boxDrag=null; });
 overlay.addEventListener('click', e=>{
   const p=toVideoXY(e);
   const vw=video.videoWidth, vh=video.videoHeight;
   if(p.x<0||p.y<0||p.x>vw||p.y>vh) return;
   if(manualPlayers && players.length<2){
+    // ignore le clic s'il tombe sur un cadre existant (c'était un déplacement)
+    if(players.some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h)) return;
     const w=vw*0.16, h=vh*0.38;
     players.push({x:Math.max(0,p.x-w/2), y:Math.max(0,p.y-h/2), w, h});
     assignSides();
@@ -779,7 +855,7 @@ $('btnAnalyze').addEventListener('click', ()=>{
 $('btnReset').addEventListener('click', ()=>{
   Object.assign(stats,{maxSpeed:0,speeds:[],rallies:0,rallyDurs:[],hits:0,hitsA:0,hitsB:0,bounces:[],rallyActive:false});
   delete stats._lastHitT; delete stats._lastBounceT; delete stats._lastVy;
-  trail=[]; lastBall=null; refreshStats(); log('Statistiques remises à zéro');
+  trail=[]; lastBall=null; strokeActive=false; strokeFrom=null; refreshStats(); log('Statistiques remises à zéro');
 });
 
 /* ================= joueurs ================= */
@@ -800,14 +876,14 @@ async function ensureDetector(){
     poseLoading=false; return true;
   }catch(err){ poseLoading=false; return false; }
 }
-function poseToBox(p){
+function poseToBox(p, th=0.3){
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,ok=0;
   for(const kp of p.keypoints){
-    if(kp.score<0.3) continue; ok++;
+    if(kp.score<th) continue; ok++;
     x0=Math.min(x0,kp.x); x1=Math.max(x1,kp.x);
     y0=Math.min(y0,kp.y); y1=Math.max(y1,kp.y);
   }
-  if(ok<5) return null;
+  if(ok < (th<0.3?4:5)) return null;
   const mw=(x1-x0)*0.20, mh=(y1-y0)*0.12;
   return {x:x0-mw, y:y0-mh, w:(x1-x0)+2*mw, h:(y1-y0)+2*mh};
 }
@@ -816,6 +892,52 @@ function assignSides(){
   if(players[0]) players[0].side='A';
   if(players[1]) players[1].side='B';
 }
+/* --- passe zoomée pour le joueur du fond (trop petit en pleine image) --- */
+const zoomCanvas=document.createElement('canvas');
+const zctx=zoomCanvas.getContext('2d');
+let lastFarT=0;
+
+async function estimateInZone(zx,zy,zw,zh,zoom,th){
+  if(zw<10||zh<10) return [];
+  zoomCanvas.width=Math.round(zw*zoom); zoomCanvas.height=Math.round(zh*zoom);
+  zctx.drawImage(video, zx,zy,zw,zh, 0,0,zoomCanvas.width,zoomCanvas.height);
+  let poses=[];
+  try{ poses=await detector.estimatePoses(zoomCanvas); }catch(e){}
+  return poses.map(p=>poseToBox(p,th)).filter(Boolean)
+    .map(b=>({x:b.x/zoom+zx, y:b.y/zoom+zy, w:b.w/zoom, h:b.h/zoom}));
+}
+function farZone(){
+  // zone où chercher le joueur du fond : derrière le bord haut de la table
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(corners.length===4){
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const c of corners){ x0=Math.min(x0,c.x); x1=Math.max(x1,c.x); y0=Math.min(y0,c.y); y1=Math.max(y1,c.y); }
+    const tw=x1-x0, th=y1-y0;
+    const zx=Math.max(0, x0-tw*0.35), zx1=Math.min(vw, x1+tw*0.35);
+    const zy=Math.max(0, y0-th*1.9),  zy1=Math.min(vh, y0+th*0.45);
+    return {zx, zy, zw:zx1-zx, zh:zy1-zy};
+  }
+  return {zx:0, zy:0, zw:vw, zh:vh*0.55};
+}
+async function trackFarPlayer(now){
+  if(!playersOk || players.length<2 || !detector) return;
+  if(Math.abs(now-lastFarT)<0.5) return;
+  lastFarT=now;
+  const far = players[0].w*players[0].h <= players[1].w*players[1].h ? players[0] : players[1];
+  const ex=far.w*0.9, ey=far.h*0.9;
+  const zx=Math.max(0,far.x-ex), zy=Math.max(0,far.y-ey);
+  const zw=Math.min(video.videoWidth, far.x+far.w+ex)-zx;
+  const zh=Math.min(video.videoHeight, far.y+far.h+ey)-zy;
+  const zoom=Math.max(2, Math.min(3.5, 700/Math.max(zw,zh)));
+  const boxes=await estimateInZone(zx,zy,zw,zh,zoom,0.2);
+  if(boxes.length){
+    boxes.sort((a,b)=>b.w*b.h-a.w*a.h);
+    const ncx=boxes[0].x+boxes[0].w/2, ncy=boxes[0].y+boxes[0].h/2;
+    far.x=Math.min(Math.max(ncx-far.w/2,0), video.videoWidth-far.w);
+    far.y=Math.min(Math.max(ncy-far.h/2,0), video.videoHeight-far.h);
+  }
+}
+
 async function detectPlayers(){
   showBanner('Chargement du modèle de détection des joueurs (MoveNet)…');
   const ok = await ensureDetector();
@@ -827,16 +949,40 @@ async function detectPlayers(){
   }
   let poses=[];
   try{ poses = await detector.estimatePoses(video); }catch(e){}
-  const boxes = poses.map(poseToBox).filter(Boolean)
-    .sort((a,b)=>b.w*b.h - a.w*a.h).slice(0,2);
+  let boxes = poses.map(poseToBox).filter(Boolean);
+  if(H && corners.length===4){
+    // affinage : ignore les silhouettes loin de la table (spectateurs, arbitre)
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const c of corners){ x0=Math.min(x0,c.x); x1=Math.max(x1,c.x); y0=Math.min(y0,c.y); y1=Math.max(y1,c.y); }
+    const tw=x1-x0, th=y1-y0;
+    const zx0=x0-tw*0.5, zx1=x1+tw*0.5, zy0=y0-th*1.6, zy1=y1+th*0.6;
+    boxes = boxes.filter(b=>{
+      const cx=b.x+b.w/2, cy=b.y+b.h/2;
+      return cx>zx0 && cx<zx1 && cy>zy0 && cy<zy1;
+    });
+  }
+  boxes = boxes.sort((a,b)=>b.w*b.h - a.w*a.h).slice(0,2);
+  if(boxes.length<2){
+    // le joueur du fond est souvent trop petit : passe zoomée derrière la table
+    const fz=farZone();
+    const zoom=Math.max(1.8, Math.min(3.5, 900/Math.max(fz.zw,fz.zh)));
+    const far=(await estimateInZone(fz.zx,fz.zy,fz.zw,fz.zh,zoom,0.2))
+      .sort((a,b)=>b.w*b.h-a.w*a.h);
+    for(const b of far){
+      const overlaps = boxes.some(a=>!(b.x>a.x+a.w||b.x+b.w<a.x||b.y>a.y+a.h||b.y+b.h<a.y));
+      if(!overlaps){ boxes.push(b); if(boxes.length>=2) break; }
+    }
+  }
   players = boxes; assignSides();
   if(players.length<2){
     manualPlayers=true; overlay.classList.add('clickable');
     showBanner(`<strong>${players.length}/2 joueur(s) détecté(s).</strong> Mets en pause une image où les deux sont bien visibles et
     <button class="btn" id="btnRetryPlayers">Réessayer</button>, ou clique au centre du joueur manquant.`);
   } else {
-    manualPlayers=false; overlay.classList.remove('clickable');
-    showBanner(`<strong>2 joueurs détectés</strong> (bleu = gauche, orange = droite). Vérifie les cadres puis
+    manualPlayers=false;
+    overlay.classList.add('clickable');
+    showBanner(`<strong>2 joueurs détectés</strong> (bleu = gauche, orange = droite). Déplace un cadre en le faisant glisser,
+    redimensionne-le par la poignée ◢ en bas à droite, puis
     <button class="btn primary" id="btnValidatePlayers">✔ Valider les joueurs</button>
     <button class="btn" id="btnRetryPlayers">Réessayer</button>`);
   }
@@ -863,7 +1009,12 @@ function updatePlayerBoxes(){
       const d=Math.abs((b.x+b.w/2)-cx);
       if(d<bd){bd=d;best=b;}
     }
-    if(best && bd < video.videoWidth*0.25){ p.x=best.x; p.y=best.y; p.w=best.w; p.h=best.h; }
+    if(best && bd < video.videoWidth*0.18 && best.h < p.h*2.2 && best.h > p.h*0.4){
+      // suit le joueur en conservant la taille du cadre validé par l'utilisateur
+      const ncx=best.x+best.w/2, ncy=best.y+best.h/2;
+      p.x=Math.min(Math.max(ncx-p.w/2,0), video.videoWidth-p.w);
+      p.y=Math.min(Math.max(ncy-p.h/2,0), video.videoHeight-p.h);
+    }
   }
 }
 
