@@ -155,6 +155,7 @@
     <span class="spacer"></span>
     <span id="status" style="font-size:12px;color:var(--net)">Table ✗ · Joueurs ✗</span>
     <label class="toggle"><input type="checkbox" id="chkTrail" checked> Trajectoire</label>
+    <label class="toggle"><input type="checkbox" id="chkDebug"> Voir détections</label>
     <label class="toggle"><input type="checkbox" id="chkPose"> Squelettes (IA)</label>
   </div>
 
@@ -206,11 +207,12 @@ let analyzing = false;
 let camStream = null;
 
 /* détection */
-const PROC_W = 320;          // largeur de traitement
+const PROC_W = 480;          // largeur de traitement (balle ≈ 3-8 px, détectable)
 const proc = document.createElement('canvas');
 const pctx = proc.getContext('2d', {willReadFrequently:true});
 let prevFrame = null;
 let lastBall = null;         // {x,y,t} en coords de traitement
+let debugCands = [];         // candidats bruts (mode Voir détections)
 let trail = [];              // derniers points (coords vidéo natives)
 let vxHist = [];
 
@@ -286,7 +288,7 @@ function applyH(h, x, y){
 function ballColorScore(r,g,b){
   // blanc : lumineux et peu saturé (balle blanche prioritaire)
   const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
-  if(mx>175 && mx-mn<45) return 2;
+  if(mx>150 && mx-mn<60) return 2;   // tolérant : la balle filée par le mouvement est grisée
   // orange : forte composante rouge, bleu faible
   if(r>140 && r-b>55 && g>50 && g<190 && b<130) return 1;
   return 0;
@@ -307,6 +309,7 @@ function getROI(){
   };
 }
 function detectBall(now){
+  debugCands.length=0;
   const vw = video.videoWidth, vh = video.videoHeight;
   if(!vw) return null;
   const ph = Math.round(PROC_W * vh / vw);
@@ -326,7 +329,7 @@ function detectBall(now){
     for(let x=rx0|0;x<rx1;x+=2){
       const i=(y*PROC_W+x)*4;
       const dr=Math.abs(data[i]-prevFrame[i]), dg=Math.abs(data[i+1]-prevFrame[i+1]), db=Math.abs(data[i+2]-prevFrame[i+2]);
-      if(dr+dg+db < 70) continue;
+      if(dr+dg+db < 50) continue;
       const cs = ballColorScore(data[i],data[i+1],data[i+2]);
       if(cs===0) continue;
       const ci = ((y/CELL)|0)*cw + ((x/CELL)|0);
@@ -354,23 +357,24 @@ function detectBall(now){
       }
     }
     // taille plausible d'une balle (petit blob compact, pas un joueur)
-    if(n<3 || cellCount>25) continue;
+    if(n<2 || cellCount>35) continue;
     const x=sx/n, y=sy/n;
     // zone joueur : on n'y accepte qu'un tout petit blob très net (la balle près de la raquette)
     let inPlayer=false;
     if(playersOk && players.length){
       const psx=proc.width/video.videoWidth, psy=proc.height/video.videoHeight;
       for(const p of players){
-        if(x>p.x*psx-4 && x<(p.x+p.w)*psx+4 && y>p.y*psy-4 && y<(p.y+p.h)*psy+4){ inPlayer=true; break; }
+        if(x>p.x*psx-6 && x<(p.x+p.w)*psx+6 && y>p.y*psy-6 && y<(p.y+p.h)*psy+6){ inPlayer=true; break; }
       }
     }
-    if(inPlayer && cellCount>8) continue; // mouvement du joueur, pas la balle
-    let score = 1 + Math.max(0, 1 - n/250) - (inPlayer?0.5:0);
+    if(inPlayer && cellCount>10) continue; // mouvement du joueur, pas la balle
+    let score = 1 + Math.max(0, 1 - n/400) - (inPlayer?0.5:0);
     if(lastBall && now-lastBall.t < 0.3){
       const d=Math.hypot(x-lastBall.x,y-lastBall.y);
-      score += Math.max(0, 1.5 - d/40);   // continuité
-      if(d>90) score -= 1.5;              // saut improbable
+      score += Math.max(0, 1.5 - d/(PROC_W*0.125));   // continuité
+      if(d>PROC_W*0.28) score -= 1.5;                 // saut improbable
     }
+    debugCands.push({x,y});
     if(!best || score>best.score) best={x,y,n,score};
   }
   if(!best || best.score < (roi? 0.4 : 0.9)) return null;
@@ -399,18 +403,18 @@ function tryConfirmStroke(now, vw){
   const d1x=c1.px-c0.px, d1y=c1.py-c0.py, d2x=c2.px-c1.px, d2y=c2.py-c1.py;
   const l1=Math.hypot(d1x,d1y), l2=Math.hypot(d2x,d2y);
   // 1) rapide : une balle frappée traverse l'image, pas un bras
-  if(l1/dt1 < vw*0.35 || l2/dt2 < vw*0.35) return false;
-  // 2) rectiligne : moins de ~60° entre segments consécutifs
-  if((d1x*d2x+d1y*d2y)/((l1*l2)||1) < 0.5) return false;
+  if(l1/dt1 < vw*0.30 || l2/dt2 < vw*0.30) return false;
+  // 2) rectiligne : pas de virage serré entre segments
+  if((d1x*d2x+d1y*d2y)/((l1*l2)||1) < 0.35) return false;
 
   let fromZone=null;
   if(playersOk && players.length===2){
-    fromZone = players.find(p=>inZoneOf(p,c0.px,c0.py,0.25)) || null;
+    fromZone = players.find(p=>inZoneOf(p,c0.px,c0.py,0.40)) || null;
     // 3) part d'une raquette…
     if(!fromZone) return false;
     // 4) …et s'en éloigne (un bras oscille autour du corps, la balle s'échappe)
     const cx=fromZone.x+fromZone.w/2, cy=fromZone.y+fromZone.h/2;
-    if(Math.hypot(c2.px-cx,c2.py-cy) < Math.hypot(c0.px-cx,c0.py-cy) + vw*0.012) return false;
+    if(Math.hypot(c2.px-cx,c2.py-cy) < Math.hypot(c0.px-cx,c0.py-cy) + vw*0.008) return false;
   }
   strokeActive=true; slowCount=0;
   strokeFrom = fromZone ? fromZone.side : null;
@@ -604,6 +608,18 @@ async function loop(){
         const s=Math.max(10,vw/45);
         octx.fillRect(p.x+p.w-s, p.y+p.h-s, s, s);
       }
+    }
+  }
+  if($('chkDebug').checked && proc.width){
+    // jaune = tous les candidats bruts · vert = celui suivi comme balle
+    const dsx=vw/proc.width, dsy=vh/proc.height;
+    octx.fillStyle='rgba(245,184,61,.8)';
+    for(const c of debugCands){
+      octx.beginPath(); octx.arc(c.x*dsx,c.y*dsy,Math.max(3,vw/300),0,7); octx.fill();
+    }
+    if(lastBall && now-lastBall.t<0.2){
+      octx.strokeStyle='#4CC38A'; octx.lineWidth=Math.max(2,vw/400);
+      octx.beginPath(); octx.arc(lastBall.x*dsx,lastBall.y*dsy,Math.max(8,vw/90),0,7); octx.stroke();
     }
   }
   if($('chkTrail').checked && trail.length>1){
@@ -897,16 +913,14 @@ $('btnPlay').addEventListener('click', ()=>{
 video.addEventListener('play', ()=>$('btnPlay').textContent='❚❚ Pause');
 video.addEventListener('pause', ()=>$('btnPlay').textContent='▶︎ Lecture');
 $('btnAnalyze').addEventListener('click', ()=>{
+  if(!analyzing && (!H || !playersOk)){
+    showBanner('L\'analyse nécessite <strong>① la table calibrée</strong> et <strong>② les deux joueurs validés</strong> — c\'est ce qui permet de ne suivre que la balle au départ des raquettes. Fais ces deux étapes puis relance.');
+    return;
+  }
   analyzing=!analyzing;
   $('btnAnalyze').textContent = 'Analyser : '+(analyzing?'ON':'OFF');
   $('btnAnalyze').classList.toggle('primary', analyzing);
-  if(analyzing){
-    prevFrame=null; log('Analyse démarrée');
-    if(!H || !playersOk){
-      showBanner('Conseil : valide d\'abord <strong>① la table</strong> et <strong>② les joueurs</strong> pour des trajectoires propres (balle uniquement) et des vitesses en km/h.');
-      setTimeout(hideBanner, 6000);
-    }
-  }
+  if(analyzing){ prevFrame=null; log('Analyse démarrée'); hideBanner(); }
 });
 $('btnReset').addEventListener('click', ()=>{
   Object.assign(stats,{maxSpeed:0,speeds:[],rallies:0,rallyDurs:[],hits:0,hitsA:0,hitsB:0,bounces:[],rallyActive:false});
