@@ -364,7 +364,8 @@ function detectBall(now){
     if(playersOk && players.length){
       const psx=proc.width/video.videoWidth, psy=proc.height/video.videoHeight;
       for(const p of players){
-        if(x>p.x*psx-6 && x<(p.x+p.w)*psx+6 && y>p.y*psy-6 && y<(p.y+p.h)*psy+6){ inPlayer=true; break; }
+        const mX=p.w*psx*0.18, mY=p.h*psy*0.18; // marge proportionnelle (bras, raquette)
+        if(x>p.x*psx-mX && x<(p.x+p.w)*psx+mX && y>p.y*psy-mY && y<(p.y+p.h)*psy+mY){ inPlayer=true; break; }
       }
     }
     if(inPlayer && cellCount>10) continue; // mouvement du joueur, pas la balle
@@ -384,7 +385,7 @@ function detectBall(now){
 /* ================= logique de match ================= */
 let strokeActive=false, strokeFrom=null;
 let chain=[];      // points candidats en attente de confirmation {px,py,t}
-let slowCount=0;
+let slowCount=0, lastStrokeEndT=0;
 
 function inZoneOf(p, px, py, f=0.15){
   return px>p.x-p.w*f && px<p.x+p.w*(1+f) && py>p.y-p.h*f && py<p.y+p.h*(1+f);
@@ -412,10 +413,16 @@ function tryConfirmStroke(now, vw){
     fromZone = players.find(p=>inZoneOf(p,c0.px,c0.py,0.40)) || null;
     // 3) part d'une raquette…
     if(!fromZone) return false;
-    // 4) …et s'en éloigne (un bras oscille autour du corps, la balle s'échappe)
+    // 4) …s'en éloigne (un bras oscille autour du corps, la balle s'échappe)
     const cx=fromZone.x+fromZone.w/2, cy=fromZone.y+fromZone.h/2;
     if(Math.hypot(c2.px-cx,c2.py-cy) < Math.hypot(c0.px-cx,c0.py-cy) + vw*0.008) return false;
+    // 5) …et progresse horizontalement VERS l'adversaire (un geste du bras, non)
+    const dxNet = c2.px - c0.px;
+    if(fromZone.side==='B' && dxNet > -vw*0.012) return false; // droite → doit aller vers la gauche
+    if(fromZone.side==='A' && dxNet <  vw*0.012) return false; // gauche → doit aller vers la droite
   }
+  // délai après une fausse piste abandonnée (évite le retriggering en rafale)
+  if(now - lastStrokeEndT < 0.25) return false;
   strokeActive=true; slowCount=0;
   strokeFrom = fromZone ? fromZone.side : null;
   trail = chain.map(c=>({x:c.px,y:c.py,t:c.t}));
@@ -465,7 +472,7 @@ function onBall(b, now){
     if(dtv>0 && dtv<0.2){
       const spd = Math.hypot(px-lastBall.x*sx, py-lastBall.y*sy)/dtv;
       if(spd < vw*0.12) slowCount++; else slowCount=0;
-      if(slowCount>=4){ strokeActive=false; chain=[]; lastBall=null; return; }
+      if(slowCount>=4){ strokeActive=false; chain=[]; lastBall=null; lastStrokeEndT=now; return; }
     }
   }
 
@@ -567,7 +574,10 @@ async function loop(){
   if(analyzing && playing){
     const b = detectBall(now);
     if(b) onBall(b, now);
-    else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; chain=[]; strokeActive=false; }
+    else if(lastBall && now-lastBall.t>0.5){
+      if(strokeActive) lastStrokeEndT=now;
+      lastBall=null; vxHist=[]; chain=[]; strokeActive=false;
+    }
     tickRally(now);
     refreshStatsThrottled(now);
     if(detector && !poseLoading && (poseWanted || playersOk) && Math.abs(now-lastPoseT)>0.15){
@@ -603,7 +613,7 @@ async function loop(){
       octx.strokeRect(p.x,p.y,p.w,p.h);
       octx.font=`bold ${Math.max(12,vw/60)}px sans-serif`;
       octx.fillStyle = `rgba(${col},.95)`;
-      octx.fillText(p.side==='B'?'Joueur droite':'Joueur gauche', p.x+4, Math.max(14,p.y-6));
+      octx.fillText((p.side==='B'?'Joueur droite':'Joueur gauche')+(p.manual?' 🔒':''), p.x+4, Math.max(14,p.y-6));
       if(!playersOk){ // poignée de redimensionnement
         const s=Math.max(10,vw/45);
         octx.fillRect(p.x+p.w-s, p.y+p.h-s, s, s);
@@ -843,7 +853,10 @@ overlay.addEventListener('pointermove', e=>{
     assignSides();
   }
 });
-overlay.addEventListener('pointerup', ()=>{ dragIdx=-1; boxDrag=null; });
+overlay.addEventListener('pointerup', ()=>{
+  if(boxDrag){ players[boxDrag.i].manual=true; } // cadre ajusté à la main = verrouillé
+  dragIdx=-1; boxDrag=null;
+});
 overlay.addEventListener('click', e=>{
   const p=toVideoXY(e);
   const vw=video.videoWidth, vh=video.videoHeight;
@@ -858,7 +871,7 @@ overlay.addEventListener('click', e=>{
       for(const c of corners){ x0=Math.min(x0,c.x); x1=Math.max(x1,c.x); y0=Math.min(y0,c.y); y1=Math.max(y1,c.y); }
       if(p.y < y0 + (y1-y0)*0.35){ w=(x1-x0)*0.38; h=(y1-y0)*1.5; }
     }
-    players.push({x:Math.max(0,p.x-w/2), y:Math.max(0,p.y-h/2), w, h});
+    players.push({x:Math.max(0,p.x-w/2), y:Math.max(0,p.y-h/2), w, h, manual:true});
     assignSides();
     if(players.length===2){
       showBanner(`<strong>2 joueurs placés.</strong>
@@ -1006,6 +1019,7 @@ async function trackFarPlayer(now){
   if(Math.abs(now-lastFarT)<0.5) return;
   lastFarT=now;
   const far = players[0].w*players[0].h <= players[1].w*players[1].h ? players[0] : players[1];
+  if(far.manual) return; // cadre placé/ajusté à la main : on n'y touche plus
   const ex=far.w*0.9, ey=far.h*0.9;
   const zx=Math.max(0,far.x-ex), zy=Math.max(0,far.y-ey);
   const zw=Math.min(video.videoWidth, far.x+far.w+ex)-zx;
@@ -1092,6 +1106,7 @@ function updatePlayerBoxes(){
   const boxes = lastPoses.map(poseToBox).filter(Boolean);
   if(!boxes.length) return;
   for(const p of players){
+    if(p.manual) continue; // cadre ajusté à la main : on n'y touche plus
     const cx=p.x+p.w/2;
     let best=null,bd=1e9;
     for(const b of boxes){
