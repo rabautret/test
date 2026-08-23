@@ -379,6 +379,48 @@ function detectBall(now){
 
 /* ================= logique de match ================= */
 let strokeActive=false, strokeFrom=null;
+let chain=[];      // points candidats en attente de confirmation {px,py,t}
+let slowCount=0;
+
+function inZoneOf(p, px, py, f=0.15){
+  return px>p.x-p.w*f && px<p.x+p.w*(1+f) && py>p.y-p.h*f && py<p.y+p.h*(1+f);
+}
+function countHit(side, now){
+  const tS = stats._lastHitT ? now-stats._lastHitT : 99;
+  if(tS<=0.3) return;
+  stats.hits++; stats._lastHitT=now;
+  if(side==='A') stats.hitsA++; else if(side==='B') stats.hitsB++;
+}
+function tryConfirmStroke(now, vw){
+  if(chain.length<3) return false;
+  const c0=chain[chain.length-3], c1=chain[chain.length-2], c2=chain[chain.length-1];
+  const dt1=c1.t-c0.t, dt2=c2.t-c1.t;
+  if(dt1<=0||dt2<=0||dt1>0.15||dt2>0.15) return false;
+  const d1x=c1.px-c0.px, d1y=c1.py-c0.py, d2x=c2.px-c1.px, d2y=c2.py-c1.py;
+  const l1=Math.hypot(d1x,d1y), l2=Math.hypot(d2x,d2y);
+  // 1) rapide : une balle frappée traverse l'image, pas un bras
+  if(l1/dt1 < vw*0.35 || l2/dt2 < vw*0.35) return false;
+  // 2) rectiligne : moins de ~60° entre segments consécutifs
+  if((d1x*d2x+d1y*d2y)/((l1*l2)||1) < 0.5) return false;
+
+  let fromZone=null;
+  if(playersOk && players.length===2){
+    fromZone = players.find(p=>inZoneOf(p,c0.px,c0.py,0.25)) || null;
+    // 3) part d'une raquette…
+    if(!fromZone) return false;
+    // 4) …et s'en éloigne (un bras oscille autour du corps, la balle s'échappe)
+    const cx=fromZone.x+fromZone.w/2, cy=fromZone.y+fromZone.h/2;
+    if(Math.hypot(c2.px-cx,c2.py-cy) < Math.hypot(c0.px-cx,c0.py-cy) + vw*0.012) return false;
+  }
+  strokeActive=true; slowCount=0;
+  strokeFrom = fromZone ? fromZone.side : null;
+  trail = chain.map(c=>({x:c.px,y:c.py,t:c.t}));
+  vxHist=[];
+  if(fromZone) countHit(fromZone.side, now);
+  stats.lastSeen=now;
+  if(!stats.rallyActive){ stats.rallyActive=true; stats.rallyStart=now; }
+  return true;
+}
 
 function onBall(b, now){
   const vw=video.videoWidth, vh=video.videoHeight;
@@ -386,32 +428,40 @@ function onBall(b, now){
   const px = b.x*sx, py = b.y*sy; // coords vidéo natives
 
   // continuité stricte : une balle ne se téléporte pas
-  if(lastBall){
-    const dtj = now - lastBall.t;
-    if(dtj>0 && dtj<0.2 && Math.hypot(px-lastBall.x*sx, py-lastBall.y*sy) > vw*0.28) return;
+  const last = chain[chain.length-1];
+  if(last && now-last.t<0.25 && Math.hypot(px-last.px,py-last.py) > vw*0.28){
+    if(strokeActive) return;    // point aberrant en plein échange : ignoré
+    chain=[];                   // sinon on repart d'une nouvelle chaîne
+  }
+  chain.push({px,py,t:now});
+  while(chain.length && now-chain[0].t>0.4) chain.shift();
+  if(chain.length>6) chain.shift();
+
+  // --- pas encore de trajectoire : on attend une vraie frappe ---
+  if(!strokeActive){
+    tryConfirmStroke(now, vw);
+    lastBall = {x:b.x,y:b.y,t:now}; // aide la continuité du détecteur
+    if(!strokeActive) return;       // rien n'est tracé tant que non confirmé
+    return;                          // les points de la chaîne sont déjà dans trail
   }
 
-  // --- machine à états frappe → trajectoire ---
+  // --- trajectoire active : la balle a quitté la raquette ---
+  // fin de trajectoire à l'arrivée sur la raquette adverse
   if(playersOk && players.length===2){
-    const zone = players.find(p=> px>p.x-p.w*0.15 && px<p.x+p.w*1.15 && py>p.y-p.h*0.15 && py<p.y+p.h*1.15);
-    if(!strokeActive){
-      if(!zone) return; // la balle doit partir d'une raquette
-      strokeActive=true; strokeFrom=zone.side;
-      trail=[]; vxHist=[]; lastBall=null;
-      const tS = stats._lastHitT ? now-stats._lastHitT : 99;
-      if(tS>0.3){
-        stats.hits++; stats._lastHitT=now;
-        if(zone.side==='A') stats.hitsA++; else stats.hitsB++;
-      }
-    } else if(zone && zone.side!==strokeFrom){
-      // la balle atteint la raquette adverse → nouveau coup, nouvelle trajectoire
-      const tS = stats._lastHitT ? now-stats._lastHitT : 99;
-      if(tS>0.3){
-        stats.hits++; stats._lastHitT=now;
-        if(zone.side==='A') stats.hitsA++; else stats.hitsB++;
-        strokeFrom=zone.side;
-        trail=[]; vxHist=[]; lastBall=null;
-      }
+    const zone = players.find(p=>inZoneOf(p,px,py,0.15));
+    if(zone && zone.side!==strokeFrom){
+      strokeActive=false; chain=[{px,py,t:now}];
+      lastBall={x:b.x,y:b.y,t:now};
+      return; // le coup suivant sera compté quand la balle repartira de cette raquette
+    }
+  }
+  // vitesse trop basse trop longtemps hors zone joueur = fausse piste (objet fixe)
+  if(lastBall){
+    const dtv = now-lastBall.t;
+    if(dtv>0 && dtv<0.2){
+      const spd = Math.hypot(px-lastBall.x*sx, py-lastBall.y*sy)/dtv;
+      if(spd < vw*0.12) slowCount++; else slowCount=0;
+      if(slowCount>=4){ strokeActive=false; chain=[]; lastBall=null; return; }
     }
   }
 
@@ -513,7 +563,7 @@ async function loop(){
   if(analyzing && playing){
     const b = detectBall(now);
     if(b) onBall(b, now);
-    else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; strokeActive=false; }
+    else if(lastBall && now-lastBall.t>0.5){ lastBall=null; vxHist=[]; chain=[]; strokeActive=false; }
     tickRally(now);
     refreshStatsThrottled(now);
     if(detector && !poseLoading && (poseWanted || playersOk) && Math.abs(now-lastPoseT)>0.15){
@@ -785,7 +835,13 @@ overlay.addEventListener('click', e=>{
   if(manualPlayers && players.length<2){
     // ignore le clic s'il tombe sur un cadre existant (c'était un déplacement)
     if(players.some(b=>p.x>b.x&&p.x<b.x+b.w&&p.y>b.y&&p.y<b.y+b.h)) return;
-    const w=vw*0.16, h=vh*0.38;
+    let w=vw*0.16, h=vh*0.38;
+    if(corners.length===4){
+      // clic au-dessus du haut de la table = joueur du fond → cadre plus petit
+      let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+      for(const c of corners){ x0=Math.min(x0,c.x); x1=Math.max(x1,c.x); y0=Math.min(y0,c.y); y1=Math.max(y1,c.y); }
+      if(p.y < y0 + (y1-y0)*0.35){ w=(x1-x0)*0.38; h=(y1-y0)*1.5; }
+    }
     players.push({x:Math.max(0,p.x-w/2), y:Math.max(0,p.y-h/2), w, h});
     assignSides();
     if(players.length===2){
@@ -855,7 +911,7 @@ $('btnAnalyze').addEventListener('click', ()=>{
 $('btnReset').addEventListener('click', ()=>{
   Object.assign(stats,{maxSpeed:0,speeds:[],rallies:0,rallyDurs:[],hits:0,hitsA:0,hitsB:0,bounces:[],rallyActive:false});
   delete stats._lastHitT; delete stats._lastBounceT; delete stats._lastVy;
-  trail=[]; lastBall=null; strokeActive=false; strokeFrom=null; refreshStats(); log('Statistiques remises à zéro');
+  trail=[]; lastBall=null; chain=[]; strokeActive=false; strokeFrom=null; slowCount=0; refreshStats(); log('Statistiques remises à zéro');
 });
 
 /* ================= joueurs ================= */
@@ -895,14 +951,26 @@ function assignSides(){
 /* --- passe zoomée pour le joueur du fond (trop petit en pleine image) --- */
 const zoomCanvas=document.createElement('canvas');
 const zctx=zoomCanvas.getContext('2d');
-let lastFarT=0;
+let lastFarT=0, farDetector=null;
 
+async function ensureFarDetector(){
+  // single-pose : bien meilleur qu'un multi-pose sur une petite silhouette recadrée
+  if(farDetector) return farDetector;
+  try{
+    farDetector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}
+    );
+  }catch(e){}
+  return farDetector;
+}
 async function estimateInZone(zx,zy,zw,zh,zoom,th){
   if(zw<10||zh<10) return [];
   zoomCanvas.width=Math.round(zw*zoom); zoomCanvas.height=Math.round(zh*zoom);
   zctx.drawImage(video, zx,zy,zw,zh, 0,0,zoomCanvas.width,zoomCanvas.height);
+  const det = (await ensureFarDetector()) || detector;
   let poses=[];
-  try{ poses=await detector.estimatePoses(zoomCanvas); }catch(e){}
+  try{ poses=await det.estimatePoses(zoomCanvas); }catch(e){}
   return poses.map(p=>poseToBox(p,th)).filter(Boolean)
     .map(b=>({x:b.x/zoom+zx, y:b.y/zoom+zy, w:b.w/zoom, h:b.h/zoom}));
 }
@@ -965,8 +1033,13 @@ async function detectPlayers(){
   if(boxes.length<2){
     // le joueur du fond est souvent trop petit : passe zoomée derrière la table
     const fz=farZone();
+    // exclut le joueur déjà trouvé de la zone (sinon le modèle le re-détecte)
+    if(boxes.length===1){
+      const near=boxes[0];
+      fz.zh = Math.max(20, Math.min(fz.zh, near.y - fz.zy - 5));
+    }
     const zoom=Math.max(1.8, Math.min(3.5, 900/Math.max(fz.zw,fz.zh)));
-    const far=(await estimateInZone(fz.zx,fz.zy,fz.zw,fz.zh,zoom,0.2))
+    const far=(await estimateInZone(fz.zx,fz.zy,fz.zw,fz.zh,zoom,0.18))
       .sort((a,b)=>b.w*b.h-a.w*a.h);
     for(const b of far){
       const overlaps = boxes.some(a=>!(b.x>a.x+a.w||b.x+b.w<a.x||b.y>a.y+a.h||b.y+b.h<a.y));
@@ -976,8 +1049,10 @@ async function detectPlayers(){
   players = boxes; assignSides();
   if(players.length<2){
     manualPlayers=true; overlay.classList.add('clickable');
-    showBanner(`<strong>${players.length}/2 joueur(s) détecté(s).</strong> Mets en pause une image où les deux sont bien visibles et
-    <button class="btn" id="btnRetryPlayers">Réessayer</button>, ou clique au centre du joueur manquant.`);
+    showBanner(`<strong>${players.length}/2 joueur(s) détecté(s).</strong>
+    Pas grave : <strong>clique directement sur le joueur du fond</strong> pour poser son cadre,
+    puis ajuste-le (glisser = déplacer, poignée ◢ = redimensionner) et valide.
+    <button class="btn" id="btnRetryPlayers">Relancer la détection auto</button>`);
   } else {
     manualPlayers=false;
     overlay.classList.add('clickable');
