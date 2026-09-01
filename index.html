@@ -125,6 +125,7 @@
   .del-btn{background:none;border:none;color:var(--sky-soft);font-size:1.05rem;cursor:pointer;padding:2px 6px;opacity:.6;line-height:1}
   .inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
   .pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--sky-soft)}
+  .gold-v{color:var(--gold)}
 
   /* Bilan */
   .bilan-hero{
@@ -145,6 +146,28 @@
   .brow{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--line)}
   .brow:last-child{border-bottom:none}
   .brow .amt{font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* Prix cible */
+  .cible{
+    margin-top:10px;background:linear-gradient(135deg,rgba(212,160,23,.14),rgba(18,44,79,.9));
+    border:1px solid rgba(212,160,23,.35);border-radius:var(--radius);padding:13px;
+  }
+  .cible h3{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px}
+  .cible .main{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .cible .main .t{font-size:.78rem;color:var(--sky-soft)}
+  .cible .main .v{font-size:1.55rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .cible .lines{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+  .cible .lines div{display:flex;justify-content:space-between;font-size:.73rem;color:var(--sky-soft)}
+  .cible .lines b{color:var(--white);font-variant-numeric:tabular-nums}
+  .cible .msg{font-size:.7rem;line-height:1.5;margin-top:8px;color:var(--sky-soft)}
+  .match-cible{
+    font-size:.66rem;color:var(--gold);font-weight:700;margin-top:8px;
+    background:rgba(212,160,23,.1);border-radius:6px;padding:5px 8px;display:inline-block;
+  }
+  .match-solde{
+    font-size:.66rem;color:var(--sky-soft);font-weight:700;margin-top:8px;
+    background:rgba(191,230,247,.07);border-radius:6px;padding:5px 8px;display:inline-block;
+  }
 
   /* Partage */
   .sync-box{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
@@ -238,6 +261,7 @@
     <button class="abo-add" onclick="addAbo('om')">+ Ajouter un abonnement (tarif différent)</button>
     <div class="abo-info" id="aboInfo-om"></div>
   </div>
+  <div class="cible" id="cible-om"></div>
   <div class="list" id="list-om"></div>
 </div>
 
@@ -255,6 +279,7 @@
     <button class="abo-add" onclick="addAbo('pfc')">+ Ajouter un abonnement (tarif différent)</button>
     <div class="abo-info" id="aboInfo-pfc"></div>
   </div>
+  <div class="cible" id="cible-pfc"></div>
   <div class="list" id="list-pfc"></div>
 </div>
 
@@ -463,9 +488,74 @@ function parseDate(str){
   return new Date(+m[3], +m[2]-1, +m[1]).getTime();
 }
 
+// ------- Prix cible pour rentrer dans ses frais -------
+// Un match est "soldé" dès que le prix de vente est renseigné (0 compris = non vendu).
+function isSolde(m){ return m.sell !== '' && m.sell !== null && m.sell !== undefined; }
+
+function cibleStats(club){
+  let depense=0, encaisse=0, billetsRestants=0, matchsRestants=0;
+  data[club].matches.forEach(m=>{
+    const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
+    depense += q*b;
+    if(isSolde(m)) encaisse += q*s;
+    else if(q>0){ billetsRestants += q; matchsRestants++; }
+  });
+  const reste = depense - encaisse;
+  const prixCible = billetsRestants>0 ? reste/billetsRestants : 0;
+  return {depense, encaisse, reste, billetsRestants, matchsRestants, prixCible};
+}
+
+function renderCible(club){
+  const c = cibleStats(club);
+  const box = document.getElementById('cible-'+club);
+  const atteint = c.reste <= 0;
+  const nbSoldes = data[club].matches.filter(isSolde).length;
+
+  let mainT, mainV, msg;
+  if(atteint){
+    mainT = 'Bénéfice déjà acquis';
+    mainV = `<span class="pos">${fmt(-c.reste)}</span>`;
+    msg = c.billetsRestants>0
+      ? `Tes frais sont couverts. Chaque billet vendu sur les ${c.matchsRestants} match${c.matchsRestants>1?'s':''} restant${c.matchsRestants>1?'s':''} est du bénéfice net.`
+      : 'Saison terminée : tous les matchs sont soldés.';
+  } else if(c.billetsRestants>0){
+    mainT = 'Prix cible / billet restant';
+    mainV = `<span class="gold-v">${fmt(c.prixCible)}</span>`;
+    msg = `Vends chaque billet au moins à ce prix sur les ${c.matchsRestants} match${c.matchsRestants>1?'s':''} restant${c.matchsRestants>1?'s':''} (${c.billetsRestants} billets) pour finir la saison à l'équilibre. Ce prix se recalcule après chaque vente saisie.`;
+  } else {
+    mainT = 'Perte de fin de saison';
+    mainV = `<span class="neg">${fmt(-c.reste)}</span>`;
+    msg = 'Plus aucun billet à vendre : le bilan de la saison est définitif.';
+  }
+
+  box.innerHTML = `
+    <h3>Objectif équilibre</h3>
+    <div class="main"><span class="t">${mainT}</span><span class="v">${mainV}</span></div>
+    <div class="lines">
+      <div><span>Total dépensé</span><b>${fmt(c.depense)}</b></div>
+      <div><span>Déjà encaissé (${nbSoldes} match${nbSoldes>1?'s':''} soldé${nbSoldes>1?'s':''})</span><b>${fmt(c.encaisse)}</b></div>
+      <div><span>${atteint?'Excédent':'Reste à récupérer'}</span><b class="${atteint?'pos':'neg'}">${fmt(Math.abs(c.reste))}</b></div>
+      <div><span>Billets encore à vendre</span><b>${c.billetsRestants}</b></div>
+    </div>
+    <p class="msg">${msg}</p>`;
+}
+
+function footerInfo(m, c){
+  const q = parseFloat(m.qty)||0;
+  if(isSolde(m)){
+    const s = parseFloat(m.sell)||0;
+    if(s===0) return `<div class="match-solde">Non vendu — coût absorbé par les autres matchs</div>`;
+    return `<div class="match-solde">Soldé à ${fmt(s)} / billet</div>`;
+  }
+  if(q>0 && c.reste>0) return `<div class="match-cible">Prix cible : ${fmt(c.prixCible)} / billet pour l'équilibre</div>`;
+  if(q>0 && c.reste<=0) return `<div class="match-solde">Frais couverts — tout est bénéfice net</div>`;
+  return '';
+}
+
 function renderList(club){
   const list = document.getElementById('list-'+club);
   list.innerHTML = '';
+  const c = cibleStats(club);
   // Tri par date du match le plus proche au plus lointain ; matchs sans date en dernier
   const sorted = [...data[club].matches].sort((a,b)=>{
     const da = parseDate(a.date), db = parseDate(b.date);
@@ -516,7 +606,8 @@ function renderList(club){
           <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
             value="${m.sell}" onchange="updMatch('${club}','${m.id}','sell',this.value)">
         </div>
-      </div>`;
+      </div>
+      ${footerInfo(m,c)}`;
     list.appendChild(card);
   });
 }
@@ -554,15 +645,22 @@ function renderBilan(){
   g.textContent = sign(total);
   g.className = 'value '+cls(total);
 
-  const setClub = (id, subId, st) => {
+  const setClub = (id, subId, st, club) => {
     const el = document.getElementById(id);
     el.textContent = sign(st.net);
     el.className = 'big '+cls(st.net);
+    const c = cibleStats(club);
+    let extra = '';
+    if(c.billetsRestants>0){
+      extra = c.reste>0
+        ? `<br>Cible : <b class="gold-v">${fmt(c.prixCible)}</b> / billet (${c.billetsRestants} restants)`
+        : `<br><b class="pos">Frais couverts</b> · ${c.billetsRestants} billets restants`;
+    }
     document.getElementById(subId).innerHTML =
-      `<b>${st.qty}</b> billets · Achats <b>${fmt0(st.buy)}</b> · Ventes <b>${fmt0(st.sell)}</b>`;
+      `<b>${st.qty}</b> billets · Achats <b>${fmt0(st.buy)}</b> · Ventes <b>${fmt0(st.sell)}</b>` + extra;
   };
-  setClub('bNetOM','bSubOM',om);
-  setClub('bNetPFC','bSubPFC',pfc);
+  setClub('bNetOM','bSubOM',om,'om');
+  setClub('bNetPFC','bSubPFC',pfc,'pfc');
 
   const rows = [
     ['OM · Ligue 1', om.netL1],
@@ -617,6 +715,7 @@ document.querySelectorAll('.tab').forEach(t=>{
 
 function renderAll(){
   renderAbos('om'); renderAbos('pfc');
+  renderCible('om'); renderCible('pfc');
   renderList('om'); renderList('pfc');
   renderBilan();
 }
