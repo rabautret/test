@@ -196,6 +196,7 @@ h2.sec:first-child{margin-top:0}
         <span><i class="sw" style="background:#2C5FA8"></i> temps de travail</span>
         <span><i class="sw p" style="background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px);border:1px solid var(--line)"></i> pause</span>
         <span><i class="sw" style="background:var(--accent);opacity:.85"></i> personnes présentes par demi-heure</span>
+        <span>Repos, congé, absence et jour férié tombant sur un jour prévu sont comptés à la durée normale de la journée.</span>
         <span>Touchez une case pour la modifier.</span>
       </div>
     </div>
@@ -265,6 +266,7 @@ h2.sec:first-child{margin-top:0}
       <button data-t="conge">Congé</button>
       <button data-t="absence">Absence</button>
     </div>
+    <p class="note" id="mAssim" style="margin:-4px 0 10px"></p>
     <div id="mWork">
       <div class="fld"><label for="mStart">Arrivée</label><input type="time" id="mStart" step="300"></div>
       <div class="fld"><label for="mEnd">Départ</label><input type="time" id="mEnd" step="300"></div>
@@ -341,6 +343,17 @@ function migrate(e,i){
   return e;
 }
 const worksOn=(e,d)=>e.jours.includes(d.getDay());
+// duree theorique d une journee = heures hebdo / nb de jours de la semaine type
+function nominal(e){
+  const n=e.jours.filter(i=>state.config.days.includes(i)).length;
+  return n?r5(e.hours*60/n):0;
+}
+// repos, conge, absence ou ferie tombant sur un jour prevu : compte comme une journee normale
+function assimMin(d,e){
+  if(!state.config.days.includes(d.getDay()))return 0;
+  if(!worksOn(e,d))return 0;
+  return shiftOf(d,e).type==='travail'?0:nominal(e);
+}
 const isAppr=(e,d)=>e.apprenti&&(!e.appDebut||key(d)>=e.appDebut)&&(!e.appFin||key(d)<=e.appFin);
 function restLabel(e){
   const off=[1,2,3,4,5,6,0].filter(i=>state.config.days.includes(i)&&!e.jours.includes(i));
@@ -413,16 +426,7 @@ function generate(){
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
     const daily={};
-    state.employees.forEach(e=>{
-      let locked=0; const free=[];
-      openDays.forEach(d=>{
-        const o=ok(key(d),e.id);
-        if(o){ if(o.type==='travail') locked+=workMin(o); }
-        else if(worksOn(e,d)) free.push(d);
-      });
-      const remain=Math.max(0,e.hours*60-locked);
-      daily[e.id]=free.length?Math.min(r5(remain/free.length),maxWork):0;
-    });
+    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); });
 
     openDays.forEach(d=>{
       const k=key(d);
@@ -506,7 +510,8 @@ function cellHTML(d,e){
   const edited=ok(key(d),e.id)?' edited':'';
   if(s.type!=='travail'){
     const lab={repos:'Repos',conge:'Congé',absence:'Absence',ferme:'Fermé'}[s.type]||'—';
-    return `<div class="gc cell off${edited}" data-d="${key(d)}" data-e="${e.id}"><div class="t">${lab}</div></div>`;
+    const a=assimMin(d,e);
+    return `<div class="gc cell off${edited}" data-d="${key(d)}" data-e="${e.id}"><div class="t">${lab}</div>${a?`<div class="s">${dur(a)} comptées</div>`:''}</div>`;
   }
   const L=x=>((x-open)/amp*100).toFixed(2), W=x=>(x/amp*100).toFixed(2);
   const brk=s.brkMin>0?`<i class="p" style="left:${L(s.brkStart)}%;width:${W(s.brkMin)}%"></i>`:'';
@@ -517,7 +522,7 @@ function cellHTML(d,e){
   </div>`;
 }
 function gridHTML(ws){
-  const ds=weekDays(ws), cols=`160px repeat(${ds.length},minmax(118px,1fr)) 86px`;
+  const ds=weekDays(ws), cols=`160px repeat(${ds.length},minmax(118px,1fr)) 108px`;
   const today=key(new Date());
   let h=`<div class="gc head name"></div>`;
   ds.forEach(d=>{
@@ -528,10 +533,12 @@ function gridHTML(ws){
   h+=`<div class="gc head"><div class="d">Total</div><div class="n">semaine</div></div>`;
   state.employees.forEach(e=>{
     h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}</div></div></div></div>`;
-    let tot=0;
-    ds.forEach(d=>{ h+=cellHTML(d,e); tot+=workMin(shiftOf(d,e)); });
-    const diff=tot-e.hours*60;
-    h+=`<div class="gc tot${Math.abs(diff)>5?' bad':''}">${dur(tot)}<small>${diff===0?'conforme':(diff>0?'+':'−')+dur(Math.abs(diff))}</small></div>`;
+    let tot=0,assim=0;
+    ds.forEach(d=>{ h+=cellHTML(d,e); tot+=workMin(shiftOf(d,e)); assim+=assimMin(d,e); });
+    const grand=tot+assim, diff=grand-e.hours*60;
+    const sub=diff!==0?((diff>0?'+':'−')+dur(Math.abs(diff))+(assim?' · '+dur(assim)+' assim.':''))
+                      :(assim?'dont '+dur(assim)+' assimilées':'conforme');
+    h+=`<div class="gc tot${Math.abs(diff)>5?' bad':''}">${dur(grand)}<small>${sub}</small></div>`;
   });
   h+=`<div class="gc name"><div class="person"><div>Présence<div class="h">par demi-heure</div></div></div></div>`;
   ds.forEach(d=>{
@@ -642,6 +649,11 @@ function openModal(dk,eid){
 function setType(t){
   mType.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
   mWork.hidden=t!=='travail';
+  const e=mCtx&&state.employees.find(x=>x.id===mCtx.eid);
+  const d=mCtx&&parse(mCtx.dk);
+  mAssim.textContent=(t!=='travail'&&e&&worksOn(e,d))
+    ? `Journée prévue : elle sera comptée ${dur(nominal(e))} dans le total de la semaine.`
+    : (t!=='travail'?'Jour hors semaine type : compté 0 h.':'');
 }
 const curType=()=>mType.querySelector('[aria-pressed="true"]').dataset.t;
 function calc(){
@@ -752,13 +764,14 @@ function dl(name,txt,type){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 document.getElementById('expCsv').onclick=()=>{
-  const rows=[['Date','Jour','Prenom','Apprenti','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures']];
+  const rows=[['Date','Jour','Prenom','Apprenti','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures travaillees','Heures assimilees']];
   allDays().forEach(d=>state.employees.forEach(e=>{
     const s=shiftOf(d,e);
     rows.push([key(d),DAYS[d.getDay()],e.name,isAppr(e,d)?'oui':'non',s.type,
       s.type==='travail'?hm(s.start):'',s.type==='travail'?hm(s.end):'',
       s.type==='travail'&&s.brkMin?hm(s.brkStart):'',s.type==='travail'?(s.brkMin||0):'',
-      (workMin(s)/60).toFixed(2).replace('.',',')]);
+      (workMin(s)/60).toFixed(2).replace('.',','),
+      (assimMin(d,e)/60).toFixed(2).replace('.',',')]);
   }));
   dl('planning.csv','\uFEFF'+rows.map(r=>r.join(';')).join('\n'),'text/csv;charset=utf-8');
 };
