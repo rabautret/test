@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning boutique</title>
+<style>
+:root{
+  --paper:#E6EAEE; --surface:#fff; --line:#C9D3DB; --line-soft:#E4EAEF;
+  --ink:#16202A; --muted:#5E6E7C; --accent:#0E5C66; --accent-soft:#D9EAEC;
+  --warn:#9A5B12; --warn-soft:#FBEEDC; --danger:#98232B; --vac:#F3E7CE; --vac-ink:#7A5A16;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:15px; line-height:1.45; font-variant-numeric:tabular-nums;
+  -webkit-text-size-adjust:100%;
+}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:16px 14px 60px}
+
+/* ---------- en-tête ---------- */
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.top h1{font-size:22px}
+.top .sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+.tabs{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:var(--r);border:1px solid var(--line)}
+.tabs button{border:0;background:transparent;padding:7px 13px;border-radius:7px;color:var(--muted);font-size:14px}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.view[hidden]{display:none}
+
+/* ---------- barre semaine ---------- */
+.weekbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.nav{display:flex;align-items:center;gap:8px}
+.nav button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:16px;line-height:1}
+.nav button:disabled{opacity:.35;cursor:default}
+.nav .label{font-size:16px;font-weight:600;min-width:210px}
+.nav .label small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:8px;font-size:13.5px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{color:#fff;filter:brightness(1.1)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:7px 8px}
+.btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+.flags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.flag{font-size:12.5px;padding:4px 9px;border-radius:20px;background:var(--vac);color:var(--vac-ink)}
+.flag.ferie{background:var(--warn-soft);color:var(--warn)}
+.flag.info{background:var(--accent-soft);color:var(--accent)}
+
+/* ---------- grille ---------- */
+.scroller{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.grid{display:grid;min-width:880px}
+.gc{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:8px 9px}
+.gc.name{position:sticky;left:0;z-index:2;background:var(--surface);border-right:1px solid var(--line)}
+.grid .head{background:#F2F5F7;font-size:13px}
+.head .d{font-weight:600}
+.head .n{color:var(--muted);font-size:12px}
+.head.vac{background:var(--vac)}
+.head.closed{background:#EDEFF1;color:var(--muted)}
+.head.today{box-shadow:inset 0 -3px 0 var(--accent)}
+
+.person{display:flex;align-items:center;gap:8px;font-size:14px}
+.dot{width:10px;height:10px;border-radius:3px;flex:none}
+.person .h{color:var(--muted);font-size:12px}
+
+.cell{min-height:62px;cursor:pointer;position:relative}
+.cell:hover{background:#F6F9FA}
+.cell.edited::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.bar{height:8px;border-radius:3px;background:#EDF1F4;position:relative;overflow:hidden;margin-bottom:5px}
+.bar i{position:absolute;top:0;bottom:0;display:block}
+.bar i.w{border-radius:3px}
+.bar i.p{background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px)}
+.t{font-size:13.5px;font-weight:600}
+.s{font-size:11.5px;color:var(--muted)}
+.cell.off .t{font-weight:500;color:var(--muted)}
+.cell.off .bar{display:none}
+.tot{font-size:13px;text-align:right;font-weight:600}
+.tot small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.tot.bad{color:var(--danger)}
+
+.cov{display:flex;align-items:flex-end;gap:1px;height:26px}
+.cov b{flex:1;background:var(--accent);opacity:.85;border-radius:1px;min-height:2px}
+.cov b.zero{background:var(--danger);opacity:.5}
+.covlab{font-size:11.5px;color:var(--muted);margin-top:3px}
+.covlab.bad{color:var(--danger)}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:10px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend .sw{width:22px;height:8px;border-radius:3px;display:inline-block;flex:none}
+
+/* ---------- équipe / réglages ---------- */
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12.5px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+.tbl input[type=text],.tbl input[type=number],.tbl select,.fld input,.fld select{
+  border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff;width:100%;max-width:220px}
+.tbl input[type=number]{max-width:90px}
+input[type=color]{border:1px solid var(--line);border-radius:7px;width:38px;height:32px;padding:2px;background:#fff}
+.fld{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-bottom:10px}
+.fld label{font-size:13px;color:var(--muted);min-width:150px}
+.fld .grow{flex:1;min-width:130px}
+.days{display:flex;gap:5px;flex-wrap:wrap}
+.days label{min-width:0;display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:13px;color:var(--ink)}
+h2.sec{font-size:15px;margin:18px 0 8px}
+h2.sec:first-child{margin-top:0}
+.note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+
+/* ---------- modale ---------- */
+.mask{position:fixed;inset:0;background:rgba(18,28,36,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.mask[hidden]{display:none}
+.modal{background:var(--surface);border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow:auto}
+.modal h3{font-size:16px;margin-bottom:2px}
+.modal .who{color:var(--muted);font-size:13px;margin-bottom:14px}
+.modal .fld label{min-width:110px}
+.modal .row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.modal .row .btn{flex:1}
+.seg{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.seg button{border:1px solid var(--line);background:#fff;padding:6px 11px;border-radius:7px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+#printall{display:none}
+
+@media print{
+  body{background:#fff}
+  .top,.tabs,.acts,.nav button,.legend,.note,#modal,.weekbar .acts{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .panel{border:0;padding:0}
+  .scroller{overflow:visible;border:1px solid #999;border-radius:0}
+  .grid{min-width:0}
+  .pweek{page-break-after:always}
+  .pweek:last-child{page-break-after:auto}
+  .pweek h3{font-size:14px;margin:0 0 6px}
+  body.printall .view{display:none!important}
+  body.printall #printall{display:block}
+}
+@media(max-width:620px){
+  .nav .label{min-width:0;font-size:15px}
+  .top h1{font-size:19px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Planning boutique</h1>
+      <p class="sub" id="subtitle">—</p>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="planning" aria-selected="true">Planning</button>
+      <button role="tab" data-tab="equipe" aria-selected="false">Équipe</button>
+      <button role="tab" data-tab="reglages" aria-selected="false">Réglages</button>
+    </nav>
+  </header>
+
+  <!-- ============ PLANNING ============ -->
+  <section class="view" id="view-planning">
+    <div class="panel">
+      <div class="weekbar">
+        <div class="nav">
+          <button id="prev" title="Semaine précédente">‹</button>
+          <div class="label" id="weeklabel">—</div>
+          <button id="next" title="Semaine suivante">›</button>
+          <button class="btn ghost" id="today">Aujourd'hui</button>
+        </div>
+        <div class="acts">
+          <button class="btn" id="regenWeek">Regénérer la semaine</button>
+          <button class="btn" id="regenAll">Tout regénérer</button>
+          <button class="btn" id="printWeek">Imprimer</button>
+        </div>
+      </div>
+      <div class="flags" id="flags"></div>
+      <div class="scroller" id="scroller"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#2C5FA8"></i> temps de travail</span>
+        <span><i class="sw p" style="background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px);border:1px solid var(--line)"></i> pause</span>
+        <span><i class="sw" style="background:var(--accent);opacity:.85"></i> personnes présentes par demi-heure</span>
+        <span>Touchez une case pour la modifier.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ÉQUIPE ============ -->
+  <section class="view" id="view-equipe" hidden>
+    <div class="panel">
+      <h2 class="sec">Qui travaille ici</h2>
+      <table class="tbl">
+        <thead><tr><th>Prénom</th><th>Heures / semaine</th><th>Jour de repos</th><th>Couleur</th><th></th></tr></thead>
+        <tbody id="empbody"></tbody>
+      </table>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" id="addEmp">Ajouter une personne</button>
+        <button class="btn" id="applyEmp">Appliquer et regénérer</button>
+      </div>
+      <p class="note" id="empnote"></p>
+    </div>
+  </section>
+
+  <!-- ============ RÉGLAGES ============ -->
+  <section class="view" id="view-reglages" hidden>
+    <div class="panel">
+      <h2 class="sec">Le magasin</h2>
+      <div class="fld"><label for="cOpen">Ouverture</label><input type="time" id="cOpen"><label for="cClose" style="min-width:60px">Fermeture</label><input type="time" id="cClose"></div>
+      <div class="fld"><label>Jours d'ouverture</label><div class="days" id="cDays"></div></div>
+      <div class="fld"><label for="cBreak">Pause déjeuner (min)</label><input type="number" id="cBreak" min="0" max="180" step="15" style="max-width:90px"></div>
+      <div class="fld"><label for="cFerie">Fermé les jours fériés</label><input type="checkbox" id="cFerie" style="width:auto"></div>
+
+      <h2 class="sec">Période couverte</h2>
+      <div class="fld"><label for="cStart">Du</label><input type="date" id="cStart"><label for="cEnd" style="min-width:30px">au</label><input type="date" id="cEnd"></div>
+      <button class="btn primary" id="applyCfg">Appliquer et regénérer</button>
+
+      <h2 class="sec">Vacances scolaires — zone B</h2>
+      <table class="tbl">
+        <thead><tr><th>Période</th><th>Début</th><th>Fin</th><th></th></tr></thead>
+        <tbody id="vacbody"></tbody>
+      </table>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="addVac">Ajouter une période</button>
+        <button class="btn" id="saveVac">Enregistrer les vacances</button>
+      </div>
+      <p class="note">Dates officielles 2026-2027 (Aix-Marseille, Amiens, Lille, Nancy-Metz, Nantes, Nice, Normandie, Orléans-Tours, Reims, Rennes, Strasbourg). Les semaines concernées sont surlignées dans le planning : à vous d'y renforcer l'équipe si besoin.</p>
+
+      <h2 class="sec">Sauvegarde</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="expCsv">Exporter en CSV</button>
+        <button class="btn" id="expJson">Sauvegarder un fichier</button>
+        <button class="btn" id="impJson">Restaurer un fichier</button>
+        <button class="btn" id="printAllBtn">Imprimer toute la période</button>
+        <button class="btn danger" id="reset">Tout remettre à zéro</button>
+      </div>
+      <input type="file" id="fileIn" accept="application/json" hidden>
+      <p class="note">Le planning est conservé automatiquement dans ce navigateur. Le fichier de sauvegarde sert à le transférer ailleurs.</p>
+    </div>
+  </section>
+
+  <div id="printall"></div>
+</div>
+
+<!-- ============ MODALE ============ -->
+<div class="mask" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="mTitle">Modifier</h3>
+    <p class="who" id="mWho"></p>
+    <div class="seg" id="mType">
+      <button data-t="travail">Travail</button>
+      <button data-t="repos">Repos</button>
+      <button data-t="conge">Congé</button>
+      <button data-t="absence">Absence</button>
+    </div>
+    <div id="mWork">
+      <div class="fld"><label for="mStart">Arrivée</label><input type="time" id="mStart" step="300"></div>
+      <div class="fld"><label for="mEnd">Départ</label><input type="time" id="mEnd" step="300"></div>
+      <div class="fld"><label for="mBs">Début de pause</label><input type="time" id="mBs" step="300"></div>
+      <div class="fld"><label for="mBm">Durée pause (min)</label><input type="number" id="mBm" min="0" max="240" step="5" style="max-width:90px"></div>
+      <p class="note" id="mCalc"></p>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="mSave">Enregistrer</button>
+      <button class="btn" id="mAuto">Recalculer</button>
+      <button class="btn ghost" id="mCancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= utilitaires ================= */
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c);};
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const hm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+const mn=s=>{const[a,b]=s.split(':').map(Number);return a*60+b;};
+const dur=m=>m%60?`${Math.floor(m/60)} h ${pad(m%60)}`:`${Math.floor(m/60)} h`;
+const r5=m=>Math.round(m/5)*5, r15=m=>Math.round(m/15)*15, r30=m=>Math.round(m/30)*30;
+const DAYS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const DSHORT=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const fdate=d=>`${d.getDate()} ${MONTHS[d.getMonth()]}`;
+const flong=d=>`${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+const weekStart=d=>addD(d,-((d.getDay()+6)%7));
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+function easter(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
+  g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+  l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+  mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return new Date(y,mo-1,da);
+}
+const FCACHE={};
+function feries(y){
+  if(FCACHE[y])return FCACHE[y];
+  const p=easter(y),o={};
+  o[key(new Date(y,0,1))]="Jour de l'An";
+  o[key(addD(p,1))]="Lundi de Pâques";
+  o[key(new Date(y,4,1))]="1er Mai";
+  o[key(new Date(y,4,8))]="8 Mai";
+  o[key(addD(p,39))]="Ascension";
+  o[key(addD(p,50))]="Lundi de Pentecôte";
+  o[key(new Date(y,6,14))]="14 Juillet";
+  o[key(new Date(y,7,15))]="Assomption";
+  o[key(new Date(y,10,1))]="Toussaint";
+  o[key(new Date(y,10,11))]="11 Novembre";
+  o[key(new Date(y,11,25))]="Noël";
+  return FCACHE[y]=o;
+}
+const ferieName=d=>feries(d.getFullYear())[key(d)]||null;
+
+/* ================= état ================= */
+const PAL=['#2C5FA8','#8A3B8F','#1E7A5A','#A9601A','#514AC0','#9B2E3A','#136F7C','#6E7B1F'];
+const STORE_KEY='planning-boutique-v1';
+
+function defaults(){
+  return {
+    config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
+            start:'2026-09-14',end:'2027-01-01',closeOnFerie:true},
+    employees:[
+      {id:uid(),name:'Personne 1',hours:35,rest:1,color:PAL[0]},
+      {id:uid(),name:'Personne 2',hours:35,rest:2,color:PAL[1]},
+      {id:uid(),name:'Personne 3',hours:35,rest:3,color:PAL[2]},
+      {id:uid(),name:'Personne 4',hours:35,rest:4,color:PAL[3]}
+    ],
+    vacances:[
+      {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
+      {id:uid(),nom:'Noël',debut:'2026-12-19',fin:'2027-01-04'},
+      {id:uid(),nom:'Hiver',debut:'2027-02-20',fin:'2027-03-08'},
+      {id:uid(),nom:'Printemps',debut:'2027-04-17',fin:'2027-05-03'},
+      {id:uid(),nom:'Été',debut:'2027-07-03',fin:'2027-08-31'}
+    ],
+    overrides:{}
+  };
+}
+let state=defaults();
+let plan={};            // "date|empId" -> shift
+let cursor=weekStart(new Date());
+
+/* ================= sauvegarde ================= */
+async function save(){
+  const data=JSON.stringify(state);
+  try{ if(window.storage&&window.storage.set){await window.storage.set(STORE_KEY,data);return;} }catch(e){}
+  try{ window.localStorage.setItem(STORE_KEY,data); }catch(e){}
+}
+async function load(){
+  try{ if(window.storage&&window.storage.get){const r=await window.storage.get(STORE_KEY);if(r&&r.value)return JSON.parse(r.value);} }catch(e){}
+  try{ const s=window.localStorage.getItem(STORE_KEY); if(s)return JSON.parse(s); }catch(e){}
+  return null;
+}
+
+/* ================= calendrier ================= */
+const isOpenDay=d=>{
+  if(!state.config.days.includes(d.getDay()))return false;
+  if(state.config.closeOnFerie&&ferieName(d))return false;
+  return true;
+};
+function vacOf(d){
+  const k=key(d);
+  for(const v of state.vacances){ if(v.debut&&v.fin&&k>=v.debut&&k<v.fin) return v; }
+  return null;
+}
+function allDays(){
+  const out=[];let d=parse(state.config.start),e=parse(state.config.end);
+  while(d<=e){out.push(new Date(d));d=addD(d,1);}
+  return out;
+}
+const ok=(k,id)=>state.overrides[k+'|'+id];
+const workMin=s=>s&&s.type==='travail'?Math.max(0,s.end-s.start-(s.brkMin||0)):0;
+
+/* ================= génération ================= */
+function generate(){
+  plan={};
+  const c=state.config, open=mn(c.open), close=mn(c.close), amp=close-open;
+  const maxWork=Math.max(60,amp-c.breakMin);
+  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0});
+  const weeks={};
+  allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
+
+  Object.keys(weeks).sort().forEach(wk=>{
+    const openDays=weeks[wk].filter(isOpenDay);
+    const daily={};
+    state.employees.forEach(e=>{
+      let locked=0; const free=[];
+      openDays.forEach(d=>{
+        const o=ok(key(d),e.id);
+        if(o){ if(o.type==='travail') locked+=workMin(o); }
+        else if(d.getDay()!==e.rest) free.push(d);
+      });
+      const remain=Math.max(0,e.hours*60-locked);
+      daily[e.id]=free.length?Math.min(r5(remain/free.length),maxWork):0;
+    });
+
+    openDays.forEach(d=>{
+      const k=key(d);
+      const pool=state.employees.filter(e=>e.rest!==d.getDay()&&!ok(k,e.id)&&daily[e.id]>0);
+      if(!pool.length)return;
+      const idx=e=>state.employees.findIndex(x=>x.id===e.id);
+      // ouverture : celui qui a le moins ouvert
+      pool.sort((a,b)=>(cnt[a.id].o-cnt[b.id].o)||(idx(a)-idx(b)));
+      const opener=pool.shift(); cnt[opener.id].o++;
+      // fermeture : celui qui a le moins fermé
+      let closer=null;
+      if(pool.length){
+        pool.sort((a,b)=>(cnt[a.id].f-cnt[b.id].f)||(idx(a)-idx(b)));
+        closer=pool.shift(); cnt[closer.id].f++;
+      }
+      const list=[];
+      const add=(e,start)=>{
+        const a=daily[e.id]+c.breakMin;
+        list.push({e,s:Math.max(open,Math.min(start,close-a)),a});
+      };
+      add(opener,open);
+      if(closer) add(closer,close-(daily[closer.id]+c.breakMin));
+      const mid=pool.sort((a,b)=>idx(a)-idx(b));
+      mid.forEach((e,i)=>{
+        const a=daily[e.id]+c.breakMin, win=Math.max(0,amp-a);
+        add(e,open+r15(win*(i+1)/(mid.length+1)));
+      });
+      // pauses echelonnees : jamais deux personnes en pause en meme temps
+      list.sort((x,y)=>x.s-y.s);
+      let nextB=0;
+      list.forEach(o=>{
+        let bs=o.s;
+        if(c.breakMin>0){
+          const lo=Math.max(o.s+120,open+180), hi=Math.max(lo,o.s+o.a-c.breakMin-60);
+          bs=r30(Math.max(lo,nextB));
+          if(bs>hi)bs=r30(hi);
+          bs=Math.max(o.s,Math.min(bs,o.s+o.a-c.breakMin));
+          nextB=bs+c.breakMin;
+        }
+        plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:c.breakMin};
+      });
+    });
+  });
+}
+function shiftOf(d,e){
+  const k=key(d), o=ok(k,e.id);
+  if(o)return o;
+  if(!isOpenDay(d))return {type:'ferme'};
+  if(d.getDay()===e.rest)return {type:'repos'};
+  return plan[k+'|'+e.id]||{type:'repos'};
+}
+
+/* ================= rendu du planning ================= */
+function weekDays(ws){
+  const out=[];for(let i=0;i<7;i++){const d=addD(ws,i);if(state.config.days.includes(d.getDay()))out.push(d);}
+  return out;
+}
+function coverage(d){
+  const c=state.config,open=mn(c.open),close=mn(c.close),slots=[];
+  for(let t=open;t<close;t+=30){
+    let n=0;
+    state.employees.forEach(e=>{
+      const s=shiftOf(d,e); if(s.type!=='travail')return;
+      const inShift=t>=s.start&&t<s.end;
+      const inBreak=s.brkMin>0&&t>=s.brkStart&&t<s.brkStart+s.brkMin;
+      if(inShift&&!inBreak)n++;
+    });
+    slots.push(n);
+  }
+  return slots;
+}
+function cellHTML(d,e){
+  const s=shiftOf(d,e), c=state.config, open=mn(c.open), amp=mn(c.close)-open;
+  const edited=ok(key(d),e.id)?' edited':'';
+  if(s.type!=='travail'){
+    const lab={repos:'Repos',conge:'Congé',absence:'Absence',ferme:'Fermé'}[s.type]||'—';
+    return `<div class="gc cell off${edited}" data-d="${key(d)}" data-e="${e.id}"><div class="t">${lab}</div></div>`;
+  }
+  const L=x=>((x-open)/amp*100).toFixed(2), W=x=>(x/amp*100).toFixed(2);
+  const brk=s.brkMin>0?`<i class="p" style="left:${L(s.brkStart)}%;width:${W(s.brkMin)}%"></i>`:'';
+  return `<div class="gc cell${edited}" data-d="${key(d)}" data-e="${e.id}">
+    <div class="bar"><i class="w" style="left:${L(s.start)}%;width:${W(s.end-s.start)}%;background:${e.color}"></i>${brk}</div>
+    <div class="t">${hm(s.start)} – ${hm(s.end)}</div>
+    <div class="s">${s.brkMin?'pause '+hm(s.brkStart)+' · ':''}${dur(workMin(s))}</div>
+  </div>`;
+}
+function gridHTML(ws){
+  const ds=weekDays(ws), cols=`160px repeat(${ds.length},minmax(118px,1fr)) 86px`;
+  const today=key(new Date());
+  let h=`<div class="gc head name"></div>`;
+  ds.forEach(d=>{
+    const cl=[ 'gc','head', vacOf(d)?'vac':'', !isOpenDay(d)?'closed':'', key(d)===today?'today':'' ].join(' ');
+    const f=ferieName(d);
+    h+=`<div class="${cl}"><div class="d">${DSHORT[d.getDay()]} ${d.getDate()}</div><div class="n">${f?f:(isOpenDay(d)?state.config.open+'–'+state.config.close:'fermé')}</div></div>`;
+  });
+  h+=`<div class="gc head"><div class="d">Total</div><div class="n">semaine</div></div>`;
+  state.employees.forEach(e=>{
+    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}<div class="h">${e.hours} h · repos ${DAYS[e.rest]}</div></div></div></div>`;
+    let tot=0;
+    ds.forEach(d=>{ h+=cellHTML(d,e); tot+=workMin(shiftOf(d,e)); });
+    const diff=tot-e.hours*60;
+    h+=`<div class="gc tot${Math.abs(diff)>5?' bad':''}">${dur(tot)}<small>${diff===0?'conforme':(diff>0?'+':'−')+dur(Math.abs(diff))}</small></div>`;
+  });
+  h+=`<div class="gc name"><div class="person"><div>Présence<div class="h">par demi-heure</div></div></div></div>`;
+  ds.forEach(d=>{
+    if(!isOpenDay(d)){h+=`<div class="gc"><div class="covlab">—</div></div>`;return;}
+    const s=coverage(d), mx=Math.max(1,...s), gap=s.filter(x=>x===0).length;
+    h+=`<div class="gc"><div class="cov">${s.map(n=>`<b class="${n?'':'zero'}" style="height:${Math.max(8,n/mx*100)}%"></b>`).join('')}</div>
+      <div class="covlab${gap?' bad':''}">${gap?gap/2+' h sans personne':'min '+Math.min(...s)+' · max '+mx}</div></div>`;
+  });
+  h+=`<div class="gc"></div>`;
+  return `<div class="grid" style="grid-template-columns:${cols}">${h}</div>`;
+}
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+function renderPlanning(){
+  const ws=cursor, we=addD(ws,6);
+  document.getElementById('weeklabel').innerHTML=
+    `Semaine du ${fdate(ws)}<small>au ${fdate(we)} ${we.getFullYear()}</small>`;
+  const s=parse(state.config.start),e=parse(state.config.end);
+  document.getElementById('prev').disabled=addD(ws,-1)<weekStart(s);
+  document.getElementById('next').disabled=addD(ws,7)>e;
+
+  const fl=[]; const seen=new Set();
+  weekDays(ws).forEach(d=>{
+    const v=vacOf(d); if(v&&!seen.has('v'+v.id)){seen.add('v'+v.id);fl.push(`<span class="flag">Vacances de ${esc(v.nom)} — zone B</span>`);}
+    const f=ferieName(d); if(f)fl.push(`<span class="flag ferie">${f} — ${DSHORT[d.getDay()]} ${d.getDate()}${state.config.closeOnFerie?' · fermé':''}</span>`);
+  });
+  document.getElementById('flags').innerHTML=fl.join('');
+  document.getElementById('scroller').innerHTML=gridHTML(ws);
+}
+
+/* ================= vues équipe / réglages ================= */
+function renderEmp(){
+  const opts=r=>[1,2,3,4,5,6,0].map(i=>`<option value="${i}"${i===r?' selected':''}>${DAYS[i]}</option>`).join('');
+  document.getElementById('empbody').innerHTML=state.employees.map(e=>`
+    <tr data-id="${e.id}">
+      <td><input type="text" class="e-name" value="${esc(e.name)}"></td>
+      <td><input type="number" class="e-hours" min="1" max="48" step="0.5" value="${e.hours}"></td>
+      <td><select class="e-rest">${opts(e.rest)}</select></td>
+      <td><input type="color" class="e-color" value="${e.color}"></td>
+      <td><button class="btn ghost e-del" title="Retirer">Retirer</button></td>
+    </tr>`).join('');
+  const c=state.config, amp=mn(c.close)-mn(c.open);
+  const need=c.days.length*amp/60;
+  const have=state.employees.reduce((s,e)=>s+e.hours,0);
+  document.getElementById('empnote').textContent=
+    `${state.employees.length} personne(s), ${have} h par semaine. Il faut au moins ${need} h pour tenir le magasin seul du début à la fin, et davantage si vous voulez deux personnes en même temps.`;
+}
+function renderCfg(){
+  const c=state.config;
+  cOpen.value=c.open; cClose.value=c.close; cBreak.value=c.breakMin;
+  cStart.value=c.start; cEnd.value=c.end; cFerie.checked=c.closeOnFerie;
+  cDays.innerHTML=[1,2,3,4,5,6,0].map(i=>
+    `<label><input type="checkbox" value="${i}"${c.days.includes(i)?' checked':''}> ${DSHORT[i]}</label>`).join('');
+  document.getElementById('vacbody').innerHTML=state.vacances.map(v=>`
+    <tr data-id="${v.id}">
+      <td><input type="text" class="v-nom" value="${esc(v.nom)}"></td>
+      <td><input type="date" class="v-deb" value="${v.debut}"></td>
+      <td><input type="date" class="v-fin" value="${v.fin}"></td>
+      <td><button class="btn ghost v-del">Retirer</button></td>
+    </tr>`).join('');
+  document.getElementById('subtitle').textContent=
+    `${c.open}–${c.close}, ${c.days.length} jours sur 7 · du ${fdate(parse(c.start))} au ${flong(parse(c.end))}`;
+}
+function renderAll(){ renderCfg(); renderEmp(); renderPlanning(); }
+
+/* ================= modale ================= */
+let mCtx=null;
+function openModal(dk,eid){
+  const e=state.employees.find(x=>x.id===eid); if(!e)return;
+  const d=parse(dk), s=shiftOf(d,e);
+  mCtx={dk,eid};
+  mTitle.textContent=flong(d);
+  mWho.textContent=`${e.name} · contrat ${e.hours} h, repos le ${DAYS[e.rest]}`;
+  setType(s.type==='ferme'?'repos':s.type);
+  mStart.value=hm(s.type==='travail'?s.start:mn(state.config.open));
+  mEnd.value=hm(s.type==='travail'?s.end:mn(state.config.open)+480);
+  mBs.value=hm(s.type==='travail'?s.brkStart:mn(state.config.open)+210);
+  mBm.value=s.type==='travail'?s.brkMin:state.config.breakMin;
+  calc(); modal.hidden=false;
+}
+function setType(t){
+  mType.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+  mWork.hidden=t!=='travail';
+}
+const curType=()=>mType.querySelector('[aria-pressed="true"]').dataset.t;
+function calc(){
+  const w=Math.max(0,mn(mEnd.value)-mn(mStart.value)-(+mBm.value||0));
+  mCalc.textContent=`Temps de travail effectif : ${dur(w)}.`;
+}
+['input','change'].forEach(ev=>['mStart','mEnd','mBm'].forEach(id=>document.getElementById(id).addEventListener(ev,calc)));
+mType.addEventListener('click',ev=>{const b=ev.target.closest('button');if(b)setType(b.dataset.t);});
+mCancel.onclick=()=>modal.hidden=true;
+modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;});
+mAuto.onclick=()=>{ delete state.overrides[mCtx.dk+'|'+mCtx.eid]; modal.hidden=true; generate(); renderPlanning(); save(); };
+mSave.onclick=()=>{
+  const t=curType(), k=mCtx.dk+'|'+mCtx.eid;
+  if(t==='travail'){
+    const s=mn(mStart.value),e=mn(mEnd.value);
+    if(e<=s){alert("Le départ doit être après l'arrivée.");return;}
+    state.overrides[k]={type:'travail',start:s,end:e,brkStart:mn(mBs.value),brkMin:+mBm.value||0};
+  } else state.overrides[k]={type:t};
+  modal.hidden=true; generate(); renderPlanning(); save();
+};
+
+/* ================= interactions ================= */
+document.querySelector('.tabs').addEventListener('click',ev=>{
+  const b=ev.target.closest('button[data-tab]'); if(!b)return;
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['planning','equipe','reglages'].forEach(t=>document.getElementById('view-'+t).hidden=(t!==b.dataset.tab));
+});
+document.body.addEventListener('click',ev=>{
+  const c=ev.target.closest('.cell'); if(c&&c.closest('#view-planning'))openModal(c.dataset.d,c.dataset.e);
+});
+prev.onclick=()=>{cursor=addD(cursor,-7);renderPlanning();};
+next.onclick=()=>{cursor=addD(cursor,7);renderPlanning();};
+today.onclick=()=>{
+  const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
+  cursor=n<s?s:(n>e?weekStart(e):n); renderPlanning();
+};
+document.getElementById('regenWeek').onclick=()=>{
+  weekDays(cursor).forEach(d=>state.employees.forEach(e=>delete state.overrides[key(d)+'|'+e.id]));
+  generate(); renderPlanning(); save();
+};
+document.getElementById('regenAll').onclick=()=>{
+  if(!confirm('Toutes vos modifications manuelles seront effacées. Continuer ?'))return;
+  state.overrides={}; generate(); renderPlanning(); save();
+};
+document.getElementById('addEmp').onclick=()=>{
+  const used=state.employees.map(e=>e.rest);
+  const rest=[1,2,3,4,5,6].find(i=>!used.includes(i))||1;
+  state.employees.push({id:uid(),name:'Personne '+(state.employees.length+1),hours:35,rest,color:PAL[state.employees.length%PAL.length]});
+  renderEmp();
+};
+document.getElementById('empbody').addEventListener('click',ev=>{
+  const b=ev.target.closest('.e-del'); if(!b)return;
+  const id=b.closest('tr').dataset.id;
+  if(state.employees.length<2){alert('Il faut au moins une personne.');return;}
+  state.employees=state.employees.filter(e=>e.id!==id); renderEmp();
+});
+document.getElementById('applyEmp').onclick=()=>{
+  document.querySelectorAll('#empbody tr').forEach(tr=>{
+    const e=state.employees.find(x=>x.id===tr.dataset.id); if(!e)return;
+    e.name=tr.querySelector('.e-name').value.trim()||'Sans nom';
+    e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
+    e.rest=+tr.querySelector('.e-rest').value;
+    e.color=tr.querySelector('.e-color').value;
+  });
+  generate(); renderAll(); save();
+};
+document.getElementById('applyCfg').onclick=()=>{
+  const c=state.config;
+  c.open=cOpen.value||'09:00'; c.close=cClose.value||'19:00'; c.breakMin=+cBreak.value||0;
+  c.closeOnFerie=cFerie.checked;
+  c.days=[...cDays.querySelectorAll('input:checked')].map(i=>+i.value);
+  if(!c.days.length){c.days=[1,2,3,4,5,6];}
+  if(mn(c.close)<=mn(c.open)){alert('La fermeture doit être après l\'ouverture.');return;}
+  c.start=cStart.value; c.end=cEnd.value;
+  if(parse(c.end)<parse(c.start)){alert('La date de fin doit être après le début.');return;}
+  cursor=weekStart(parse(c.start));
+  generate(); renderAll(); save();
+};
+document.getElementById('addVac').onclick=()=>{state.vacances.push({id:uid(),nom:'Nouvelle période',debut:'',fin:''});renderCfg();};
+document.getElementById('vacbody').addEventListener('click',ev=>{
+  const b=ev.target.closest('.v-del'); if(!b)return;
+  state.vacances=state.vacances.filter(v=>v.id!==b.closest('tr').dataset.id); renderCfg();
+});
+document.getElementById('saveVac').onclick=()=>{
+  document.querySelectorAll('#vacbody tr').forEach(tr=>{
+    const v=state.vacances.find(x=>x.id===tr.dataset.id); if(!v)return;
+    v.nom=tr.querySelector('.v-nom').value.trim()||'Période';
+    v.debut=tr.querySelector('.v-deb').value; v.fin=tr.querySelector('.v-fin').value;
+  });
+  renderPlanning(); save();
+};
+document.getElementById('reset').onclick=()=>{
+  if(!confirm('Effacer l\'équipe, les réglages et le planning ?'))return;
+  state=defaults(); cursor=weekStart(parse(state.config.start)); generate(); renderAll(); save();
+};
+
+/* ---------- exports ---------- */
+function dl(name,txt,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+document.getElementById('expCsv').onclick=()=>{
+  const rows=[['Date','Jour','Prenom','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures']];
+  allDays().forEach(d=>state.employees.forEach(e=>{
+    const s=shiftOf(d,e);
+    rows.push([key(d),DAYS[d.getDay()],e.name,s.type,
+      s.type==='travail'?hm(s.start):'',s.type==='travail'?hm(s.end):'',
+      s.type==='travail'&&s.brkMin?hm(s.brkStart):'',s.type==='travail'?(s.brkMin||0):'',
+      (workMin(s)/60).toFixed(2).replace('.',',')]);
+  }));
+  dl('planning.csv','\uFEFF'+rows.map(r=>r.join(';')).join('\n'),'text/csv;charset=utf-8');
+};
+document.getElementById('expJson').onclick=()=>dl('planning-sauvegarde.json',JSON.stringify(state,null,2),'application/json');
+document.getElementById('impJson').onclick=()=>fileIn.click();
+fileIn.onchange=()=>{
+  const f=fileIn.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      if(!d.config||!d.employees)throw 0;
+      state=d; cursor=weekStart(parse(state.config.start)); generate(); renderAll(); save();
+    }catch(e){alert("Ce fichier n'est pas une sauvegarde de planning.");}
+  };
+  r.readAsText(f); fileIn.value='';
+};
+document.getElementById('printWeek').onclick=()=>{document.body.classList.remove('printall');print();};
+document.getElementById('printAllBtn').onclick=()=>{
+  let w=weekStart(parse(state.config.start)),e=parse(state.config.end),h='';
+  while(w<=e){
+    h+=`<div class="pweek"><h3>Semaine du ${fdate(w)} au ${fdate(addD(w,6))} ${addD(w,6).getFullYear()}</h3>${gridHTML(w)}</div>`;
+    w=addD(w,7);
+  }
+  document.getElementById('printall').innerHTML=h;
+  document.body.classList.add('printall'); print();
+  setTimeout(()=>{document.body.classList.remove('printall');document.getElementById('printall').innerHTML='';},500);
+};
+
+/* ================= démarrage ================= */
+(async()=>{
+  const saved=await load();
+  if(saved&&saved.config&&saved.employees){
+    state=Object.assign(defaults(),saved);
+    state.overrides=saved.overrides||{};
+  }
+  const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
+  cursor=n<s?s:(n>e?weekStart(e):n);
+  generate(); renderAll();
+})();
+</script>
+</body>
+</html>
