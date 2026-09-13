@@ -104,6 +104,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff;width:100%;max-width:220px}
 .tbl input[type=number]{max-width:90px}
 input[type=color]{border:1px solid var(--line);border-radius:7px;width:38px;height:32px;padding:2px;background:#fff}
+.emp{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px;background:#FCFDFD}
+.emp .hd{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.emp .hd input[type=text]{flex:1;max-width:none;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-weight:600;background:#fff}
+.emp .line{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:8px}
+.emp .line:last-child{margin-bottom:0}
+.emp .lab{font-size:13px;color:var(--muted)}
+.dayset{display:flex;gap:5px;flex-wrap:wrap}
+.dayset label{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:13px;background:#fff}
+.appbox{border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+.appbox input[type=date]{border:1px solid var(--line);border-radius:7px;padding:5px 7px;background:#fff}
+.appbox .sub{font-size:12px;color:var(--muted);width:100%;margin:4px 0 0}
+.tag{font-size:10.5px;padding:1px 6px;border-radius:20px;background:var(--accent-soft);color:var(--accent);margin-left:5px;white-space:nowrap}
 .fld{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-bottom:10px}
 .fld label{font-size:13px;color:var(--muted);min-width:150px}
 .fld .grow{flex:1;min-width:130px}
@@ -193,11 +205,8 @@ h2.sec:first-child{margin-top:0}
   <section class="view" id="view-equipe" hidden>
     <div class="panel">
       <h2 class="sec">Qui travaille ici</h2>
-      <table class="tbl">
-        <thead><tr><th>Prénom</th><th>Heures / semaine</th><th>Jour de repos</th><th>Couleur</th><th></th></tr></thead>
-        <tbody id="empbody"></tbody>
-      </table>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <div id="empbody"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn primary" id="addEmp">Ajouter une personne</button>
         <button class="btn" id="applyEmp">Appliquer et regénérer</button>
       </div>
@@ -319,15 +328,33 @@ const ferieName=d=>feries(d.getFullYear())[key(d)]||null;
 const PAL=['#2C5FA8','#8A3B8F','#1E7A5A','#A9601A','#514AC0','#9B2E3A','#136F7C','#6E7B1F'];
 const STORE_KEY='planning-boutique-v1';
 
+function emp(name,jours,i){
+  return {id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],apprenti:false,appDebut:'',appFin:''};
+}
+function migrate(e,i){
+  if(!Array.isArray(e.jours)) e.jours=[1,2,3,4,5,6].filter(x=>x!==e.rest);
+  delete e.rest;
+  if(typeof e.apprenti!=='boolean') e.apprenti=false;
+  if(e.appDebut===undefined) e.appDebut='';
+  if(e.appFin===undefined) e.appFin='';
+  if(!e.color) e.color=PAL[i%PAL.length];
+  return e;
+}
+const worksOn=(e,d)=>e.jours.includes(d.getDay());
+const isAppr=(e,d)=>e.apprenti&&(!e.appDebut||key(d)>=e.appDebut)&&(!e.appFin||key(d)<=e.appFin);
+function restLabel(e){
+  const off=[1,2,3,4,5,6,0].filter(i=>state.config.days.includes(i)&&!e.jours.includes(i));
+  return off.length?'repos '+off.map(i=>DAYS[i]).join(' et '):'présente tous les jours';
+}
 function defaults(){
   return {
     config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
             start:'2026-09-14',end:'2027-01-01',closeOnFerie:true},
     employees:[
-      {id:uid(),name:'Personne 1',hours:35,rest:1,color:PAL[0]},
-      {id:uid(),name:'Personne 2',hours:35,rest:2,color:PAL[1]},
-      {id:uid(),name:'Personne 3',hours:35,rest:3,color:PAL[2]},
-      {id:uid(),name:'Personne 4',hours:35,rest:4,color:PAL[3]}
+      emp('Personne 1',[2,3,4,5,6],0),
+      emp('Personne 2',[1,3,4,5,6],1),
+      emp('Personne 3',[1,2,4,5,6],2),
+      emp('Personne 4',[1,2,3,5,6],3)
     ],
     vacances:[
       {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
@@ -391,7 +418,7 @@ function generate(){
       openDays.forEach(d=>{
         const o=ok(key(d),e.id);
         if(o){ if(o.type==='travail') locked+=workMin(o); }
-        else if(d.getDay()!==e.rest) free.push(d);
+        else if(worksOn(e,d)) free.push(d);
       });
       const remain=Math.max(0,e.hours*60-locked);
       daily[e.id]=free.length?Math.min(r5(remain/free.length),maxWork):0;
@@ -399,7 +426,7 @@ function generate(){
 
     openDays.forEach(d=>{
       const k=key(d);
-      const pool=state.employees.filter(e=>e.rest!==d.getDay()&&!ok(k,e.id)&&daily[e.id]>0);
+      const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&daily[e.id]>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
       // ouverture : celui qui a le moins ouvert
@@ -423,6 +450,13 @@ function generate(){
         const a=daily[e.id]+c.breakMin, win=Math.max(0,amp-a);
         add(e,open+r15(win*(i+1)/(mid.length+1)));
       });
+      // regle apprenti : jamais l'ouverture ET la fermeture le meme jour
+      list.forEach(o=>{
+        if(!isAppr(o.e,d))return;
+        if(o.s<=open&&o.s+o.a>=close){
+          o.a=Math.max(60,amp-30); o.s=open; o.trim=true;
+        }
+      });
       // pauses echelonnees : jamais deux personnes en pause en meme temps
       list.sort((x,y)=>x.s-y.s);
       let nextB=0;
@@ -435,7 +469,7 @@ function generate(){
           bs=Math.max(o.s,Math.min(bs,o.s+o.a-c.breakMin));
           nextB=bs+c.breakMin;
         }
-        plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:c.breakMin};
+        plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:c.breakMin,trim:!!o.trim};
       });
     });
   });
@@ -444,7 +478,7 @@ function shiftOf(d,e){
   const k=key(d), o=ok(k,e.id);
   if(o)return o;
   if(!isOpenDay(d))return {type:'ferme'};
-  if(d.getDay()===e.rest)return {type:'repos'};
+  if(!worksOn(e,d))return {type:'repos'};
   return plan[k+'|'+e.id]||{type:'repos'};
 }
 
@@ -493,7 +527,7 @@ function gridHTML(ws){
   });
   h+=`<div class="gc head"><div class="d">Total</div><div class="n">semaine</div></div>`;
   state.employees.forEach(e=>{
-    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}<div class="h">${e.hours} h · repos ${DAYS[e.rest]}</div></div></div></div>`;
+    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}</div></div></div></div>`;
     let tot=0;
     ds.forEach(d=>{ h+=cellHTML(d,e); tot+=workMin(shiftOf(d,e)); });
     const diff=tot-e.hours*60;
@@ -524,26 +558,53 @@ function renderPlanning(){
     const v=vacOf(d); if(v&&!seen.has('v'+v.id)){seen.add('v'+v.id);fl.push(`<span class="flag">Vacances de ${esc(v.nom)} — zone B</span>`);}
     const f=ferieName(d); if(f)fl.push(`<span class="flag ferie">${f} — ${DSHORT[d.getDay()]} ${d.getDate()}${state.config.closeOnFerie?' · fermé':''}</span>`);
   });
+  weekDays(ws).filter(isOpenDay).forEach(d=>{
+    const pres=state.employees.filter(e=>shiftOf(d,e).type==='travail');
+    if(!pres.length)return;
+    if(pres.every(e=>isAppr(e,d)))
+      fl.push(`<span class="flag ferie">Apprenti seul ${DSHORT[d.getDay()]} ${d.getDate()} — le magasin ne peut pas être ouvert de bout en bout</span>`);
+  });
   document.getElementById('flags').innerHTML=fl.join('');
   document.getElementById('scroller').innerHTML=gridHTML(ws);
 }
 
 /* ================= vues équipe / réglages ================= */
 function renderEmp(){
-  const opts=r=>[1,2,3,4,5,6,0].map(i=>`<option value="${i}"${i===r?' selected':''}>${DAYS[i]}</option>`).join('');
+  const dayset=e=>[1,2,3,4,5,6,0].map(i=>
+    `<label><input type="checkbox" class="e-day" value="${i}"${e.jours.includes(i)?' checked':''}${state.config.days.includes(i)?'':' disabled'}> ${DSHORT[i]}</label>`).join('');
   document.getElementById('empbody').innerHTML=state.employees.map(e=>`
-    <tr data-id="${e.id}">
-      <td><input type="text" class="e-name" value="${esc(e.name)}"></td>
-      <td><input type="number" class="e-hours" min="1" max="48" step="0.5" value="${e.hours}"></td>
-      <td><select class="e-rest">${opts(e.rest)}</select></td>
-      <td><input type="color" class="e-color" value="${e.color}"></td>
-      <td><button class="btn ghost e-del" title="Retirer">Retirer</button></td>
-    </tr>`).join('');
+    <div class="emp" data-id="${e.id}">
+      <div class="hd">
+        <input type="color" class="e-color" value="${e.color}" title="Couleur">
+        <input type="text" class="e-name" value="${esc(e.name)}">
+        <button class="btn ghost e-del">Retirer</button>
+      </div>
+      <div class="line">
+        <span class="lab">Heures par semaine</span>
+        <input type="number" class="e-hours" min="1" max="48" step="0.5" value="${e.hours}" style="width:80px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+      </div>
+      <div class="line">
+        <span class="lab">Semaine type</span>
+        <div class="dayset">${dayset(e)}</div>
+      </div>
+      <div class="appbox line">
+        <label class="lab" style="display:flex;align-items:center;gap:6px;color:var(--ink)">
+          <input type="checkbox" class="e-appr"${e.apprenti?' checked':''}> Apprenti
+        </label>
+        <span class="lab">du</span><input type="date" class="e-adeb" value="${e.appDebut||''}">
+        <span class="lab">au</span><input type="date" class="e-afin" value="${e.appFin||''}">
+        <p class="sub">Un apprenti n'ouvre jamais et ne ferme jamais le magasin le même jour. Dates vides : la règle s'applique sur toute la période.</p>
+      </div>
+    </div>`).join('');
   const c=state.config, amp=mn(c.close)-mn(c.open);
   const need=c.days.length*amp/60;
   const have=state.employees.reduce((s,e)=>s+e.hours,0);
-  document.getElementById('empnote').textContent=
-    `${state.employees.length} personne(s), ${have} h par semaine. Il faut au moins ${need} h pour tenir le magasin seul du début à la fin, et davantage si vous voulez deux personnes en même temps.`;
+  const jours={}; c.days.forEach(i=>jours[i]=state.employees.filter(e=>e.jours.includes(i)).length);
+  const vide=c.days.filter(i=>!jours[i]).map(i=>DAYS[i]);
+  document.getElementById('empnote').innerHTML=
+    `${state.employees.length} personne(s), ${have} h par semaine. Il en faut au moins ${need} h pour tenir le magasin du début à la fin de chaque journée.`
+    + (vide.length?`<br><b style="color:var(--danger)">Personne n'est prévu le ${vide.join(', le ')}.</b>`:'')
+    + `<br>Présents : ${c.days.map(i=>DSHORT[i]+' '+jours[i]).join(' · ')}`;
 }
 function renderCfg(){
   const c=state.config;
@@ -570,7 +631,7 @@ function openModal(dk,eid){
   const d=parse(dk), s=shiftOf(d,e);
   mCtx={dk,eid};
   mTitle.textContent=flong(d);
-  mWho.textContent=`${e.name} · contrat ${e.hours} h, repos le ${DAYS[e.rest]}`;
+  mWho.textContent=`${e.name}${isAppr(e,d)?' (apprenti)':''} · ${e.hours} h par semaine, ${restLabel(e)}`;
   setType(s.type==='ferme'?'repos':s.type);
   mStart.value=hm(s.type==='travail'?s.start:mn(state.config.open));
   mEnd.value=hm(s.type==='travail'?s.end:mn(state.config.open)+480);
@@ -626,25 +687,32 @@ document.getElementById('regenAll').onclick=()=>{
   state.overrides={}; generate(); renderPlanning(); save();
 };
 document.getElementById('addEmp').onclick=()=>{
-  const used=state.employees.map(e=>e.rest);
-  const rest=[1,2,3,4,5,6].find(i=>!used.includes(i))||1;
-  state.employees.push({id:uid(),name:'Personne '+(state.employees.length+1),hours:35,rest,color:PAL[state.employees.length%PAL.length]});
+  const charge={}; state.config.days.forEach(i=>charge[i]=state.employees.filter(e=>e.jours.includes(i)).length);
+  const repos=state.config.days.slice().sort((a,b)=>charge[b]-charge[a])[0];
+  state.employees.push(emp('Personne '+(state.employees.length+1),
+    state.config.days.filter(i=>i!==repos), state.employees.length));
   renderEmp();
 };
 document.getElementById('empbody').addEventListener('click',ev=>{
   const b=ev.target.closest('.e-del'); if(!b)return;
-  const id=b.closest('tr').dataset.id;
+  const id=b.closest('.emp').dataset.id;
   if(state.employees.length<2){alert('Il faut au moins une personne.');return;}
   state.employees=state.employees.filter(e=>e.id!==id); renderEmp();
 });
 document.getElementById('applyEmp').onclick=()=>{
-  document.querySelectorAll('#empbody tr').forEach(tr=>{
+  let vide=null;
+  document.querySelectorAll('#empbody .emp').forEach(tr=>{
     const e=state.employees.find(x=>x.id===tr.dataset.id); if(!e)return;
     e.name=tr.querySelector('.e-name').value.trim()||'Sans nom';
     e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
-    e.rest=+tr.querySelector('.e-rest').value;
     e.color=tr.querySelector('.e-color').value;
+    e.apprenti=tr.querySelector('.e-appr').checked;
+    e.appDebut=tr.querySelector('.e-adeb').value;
+    e.appFin=tr.querySelector('.e-afin').value;
+    const j=[...tr.querySelectorAll('.e-day:checked')].map(i=>+i.value);
+    if(!j.length) vide=e.name; else e.jours=j;
   });
+  if(vide) alert(vide+" n'a aucun jour coché : sa semaine type est restée telle quelle.");
   generate(); renderAll(); save();
 };
 document.getElementById('applyCfg').onclick=()=>{
@@ -684,10 +752,10 @@ function dl(name,txt,type){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 document.getElementById('expCsv').onclick=()=>{
-  const rows=[['Date','Jour','Prenom','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures']];
+  const rows=[['Date','Jour','Prenom','Apprenti','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures']];
   allDays().forEach(d=>state.employees.forEach(e=>{
     const s=shiftOf(d,e);
-    rows.push([key(d),DAYS[d.getDay()],e.name,s.type,
+    rows.push([key(d),DAYS[d.getDay()],e.name,isAppr(e,d)?'oui':'non',s.type,
       s.type==='travail'?hm(s.start):'',s.type==='travail'?hm(s.end):'',
       s.type==='travail'&&s.brkMin?hm(s.brkStart):'',s.type==='travail'?(s.brkMin||0):'',
       (workMin(s)/60).toFixed(2).replace('.',',')]);
@@ -702,7 +770,7 @@ fileIn.onchange=()=>{
   r.onload=()=>{ try{
       const d=JSON.parse(r.result);
       if(!d.config||!d.employees)throw 0;
-      state=d; cursor=weekStart(parse(state.config.start)); generate(); renderAll(); save();
+      state=d; state.employees=state.employees.map(migrate); cursor=weekStart(parse(state.config.start)); generate(); renderAll(); save();
     }catch(e){alert("Ce fichier n'est pas une sauvegarde de planning.");}
   };
   r.readAsText(f); fileIn.value='';
@@ -725,6 +793,7 @@ document.getElementById('printAllBtn').onclick=()=>{
   if(saved&&saved.config&&saved.employees){
     state=Object.assign(defaults(),saved);
     state.overrides=saved.overrides||{};
+    state.employees=state.employees.map(migrate);
   }
   const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
   cursor=n<s?s:(n>e?weekStart(e):n);
