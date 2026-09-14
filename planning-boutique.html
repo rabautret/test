@@ -9,7 +9,7 @@
   --paper:#E6EAEE; --surface:#fff; --line:#C9D3DB; --line-soft:#E4EAEF;
   --ink:#16202A; --muted:#5E6E7C; --accent:#0E5C66; --accent-soft:#D9EAEC;
   --warn:#9A5B12; --warn-soft:#FBEEDC; --danger:#98232B; --vac:#F3E7CE; --vac-ink:#7A5A16;
-  --r:10px;
+  --r:10px; --nameW:160px; --cellW:118px; --totW:108px; --dateW:118px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -36,13 +36,28 @@ button{cursor:pointer}
 .view[hidden]{display:none}
 
 /* ---------- barre semaine ---------- */
-.weekbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
-.nav{display:flex;align-items:center;gap:8px}
-.nav button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:16px;line-height:1}
-.nav button:disabled{opacity:.35;cursor:default}
-.nav .label{font-size:16px;font-weight:600;min-width:210px}
-.nav .label small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.weekbar{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+.nav{display:flex;align-items:center;gap:10px}
+.nav button{flex:none;width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:17px;line-height:1}
+.nav button:disabled{opacity:.3;cursor:default}
+.nav .label{flex:1;min-width:0;text-align:center;font-size:16px;font-weight:600;line-height:1.25}
+.nav .label small{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:1px}
+.toolbar{display:flex;gap:8px;align-items:stretch}
+.toolbar .seg{flex:1;margin:0;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:3px;flex-wrap:nowrap}
+.toolbar .seg button{flex:1;border:0;background:transparent;padding:8px 6px;border-radius:7px}
+.toolbar .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.toolbar #today{flex:none;white-space:nowrap}
 .acts{display:flex;flex-wrap:wrap;gap:6px}
+.acts .btn{flex:1 1 calc(50% - 3px);min-width:0;text-align:center}
+@media(min-width:800px){
+  .weekbar{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .nav{flex:0 1 auto}
+  .nav .label{text-align:left;min-width:200px;flex:0 0 auto}
+  .toolbar{flex:0 0 auto;margin-left:auto}
+  .toolbar .seg{flex:0 0 auto}
+  .acts{flex:0 0 auto}
+  .acts .btn{flex:0 0 auto}
+}
 .btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:8px;font-size:13.5px}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -57,7 +72,7 @@ button{cursor:pointer}
 
 /* ---------- grille ---------- */
 .scroller{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-.grid{display:grid;min-width:880px}
+.grid{display:grid;min-width:100%}
 .gc{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:8px 9px}
 .gc.name{position:sticky;left:0;z-index:2;background:var(--surface);border-right:1px solid var(--line)}
 .grid .head{background:#F2F5F7;font-size:13px}
@@ -155,7 +170,7 @@ h2.sec:first-child{margin-top:0}
 
 @media print{
   body{background:#fff}
-  .top,.tabs,.acts,.nav button,.legend,.note,#modal,.weekbar .acts{display:none!important}
+  .top,.tabs,.acts,.toolbar,.nav button,.legend,.note,#modal{display:none!important}
   .wrap{max-width:none;padding:0}
   .panel{border:0;padding:0}
   .scroller{overflow:visible;border:1px solid #999;border-radius:0}
@@ -166,9 +181,25 @@ h2.sec:first-child{margin-top:0}
   body.printall .view{display:none!important}
   body.printall #printall{display:block}
 }
-@media(max-width:620px){
-  .nav .label{min-width:0;font-size:15px}
+@media(max-width:640px){
+  :root{--nameW:108px; --cellW:100px; --totW:88px; --dateW:92px;}
   .top h1{font-size:19px}
+  .top{gap:8px}
+  .tabs{width:100%}
+  .tabs button{flex:1;padding:8px 6px}
+  .wrap{padding:12px 10px 50px}
+  .panel{padding:11px}
+  .gc{padding:7px}
+  .cell{min-height:58px}
+  .t{font-size:13px}
+  .s{font-size:11px}
+  .gc.name .person .h{font-size:10.5px}
+  .grid.mois .cell{min-height:40px}
+  .gc.name,.gc.date{box-shadow:3px 0 6px -3px rgba(20,32,44,.18)}
+  .legend{font-size:12px;gap:8px 12px}
+}
+@media(max-width:640px){
+  .acts .btn{font-size:13px;padding:8px 6px}
 }
 </style>
 </head>
@@ -192,14 +223,16 @@ h2.sec:first-child{margin-top:0}
     <div class="panel">
       <div class="weekbar">
         <div class="nav">
-          <button id="prev" title="Semaine précédente">‹</button>
+          <button id="prev" title="Précédent">‹</button>
           <div class="label" id="weeklabel">—</div>
-          <button id="next" title="Semaine suivante">›</button>
-          <button class="btn ghost" id="today">Aujourd'hui</button>
-          <div class="seg" id="modeSeg" style="margin:0">
+          <button id="next" title="Suivant">›</button>
+        </div>
+        <div class="toolbar">
+          <div class="seg" id="modeSeg">
             <button data-m="semaine" aria-pressed="true">Semaine</button>
             <button data-m="mois" aria-pressed="false">Mois</button>
           </div>
+          <button class="btn" id="today">Aujourd'hui</button>
         </div>
         <div class="acts">
           <button class="btn" id="regenWeek">Regénérer la semaine</button>
@@ -440,7 +473,7 @@ function generate(){
   plan={};
   const c=state.config, open=mn(c.open), close=mn(c.close), amp=close-open;
   const maxWork=Math.max(60,amp-c.breakMin);
-  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0,ac:0,acw:0});
+  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
@@ -448,7 +481,7 @@ function generate(){
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
     const daily={};
-    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); cnt[e.id].ow=0; cnt[e.id].fw=0; cnt[e.id].acw=0; });
+    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); cnt[e.id].ow=0; cnt[e.id].fw=0; });
 
     // blocs de formation au bureau, repartis sur les jours autorises de la semaine
     const form={};
@@ -469,28 +502,33 @@ function generate(){
       const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&daily[e.id]>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
-      // ouverture : tout le monde y passe, apprentie comprise, mais elle n'ouvre jamais seule,
-      // donc il faut au moins trois personnes ce jour-la pour pouvoir la designer
-      let elig=pool.slice();
-      if(pool.length<3){
-        const sansAppr=pool.filter(e=>!isAppr(e,d));
-        if(sansAppr.length) elig=sansAppr;
-      }
-      elig.sort((a,b)=>(cnt[a.id].ow-cnt[b.id].ow)||(cnt[a.id].o-cnt[b.id].o)||(idx(a)-idx(b)));
-      const opener=elig[0]; pool.splice(pool.indexOf(opener),1);
-      cnt[opener.id].o++; cnt[opener.id].ow++;
-      // fermeture : celle qui a le moins fermé cette semaine
+      // Un apprenti prend sa part des ouvertures et des fermetures, mais jamais seul :
+      // il faut alors une collegue qui arrive a 9h ou qui reste jusqu'a 19h avec lui.
+      // Les compteurs comptent les arrivees a l'ouverture et les departs a la fermeture,
+      // accompagnements compris, pour que la charge reelle soit equilibree.
+      const prendre=(cands,comp)=>{
+        const l=cands.slice().sort((a,b)=>
+          (cnt[a.id][comp+'w']-cnt[b.id][comp+'w'])||(cnt[a.id][comp]-cnt[b.id][comp])||(idx(a)-idx(b)));
+        const e=l[0]; if(!e)return null;
+        pool.splice(pool.indexOf(e),1); cnt[e.id][comp]++; cnt[e.id][comp+'w']++;
+        return e;
+      };
+      const nonAppr=()=>pool.filter(e=>!isAppr(e,d));
+      // ouverture : apprenti eligible seulement si quelqu'un peut l'accompagner
+      let eligO=pool.slice();
+      if(pool.length<3&&nonAppr().length) eligO=nonAppr();
+      const opener=prendre(eligO,'o');
+      // fermeture : meme condition
       let closer=null;
       if(pool.length){
-        pool.sort((a,b)=>(cnt[a.id].fw-cnt[b.id].fw)||(cnt[a.id].f-cnt[b.id].f)||(idx(a)-idx(b)));
-        closer=pool.shift(); cnt[closer.id].f++; cnt[closer.id].fw++;
+        let eligF=pool.slice();
+        if(pool.length<2&&nonAppr().length) eligF=nonAppr();
+        closer=prendre(eligF,'f');
       }
-      // si l'apprentie ouvre, une collegue arrive a la meme heure qu'elle
-      let co=null;
-      if(isAppr(opener,d)&&pool.length){
-        pool.sort((a,b)=>(cnt[a.id].acw-cnt[b.id].acw)||(cnt[a.id].ac-cnt[b.id].ac)||(idx(a)-idx(b)));
-        co=pool.shift(); cnt[co.id].ac++; cnt[co.id].acw++;
-      }
+      // renforts : une collegue non apprentie ouvre ou ferme avec l'apprenti
+      let co=null, cf=null;
+      if(opener&&isAppr(opener,d)&&nonAppr().length) co=prendre(nonAppr(),'o');
+      if(closer&&isAppr(closer,d)&&nonAppr().length) cf=prendre(nonAppr(),'f');
       const list=[];
       const add=(e,start)=>{
         const a=daily[e.id]+c.breakMin;
@@ -499,6 +537,7 @@ function generate(){
       add(opener,open);
       if(co) add(co,open);
       if(closer) add(closer,close-(daily[closer.id]+c.breakMin));
+      if(cf) add(cf,close-(daily[cf.id]+c.breakMin));
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
         const a=daily[e.id]+c.breakMin, win=Math.max(0,amp-a);
@@ -599,7 +638,7 @@ function monthHTML(a){
   const y=a.getFullYear(), mo=a.getMonth();
   const last=new Date(y,mo+1,0);
   const ps=parse(state.config.start), pe=parse(state.config.end);
-  const cols=`118px repeat(${state.employees.length},minmax(104px,1fr)) 96px`;
+  const cols=`var(--dateW) repeat(${state.employees.length},minmax(var(--cellW),1fr)) var(--totW)`;
   const today=key(new Date());
   let h=`<div class="gc head name">Jour</div>`;
   state.employees.forEach(e=>{
@@ -629,7 +668,7 @@ function monthHTML(a){
   return `<div class="grid mois" style="grid-template-columns:${cols}">${h}</div>`;
 }
 function gridHTML(ws){
-  const ds=weekDays(ws), cols=`160px repeat(${ds.length},minmax(118px,1fr)) 108px`;
+  const ds=weekDays(ws), cols=`var(--nameW) repeat(${ds.length},minmax(var(--cellW),1fr)) var(--totW)`;
   const today=key(new Date());
   let h=`<div class="gc head name"></div>`;
   ds.forEach(d=>{
@@ -722,7 +761,7 @@ function renderEmp(){
         </label>
         <span class="lab">du</span><input type="date" class="e-adeb" value="${e.appDebut||''}">
         <span class="lab">au</span><input type="date" class="e-afin" value="${e.appFin||''}">
-        <p class="sub">Un apprenti participe au roulement des ouvertures et des fermetures, mais n'ouvre jamais seul : une collègue arrive à la même heure. Il n'assure pas l'ouverture et la fermeture le même jour. Dates vides : la règle vaut sur toute la période.</p>
+        <p class="sub">Un apprenti prend sa part des ouvertures et des fermetures, mais jamais seul : une collègue arrive à 9 h avec lui, ou reste jusqu'à 19 h avec lui. Il n'assure pas l'ouverture et la fermeture le même jour. Dates vides : la règle vaut sur toute la période.</p>
       </div>
       <div class="appbox line">
         <span class="lab">Formation au bureau</span>
