@@ -78,6 +78,8 @@ button{cursor:pointer}
 .bar i{position:absolute;top:0;bottom:0;display:block}
 .bar i.w{border-radius:3px}
 .bar i.p{background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px)}
+.bar i.f{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.9) 0 3px,rgba(255,255,255,.3) 3px 7px)}
+.s.form{color:var(--accent)}
 .t{font-size:13.5px;font-weight:600}
 .s{font-size:11.5px;color:var(--muted)}
 .cell.off .t{font-weight:500;color:var(--muted)}
@@ -211,6 +213,7 @@ h2.sec:first-child{margin-top:0}
         <span><i class="sw" style="background:#2C5FA8"></i> temps de travail</span>
         <span><i class="sw p" style="background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px);border:1px solid var(--line)"></i> pause</span>
         <span><i class="sw" style="background:var(--accent);opacity:.85"></i> personnes présentes par demi-heure</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(-45deg,#8A3B8F 0 3px,#E6D3E7 3px 7px)"></i> formation au bureau</span>
         <span>Repos, congé, absence et jour férié tombant sur un jour prévu sont comptés à la durée normale de la journée.</span>
         <span>Touchez une case pour la modifier.</span>
       </div>
@@ -343,10 +346,11 @@ const ferieName=d=>feries(d.getFullYear())[key(d)]||null;
 
 /* ================= état ================= */
 const PAL=['#2C5FA8','#8A3B8F','#1E7A5A','#A9601A','#514AC0','#9B2E3A','#136F7C','#6E7B1F'];
-const STORE_KEY='planning-boutique-v1';
+const STORE_KEY='planning-boutique-v2';
 
-function emp(name,jours,i){
-  return {id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],apprenti:false,appDebut:'',appFin:''};
+function emp(name,jours,i,opt){
+  return Object.assign({id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],
+    apprenti:false,appDebut:'',appFin:'',formation:{blocs:[],jours:[]}},opt||{});
 }
 function migrate(e,i){
   if(!Array.isArray(e.jours)) e.jours=[1,2,3,4,5,6].filter(x=>x!==e.rest);
@@ -354,6 +358,8 @@ function migrate(e,i){
   if(typeof e.apprenti!=='boolean') e.apprenti=false;
   if(e.appDebut===undefined) e.appDebut='';
   if(e.appFin===undefined) e.appFin='';
+  if(!e.formation||!Array.isArray(e.formation.blocs)) e.formation={blocs:[],jours:[]};
+  if(!Array.isArray(e.formation.jours)) e.formation.jours=[];
   if(!e.color) e.color=PAL[i%PAL.length];
   return e;
 }
@@ -379,10 +385,10 @@ function defaults(){
     config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
             start:'2026-09-14',end:'2027-01-01',closeOnFerie:true},
     employees:[
-      emp('Personne 1',[2,3,4,5,6],0),
-      emp('Personne 2',[1,3,4,5,6],1),
-      emp('Personne 3',[1,2,4,5,6],2),
-      emp('Personne 4',[1,2,3,5,6],3)
+      emp('Delphine',[1,2,3,5,6],0),
+      emp('Gaelle',[2,3,4,5,6],1),
+      emp('Marta',[1,2,4,5,6],2),
+      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
     ],
     vacances:[
       {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
@@ -434,28 +440,46 @@ function generate(){
   plan={};
   const c=state.config, open=mn(c.open), close=mn(c.close), amp=close-open;
   const maxWork=Math.max(60,amp-c.breakMin);
-  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0});
+  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
+  let wi=0;
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
     const daily={};
-    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); });
+    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); cnt[e.id].ow=0; cnt[e.id].fw=0; });
+
+    // blocs de formation au bureau, repartis sur les jours autorises de la semaine
+    const form={};
+    state.employees.forEach(e=>{
+      const F=e.formation; if(!F||!F.blocs.length||!F.jours.length)return;
+      const cand=openDays.filter(d=>worksOn(e,d)&&F.jours.includes(d.getDay())&&!ok(key(d),e.id));
+      if(!cand.length)return;
+      const off=wi%cand.length;
+      F.blocs.forEach((b,i)=>{
+        const kk=key(cand[(off+i)%cand.length])+'|'+e.id;
+        form[kk]=(form[kk]||0)+Math.round(b*60);
+      });
+    });
+    wi++;
 
     openDays.forEach(d=>{
       const k=key(d);
       const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&daily[e.id]>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
-      // ouverture : celui qui a le moins ouvert
-      pool.sort((a,b)=>(cnt[a.id].o-cnt[b.id].o)||(idx(a)-idx(b)));
-      const opener=pool.shift(); cnt[opener.id].o++;
-      // fermeture : celui qui a le moins fermé
+      // ouverture : jamais un apprenti en solo, sinon celle qui a le moins ouvert cette semaine
+      let elig=pool.filter(e=>!isAppr(e,d));
+      if(!elig.length) elig=pool.slice();
+      elig.sort((a,b)=>(cnt[a.id].ow-cnt[b.id].ow)||(cnt[a.id].o-cnt[b.id].o)||(idx(a)-idx(b)));
+      const opener=elig[0]; pool.splice(pool.indexOf(opener),1);
+      cnt[opener.id].o++; cnt[opener.id].ow++;
+      // fermeture : celle qui a le moins fermé cette semaine
       let closer=null;
       if(pool.length){
-        pool.sort((a,b)=>(cnt[a.id].f-cnt[b.id].f)||(idx(a)-idx(b)));
-        closer=pool.shift(); cnt[closer.id].f++;
+        pool.sort((a,b)=>(cnt[a.id].fw-cnt[b.id].fw)||(cnt[a.id].f-cnt[b.id].f)||(idx(a)-idx(b)));
+        closer=pool.shift(); cnt[closer.id].f++; cnt[closer.id].fw++;
       }
       const list=[];
       const add=(e,start)=>{
@@ -490,6 +514,24 @@ function generate(){
         }
         plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:c.breakMin,trim:!!o.trim};
       });
+      // formation : en debut ou en fin de journee, on retient ce qui couvre le mieux le magasin
+      list.forEach(o=>{
+        const kk=k+'|'+o.e.id, fm0=form[kk]; if(!fm0)return;
+        const sh=plan[kk];
+        const fm=Math.min(fm0,sh.end-sh.start-sh.brkMin);
+        const opts=[];
+        let bs=sh.brkStart;
+        opts.push({fs:sh.start,fe:sh.start+fm,bs:Math.min(Math.max(bs,sh.start+fm),sh.end-sh.brkMin)});
+        opts.push({fs:sh.end-fm,fe:sh.end,bs:Math.max(Math.min(bs,sh.end-fm-sh.brkMin),sh.start)});
+        let best=null,bsc=null;
+        opts.forEach(x=>{
+          sh.formStart=x.fs; sh.formEnd=x.fe; sh.brkStart=x.bs;
+          const sl=coverage(d);
+          const sc=[sl.filter(v=>!v).length,-Math.min(...sl),-sl.reduce((a,b)=>a+b,0)];
+          if(!bsc||sc[0]<bsc[0]||(sc[0]===bsc[0]&&(sc[1]<bsc[1]||(sc[1]===bsc[1]&&sc[2]<bsc[2])))){best=x;bsc=sc;}
+        });
+        sh.formStart=best.fs; sh.formEnd=best.fe; sh.brkStart=best.bs;
+      });
     });
   });
 }
@@ -514,7 +556,8 @@ function coverage(d){
       const s=shiftOf(d,e); if(s.type!=='travail')return;
       const inShift=t>=s.start&&t<s.end;
       const inBreak=s.brkMin>0&&t>=s.brkStart&&t<s.brkStart+s.brkMin;
-      if(inShift&&!inBreak)n++;
+      const inForm=s.formEnd&&t>=s.formStart&&t<s.formEnd;
+      if(inShift&&!inBreak&&!inForm)n++;
     });
     slots.push(n);
   }
@@ -530,10 +573,12 @@ function cellHTML(d,e,compact){
   }
   const L=x=>((x-open)/amp*100).toFixed(2), W=x=>(x/amp*100).toFixed(2);
   const brk=s.brkMin>0?`<i class="p" style="left:${L(s.brkStart)}%;width:${W(s.brkMin)}%"></i>`:'';
+  const frm=s.formEnd?`<i class="f" style="left:${L(s.formStart)}%;width:${W(s.formEnd-s.formStart)}%"></i>`:'';
+  const fl=s.formEnd?`<div class="s form">${compact?'form. '+dur(s.formEnd-s.formStart):'formation '+hm(s.formStart)+'–'+hm(s.formEnd)}</div>`:'';
   return `<div class="gc cell${edited}" data-d="${key(d)}" data-e="${e.id}">
-    <div class="bar"><i class="w" style="left:${L(s.start)}%;width:${W(s.end-s.start)}%;background:${e.color}"></i>${brk}</div>
+    <div class="bar"><i class="w" style="left:${L(s.start)}%;width:${W(s.end-s.start)}%;background:${e.color}"></i>${frm}${brk}</div>
     <div class="t">${hm(s.start)} – ${hm(s.end)}</div>
-    <div class="s">${s.brkMin?'pause '+hm(s.brkStart):''}${compact?'':(s.brkMin?' · ':'')+dur(workMin(s))}</div>
+    <div class="s">${s.brkMin?'pause '+hm(s.brkStart):''}${compact?'':(s.brkMin?' · ':'')+dur(workMin(s))}</div>${fl}
   </div>`;
 }
 function monthHTML(a){
@@ -663,7 +708,15 @@ function renderEmp(){
         </label>
         <span class="lab">du</span><input type="date" class="e-adeb" value="${e.appDebut||''}">
         <span class="lab">au</span><input type="date" class="e-afin" value="${e.appFin||''}">
-        <p class="sub">Un apprenti n'ouvre jamais et ne ferme jamais le magasin le même jour. Dates vides : la règle s'applique sur toute la période.</p>
+        <p class="sub">Un apprenti ne fait jamais l'ouverture en solo, et n'ouvre ni ne ferme deux fois le même jour. Dates vides : la règle vaut sur toute la période.</p>
+      </div>
+      <div class="appbox line">
+        <span class="lab">Formation au bureau</span>
+        <input type="text" class="e-fb" value="${(e.formation.blocs||[]).join(', ')}" placeholder="ex : 3, 2, 2" style="width:110px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">h par bloc</span>
+        <div class="dayset">${[1,2,3,4,5,6,0].map(i=>
+          `<label><input type="checkbox" class="e-fj" value="${i}"${e.formation.jours.includes(i)?' checked':''}> ${DSHORT[i]}</label>`).join('')}</div>
+        <p class="sub">Heures comprises dans le contrat, mais la personne n'est pas comptée sur la surface de vente. Les blocs sont posés sur des jours différents et tournent d'une semaine à l'autre.</p>
       </div>
     </div>`).join('');
   const c=state.config, amp=mn(c.close)-mn(c.open);
@@ -800,6 +853,10 @@ document.getElementById('applyEmp').onclick=()=>{
     e.apprenti=tr.querySelector('.e-appr').checked;
     e.appDebut=tr.querySelector('.e-adeb').value;
     e.appFin=tr.querySelector('.e-afin').value;
+    e.formation={
+      blocs:tr.querySelector('.e-fb').value.split(/[,;\s]+/).map(Number).filter(x=>x>0&&x<12),
+      jours:[...tr.querySelectorAll('.e-fj:checked')].map(i=>+i.value)
+    };
     const j=[...tr.querySelectorAll('.e-day:checked')].map(i=>+i.value);
     if(!j.length) vide=e.name; else e.jours=j;
   });
@@ -843,14 +900,15 @@ function dl(name,txt,type){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 document.getElementById('expCsv').onclick=()=>{
-  const rows=[['Date','Jour','Prenom','Apprenti','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures travaillees','Heures assimilees']];
+  const rows=[['Date','Jour','Prenom','Apprenti','Statut','Arrivee','Depart','Debut pause','Pause (min)','Heures travaillees','Heures assimilees','Formation debut','Formation fin']];
   allDays().forEach(d=>state.employees.forEach(e=>{
     const s=shiftOf(d,e);
     rows.push([key(d),DAYS[d.getDay()],e.name,isAppr(e,d)?'oui':'non',s.type,
       s.type==='travail'?hm(s.start):'',s.type==='travail'?hm(s.end):'',
       s.type==='travail'&&s.brkMin?hm(s.brkStart):'',s.type==='travail'?(s.brkMin||0):'',
       (workMin(s)/60).toFixed(2).replace('.',','),
-      (assimMin(d,e)/60).toFixed(2).replace('.',',')]);
+      (assimMin(d,e)/60).toFixed(2).replace('.',','),
+      s.formEnd?hm(s.formStart):'', s.formEnd?hm(s.formEnd):'']);
   }));
   dl('planning.csv','\uFEFF'+rows.map(r=>r.join(';')).join('\n'),'text/csv;charset=utf-8');
 };
