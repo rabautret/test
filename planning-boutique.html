@@ -86,6 +86,17 @@ button{cursor:pointer}
 .tot small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
 .tot.bad{color:var(--danger)}
 
+.gc.date{position:sticky;left:0;z-index:2;background:var(--surface);border-right:1px solid var(--line);font-size:13px}
+.gc.date.vac{background:var(--vac)}
+.gc.date.off{background:#F2F4F6;color:var(--muted)}
+.gc.date b{font-weight:600}
+.gc.date .n{font-size:11.5px;color:var(--muted)}
+.grid.mois .cell{min-height:44px;padding:6px 8px}
+.grid.mois .t{font-size:12.5px}
+.grid.mois .bar{height:6px;margin-bottom:4px}
+.gc.hors{background:#F7F8F9;color:#AAB4BC;font-size:12px}
+.gc.mtot{font-size:13px;font-weight:600;text-align:center}
+.gc.mtot small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 .cov{display:flex;align-items:flex-end;gap:1px;height:26px}
 .cov b{flex:1;background:var(--accent);opacity:.85;border-radius:1px;min-height:2px}
 .cov b.zero{background:var(--danger);opacity:.5}
@@ -183,6 +194,10 @@ h2.sec:first-child{margin-top:0}
           <div class="label" id="weeklabel">—</div>
           <button id="next" title="Semaine suivante">›</button>
           <button class="btn ghost" id="today">Aujourd'hui</button>
+          <div class="seg" id="modeSeg" style="margin:0">
+            <button data-m="semaine" aria-pressed="true">Semaine</button>
+            <button data-m="mois" aria-pressed="false">Mois</button>
+          </div>
         </div>
         <div class="acts">
           <button class="btn" id="regenWeek">Regénérer la semaine</button>
@@ -505,7 +520,7 @@ function coverage(d){
   }
   return slots;
 }
-function cellHTML(d,e){
+function cellHTML(d,e,compact){
   const s=shiftOf(d,e), c=state.config, open=mn(c.open), amp=mn(c.close)-open;
   const edited=ok(key(d),e.id)?' edited':'';
   if(s.type!=='travail'){
@@ -518,8 +533,41 @@ function cellHTML(d,e){
   return `<div class="gc cell${edited}" data-d="${key(d)}" data-e="${e.id}">
     <div class="bar"><i class="w" style="left:${L(s.start)}%;width:${W(s.end-s.start)}%;background:${e.color}"></i>${brk}</div>
     <div class="t">${hm(s.start)} – ${hm(s.end)}</div>
-    <div class="s">${s.brkMin?'pause '+hm(s.brkStart)+' · ':''}${dur(workMin(s))}</div>
+    <div class="s">${s.brkMin?'pause '+hm(s.brkStart):''}${compact?'':(s.brkMin?' · ':'')+dur(workMin(s))}</div>
   </div>`;
+}
+function monthHTML(a){
+  const y=a.getFullYear(), mo=a.getMonth();
+  const last=new Date(y,mo+1,0);
+  const ps=parse(state.config.start), pe=parse(state.config.end);
+  const cols=`118px repeat(${state.employees.length},minmax(104px,1fr)) 96px`;
+  const today=key(new Date());
+  let h=`<div class="gc head name">Jour</div>`;
+  state.employees.forEach(e=>{
+    h+=`<div class="gc head"><div class="d"><i class="dot" style="background:${e.color};display:inline-block;margin-right:5px"></i>${esc(e.name)}</div><div class="n">${e.hours} h${e.apprenti?' · apprenti':''}</div></div>`;
+  });
+  h+=`<div class="gc head"><div class="d">Couverture</div><div class="n">${state.config.open}–${state.config.close}</div></div>`;
+  const tot={}; state.employees.forEach(e=>tot[e.id]={w:0,a:0});
+  for(let d=new Date(y,mo,1); d<=last; d=addD(d,1)){
+    const inP=d>=ps&&d<=pe, opn=isOpenDay(d), f=ferieName(d), v=vacOf(d);
+    const cl=['gc','date',v?'vac':'',!opn?'off':'',key(d)===today?'today':''].join(' ');
+    h+=`<div class="${cl}"><b>${DSHORT[d.getDay()]} ${d.getDate()}</b><div class="n">${f||(opn?'':'fermé')}</div></div>`;
+    if(!inP){
+      state.employees.forEach(()=>h+=`<div class="gc hors">hors période</div>`);
+      h+=`<div class="gc hors"></div>`; continue;
+    }
+    state.employees.forEach(e=>{ h+=cellHTML(d,e,true); tot[e.id].w+=workMin(shiftOf(d,e)); tot[e.id].a+=assimMin(d,e); });
+    if(!opn){ h+=`<div class="gc hors">—</div>`; continue; }
+    const sl=coverage(d), gap=sl.filter(x=>x===0).length, n=state.employees.filter(e=>shiftOf(d,e).type==='travail').length;
+    h+=`<div class="gc mtot">${n} pers.<small class="${gap?'':''}" ${gap?'style="color:var(--danger)"':''}>${gap?gap/2+' h vide':'sans trou'}</small></div>`;
+  }
+  h+=`<div class="gc date"><b>Total du mois</b></div>`;
+  state.employees.forEach(e=>{
+    const t=tot[e.id];
+    h+=`<div class="gc mtot">${dur(t.w+t.a)}<small>${t.a?dur(t.w)+' + '+dur(t.a)+' assim.':'travaillées'}</small></div>`;
+  });
+  h+=`<div class="gc"></div>`;
+  return `<div class="grid mois" style="grid-template-columns:${cols}">${h}</div>`;
 }
 function gridHTML(ws){
   const ds=weekDays(ws), cols=`160px repeat(${ds.length},minmax(118px,1fr)) 108px`;
@@ -552,27 +600,42 @@ function gridHTML(ws){
 }
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
+let mode='semaine';
 function renderPlanning(){
-  const ws=cursor, we=addD(ws,6);
-  document.getElementById('weeklabel').innerHTML=
-    `Semaine du ${fdate(ws)}<small>au ${fdate(we)} ${we.getFullYear()}</small>`;
-  const s=parse(state.config.start),e=parse(state.config.end);
-  document.getElementById('prev').disabled=addD(ws,-1)<weekStart(s);
-  document.getElementById('next').disabled=addD(ws,7)>e;
-
+  const ps=parse(state.config.start), pe=parse(state.config.end);
   const fl=[]; const seen=new Set();
-  weekDays(ws).forEach(d=>{
+  let jours;
+
+  if(mode==='mois'){
+    const y=cursor.getFullYear(), mo=cursor.getMonth();
+    document.getElementById('weeklabel').innerHTML=
+      `${MONTHS[mo][0].toUpperCase()+MONTHS[mo].slice(1)} ${y}<small>vue mensuelle</small>`;
+    document.getElementById('prev').disabled=new Date(y,mo,0)<ps;
+    document.getElementById('next').disabled=new Date(y,mo+1,1)>pe;
+    jours=[]; const last=new Date(y,mo+1,0);
+    for(let d=new Date(y,mo,1); d<=last; d=addD(d,1)) if(d>=ps&&d<=pe) jours.push(new Date(d));
+    document.getElementById('scroller').innerHTML=monthHTML(cursor);
+  } else {
+    const ws=weekStart(cursor), we=addD(ws,6);
+    document.getElementById('weeklabel').innerHTML=
+      `Semaine du ${fdate(ws)}<small>au ${fdate(we)} ${we.getFullYear()}</small>`;
+    document.getElementById('prev').disabled=addD(ws,-1)<weekStart(ps);
+    document.getElementById('next').disabled=addD(ws,7)>pe;
+    jours=weekDays(ws);
+    document.getElementById('scroller').innerHTML=gridHTML(ws);
+  }
+
+  document.getElementById('regenWeek').textContent=mode==='mois'?'Regénérer le mois':'Regénérer la semaine';
+  jours.forEach(d=>{
     const v=vacOf(d); if(v&&!seen.has('v'+v.id)){seen.add('v'+v.id);fl.push(`<span class="flag">Vacances de ${esc(v.nom)} — zone B</span>`);}
     const f=ferieName(d); if(f)fl.push(`<span class="flag ferie">${f} — ${DSHORT[d.getDay()]} ${d.getDate()}${state.config.closeOnFerie?' · fermé':''}</span>`);
   });
-  weekDays(ws).filter(isOpenDay).forEach(d=>{
+  jours.filter(isOpenDay).forEach(d=>{
     const pres=state.employees.filter(e=>shiftOf(d,e).type==='travail');
-    if(!pres.length)return;
-    if(pres.every(e=>isAppr(e,d)))
-      fl.push(`<span class="flag ferie">Apprenti seul ${DSHORT[d.getDay()]} ${d.getDate()} — le magasin ne peut pas être ouvert de bout en bout</span>`);
+    if(pres.length&&pres.every(e=>isAppr(e,d)))
+      fl.push(`<span class="flag ferie">Apprenti seul ${DSHORT[d.getDay()]} ${d.getDate()} — ouverture impossible de bout en bout</span>`);
   });
   document.getElementById('flags').innerHTML=fl.join('');
-  document.getElementById('scroller').innerHTML=gridHTML(ws);
 }
 
 /* ================= vues équipe / réglages ================= */
@@ -684,14 +747,30 @@ document.querySelector('.tabs').addEventListener('click',ev=>{
 document.body.addEventListener('click',ev=>{
   const c=ev.target.closest('.cell'); if(c&&c.closest('#view-planning'))openModal(c.dataset.d,c.dataset.e);
 });
-prev.onclick=()=>{cursor=addD(cursor,-7);renderPlanning();};
-next.onclick=()=>{cursor=addD(cursor,7);renderPlanning();};
+prev.onclick=()=>{cursor=mode==='mois'?new Date(cursor.getFullYear(),cursor.getMonth()-1,1):addD(cursor,-7);renderPlanning();};
+next.onclick=()=>{cursor=mode==='mois'?new Date(cursor.getFullYear(),cursor.getMonth()+1,1):addD(cursor,7);renderPlanning();};
+document.getElementById('modeSeg').addEventListener('click',ev=>{
+  const b=ev.target.closest('button'); if(!b)return;
+  mode=b.dataset.m;
+  document.querySelectorAll('#modeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  if(mode==='mois') cursor=new Date(cursor.getFullYear(),cursor.getMonth(),1);
+  renderPlanning();
+});
 today.onclick=()=>{
   const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
-  cursor=n<s?s:(n>e?weekStart(e):n); renderPlanning();
+  cursor=n<s?s:(n>e?weekStart(e):n);
+  if(mode==='mois'){const t=new Date();cursor=new Date(t.getFullYear(),t.getMonth(),1);
+    if(cursor<s)cursor=new Date(s.getFullYear(),s.getMonth(),1);
+    if(cursor>e)cursor=new Date(e.getFullYear(),e.getMonth(),1);}
+  renderPlanning();
 };
 document.getElementById('regenWeek').onclick=()=>{
-  weekDays(cursor).forEach(d=>state.employees.forEach(e=>delete state.overrides[key(d)+'|'+e.id]));
+  let js;
+  if(mode==='mois'){
+    js=[]; const y=cursor.getFullYear(),mo=cursor.getMonth(),last=new Date(y,mo+1,0);
+    for(let d=new Date(y,mo,1);d<=last;d=addD(d,1)) js.push(new Date(d));
+  } else js=weekDays(weekStart(cursor));
+  js.forEach(d=>state.employees.forEach(e=>delete state.overrides[key(d)+'|'+e.id]));
   generate(); renderPlanning(); save();
 };
 document.getElementById('regenAll').onclick=()=>{
