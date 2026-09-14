@@ -389,7 +389,7 @@ const STORE_KEY='planning-boutique-v2';
 
 function emp(name,jours,i,opt){
   return Object.assign({id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],
-    apprenti:false,appDebut:'',appFin:'',finMax:'',congesJours:6,hoursMin:30,hoursMax:39,
+    apprenti:false,appDebut:'',appFin:'',finMax:'',congesJours:6,hoursMin:28,hoursMax:44,
     formation:{blocs:[],jours:[]}},opt||{});
 }
 function migrate(e,i){
@@ -401,8 +401,8 @@ function migrate(e,i){
   if(e.finMax===undefined) e.finMax='';
   if(!e.congesJours) e.congesJours=6;
   if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; }
-  if(e.hoursMin===undefined||e.hoursMin===null) e.hoursMin=Math.max(0,e.hours-5);
-  if(e.hoursMax===undefined||e.hoursMax===null||e.hoursMax<=e.hours) e.hoursMax=e.hours+4;
+  if(e.hoursMin===undefined||e.hoursMin===null) e.hoursMin=28;
+  if(e.hoursMax===undefined||e.hoursMax===null||e.hoursMax<=e.hours) e.hoursMax=44;
   if(!e.formation||!Array.isArray(e.formation.blocs)) e.formation={blocs:[],jours:[]};
   if(!Array.isArray(e.formation.jours)) e.formation.jours=[];
   if(!e.color) e.color=PAL[i%PAL.length];
@@ -459,7 +459,7 @@ function defaults(){
       emp('Delphine',[1,2,3,5,6],0),
       emp('Gaelle',[2,3,4,5,6],1),
       emp('Marta',[1,2,4,5,6],2),
-      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,finMax:'19:00',hoursMin:35,hoursMax:35,formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
+      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,finMax:'19:00',hoursMin:35,hoursMax:35,formation:{blocs:[3,2,2],jours:[1,2,4,5]}})
     ],
     vacances:[
       {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
@@ -516,7 +516,9 @@ function generate(){
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
-  let wi=0;
+  let wi=0, prevOpen=null;
+  const roleLast={};   // empId -> {k, type} dernier jour ou la personne a ouvert ou ferme
+  const histo={};      // "empId|jourDeSemaine" -> 3 dernieres semaines, pour ne pas tourner en rond
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
     const daily={};
@@ -545,41 +547,116 @@ function generate(){
       }
     });
     wi++;
+    const sem=wi;
 
-    openDays.forEach(d=>{
+    // ---- Repartition des ouvertures et des fermetures sur toute la semaine ----
+    // Choisir jour apres jour est trop myope : on evalue la semaine entiere et on
+    // corrige par ameliorations successives. Le cout penalise les enchainements
+    // d'un jour sur l'autre et l'ecart d'equite, et interdit de fait un poste vide.
+    const jours=openDays.map(d=>({d,k:key(d),
+      pool:state.employees.filter(e=>worksOn(e,d)&&!ok(key(d),e.id)&&!congeOf(e,d)&&daily[e.id]>0)}));
+    const optionsJour=j=>{
+      const P=j.pool, na=e=>!isAppr(e,j.d), out=[];
+      const ajoute=(op,co,cl,cf)=>out.push({opener:op||null,co:co||null,closer:cl||null,cf:cf||null});
+      const ops=P.concat([null]);
+      ops.forEach(op=>{
+        const r1=P.filter(e=>e!==op);
+        const cos=(op&&isAppr(op,j.d))?r1.filter(na):[null];
+        cos.forEach(co=>{
+          if(op&&isAppr(op,j.d)&&!co)return;
+          const r2=r1.filter(e=>e!==co);
+          r2.concat([null]).forEach(cl=>{
+            if(!cl){ if(op||co)ajoute(op,co,null,null); return; }
+            const r3=r2.filter(e=>e!==cl);
+            if(isAppr(cl,j.d)){ const cfs=r3.filter(na); cfs.forEach(cf=>ajoute(op,co,cl,cf)); }
+            else ajoute(op,co,cl,null);
+          });
+        });
+      });
+      if(!out.length)ajoute(null,null,null,null);
+      return out;
+    };
+    const roleMap=x=>{
+      const r={};
+      if(x.opener)r[x.opener.id]='o'; if(x.co)r[x.co.id]='o';
+      if(x.closer)r[x.closer.id]='f'; if(x.cf)r[x.cf.id]='f';
+      return r;
+    };
+    const cout=ch=>{
+      let c=0; const O={},F={};
+      state.employees.forEach(e=>{O[e.id]=cnt[e.id].o;F[e.id]=cnt[e.id].f;});
+      ch.forEach((x,i)=>{
+        if(!x)return;
+        if(!x.opener)c+=60; if(!x.closer)c+=60;
+        if(x.opener)O[x.opener.id]++; if(x.co)O[x.co.id]++;
+        if(x.closer)F[x.closer.id]++; if(x.cf)F[x.cf.id]++;
+        // eviter de refaire exactement le meme jour le meme role que la semaine derniere
+        const jd=jours[i].d.getDay(), R=roleMap(x);
+        for(const id in R){
+          // Repeter une fois passe encore, deux ou trois semaines de suite non :
+          // le cout croit au carre pour casser les habitudes qui s'installent.
+          let pareil=0, present=0;
+          (histo[id+'|'+jd]||[]).forEach(v=>{
+            const age=sem-v.wi;
+            if(age<1||age>3)return;
+            present++; if(v.type===R[id])pareil++;
+          });
+          c+=2*pareil*pareil+present;
+        }
+      });
+      for(let i=1;i<ch.length;i++){
+        if(!ch[i]||!ch[i-1])continue;
+        if((jours[i].d-jours[i-1].d)/86400000>1)continue;
+        const A=roleMap(ch[i-1]), B=roleMap(ch[i]);
+        for(const id in A) if(B[id]) c+=(A[id]==='f'&&B[id]==='o')?60:(A[id]===B[id]?20:1);
+      }
+      const varia=a=>{const v=state.employees.map(e=>a[e.id]);
+        const m=v.reduce((x,y)=>x+y,0)/(v.length||1);
+        return v.reduce((t,x)=>t+(x-m)*(x-m),0);};
+      return c+3*(varia(O)+varia(F));
+    };
+    const opts=jours.map(optionsJour);
+    // Plusieurs departs differents puis ameliorations successives : sans cela la recherche
+    // se bloque dans un compromis mediocre. Le tirage est deterministe pour que deux
+    // generations de suite donnent le meme planning.
+    let graine=wi*7919+13;
+    const rnd=n=>{graine=(graine*1103515245+12345)&0x7fffffff;return graine%n;};
+    let choix=null, meilleur=Infinity;
+    for(let essai=0;essai<12;essai++){
+      const c2=opts.map((o,i)=>essai===0?o[0]:o[rnd(o.length)]);
+      for(let pass=0;pass<10;pass++){
+        let bouge=false;
+        for(let i=0;i<jours.length;i++){
+          const avant=c2[i]; let best=avant, bc=cout(c2);
+          opts[i].forEach(o=>{ c2[i]=o; const c=cout(c2); if(c<bc-1e-9){bc=c;best=o;} });
+          c2[i]=best; if(best!==avant)bouge=true;
+        }
+        if(!bouge)break;
+      }
+      const c=cout(c2);
+      if(c<meilleur){meilleur=c;choix=c2;}
+    }
+    choix.forEach((x,i)=>{
+      const jd=jours[i].d.getDay(), R=roleMap(x);
+      for(const id in R){
+        const kk=id+'|'+jd;
+        histo[kk]=(histo[kk]||[]).concat({wi:sem,type:R[id]}).slice(-3);
+      }
+      if(x.opener){cnt[x.opener.id].o++;cnt[x.opener.id].ow++;}
+      if(x.co){cnt[x.co.id].o++;cnt[x.co.id].ow++;}
+      if(x.closer){cnt[x.closer.id].f++;cnt[x.closer.id].fw++;}
+      if(x.cf){cnt[x.cf.id].f++;cnt[x.cf.id].fw++;}
+    });
+
+    openDays.forEach((d,iJour)=>{
       const k=key(d);
       const {o:open,c:close}=dayHours(d), amp=close-open;
       const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&!congeOf(e,d)&&daily[e.id]>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
-      // Un apprenti prend sa part des ouvertures et des fermetures, mais jamais seul :
-      // il faut alors une collegue qui arrive a 9h ou qui reste jusqu'a 19h avec lui.
-      // Les compteurs comptent les arrivees a l'ouverture et les departs a la fermeture,
-      // accompagnements compris, pour que la charge reelle soit equilibree.
-      const prendre=(cands,comp)=>{
-        const l=cands.slice().sort((a,b)=>
-          (cnt[a.id][comp+'w']-cnt[b.id][comp+'w'])||(cnt[a.id][comp]-cnt[b.id][comp])||(idx(a)-idx(b)));
-        const e=l[0]; if(!e)return null;
-        pool.splice(pool.indexOf(e),1); cnt[e.id][comp]++; cnt[e.id][comp+'w']++;
-        return e;
-      };
-      const nonAppr=()=>pool.filter(e=>!isAppr(e,d));
-      // Un apprenti n'est designe a l'ouverture que s'il reste une non-apprentie pour
-      // l'accompagner ET quelqu'un pour fermer. Le renfort est reserve immediatement.
-      // Regle absolue : un apprenti n'est designe que si une non-apprentie peut l'accompagner.
-      // Si personne ne peut, on prefere laisser l'ouverture ou la fermeture decouverte et le signaler.
-      const eligO=(pool.length>=3&&nonAppr().length)?pool.slice():nonAppr();
-      const opener=eligO.length?prendre(eligO,'o'):null;
-      let co=null;
-      if(opener&&isAppr(opener,d)&&nonAppr().length) co=prendre(nonAppr(),'o');
-      let closer=null, cf=null;
-      if(pool.length){
-        const eligF=(pool.length>=2&&nonAppr().length)?pool.slice():nonAppr();
-        if(eligF.length){
-          closer=prendre(eligF,'f');
-          if(isAppr(closer,d)&&nonAppr().length) cf=prendre(nonAppr(),'f');
-        }
-      }
+      const plan_=choix[iJour]||{opener:null,co:null,closer:null,cf:null};
+      const opener=plan_.opener, co=plan_.co, closer=plan_.closer, cf=plan_.cf;
+      [opener,co,closer,cf].forEach(e=>{ if(e)pool.splice(pool.indexOf(e),1); });
 
       const list=[];
       const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-open));
@@ -594,7 +671,10 @@ function generate(){
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
         const win=Math.max(0,(limOf(e,d)-open)-ampOf(e));
-        add(e,open+r15(win*(i+1)/(mid.length+1)));
+        const pas=win/(mid.length+1);
+        // decalage deterministe pour que les horaires ne soient pas figes d'une semaine a l'autre
+        const r=(((sem*31+iJour*17+idx(e)*7)%7)-3)/3;
+        add(e,open+r15(pas*(i+1)+r*pas*0.75));
       });
       // regle apprenti : jamais l'ouverture ET la fermeture le meme jour
       list.forEach(o=>{
@@ -626,6 +706,11 @@ function generate(){
         }
       }
       list.forEach(o=>{ used[o.e.id]+=o.a-c.breakMin; });
+      if(opener) roleLast[opener.id]={k,type:'o'};
+      if(co) roleLast[co.id]={k,type:'o'};
+      if(closer) roleLast[closer.id]={k,type:'f'};
+      if(cf) roleLast[cf.id]={k,type:'f'};
+      prevOpen=k;
       // pauses echelonnees : jamais deux personnes en pause en meme temps
       list.sort((x,y)=>x.s-y.s);
       let nextB=0;
@@ -1249,6 +1334,13 @@ document.getElementById('printAllBtn').onclick=()=>{
     if((state.config.v||0)<3){
       state.config.hours=defaults().config.hours; state.config.v=3;
       state.config.open='09:00'; state.config.close='19:10';
+    }
+    if((state.config.v||0)<4){
+      state.employees.forEach(e=>{
+        if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; e.formation.jours=[1,2,4,5]; }
+        else { e.hoursMin=28; e.hoursMax=44; }
+      });
+      state.config.v=4;
     }
   }
   const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
