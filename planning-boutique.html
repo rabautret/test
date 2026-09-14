@@ -440,7 +440,7 @@ function generate(){
   plan={};
   const c=state.config, open=mn(c.open), close=mn(c.close), amp=close-open;
   const maxWork=Math.max(60,amp-c.breakMin);
-  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
+  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0,ac:0,acw:0});
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
@@ -448,7 +448,7 @@ function generate(){
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
     const daily={};
-    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); cnt[e.id].ow=0; cnt[e.id].fw=0; });
+    state.employees.forEach(e=>{ daily[e.id]=Math.min(nominal(e),maxWork); cnt[e.id].ow=0; cnt[e.id].fw=0; cnt[e.id].acw=0; });
 
     // blocs de formation au bureau, repartis sur les jours autorises de la semaine
     const form={};
@@ -469,9 +469,13 @@ function generate(){
       const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&daily[e.id]>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
-      // ouverture : jamais un apprenti en solo, sinon celle qui a le moins ouvert cette semaine
-      let elig=pool.filter(e=>!isAppr(e,d));
-      if(!elig.length) elig=pool.slice();
+      // ouverture : tout le monde y passe, apprentie comprise, mais elle n'ouvre jamais seule,
+      // donc il faut au moins trois personnes ce jour-la pour pouvoir la designer
+      let elig=pool.slice();
+      if(pool.length<3){
+        const sansAppr=pool.filter(e=>!isAppr(e,d));
+        if(sansAppr.length) elig=sansAppr;
+      }
       elig.sort((a,b)=>(cnt[a.id].ow-cnt[b.id].ow)||(cnt[a.id].o-cnt[b.id].o)||(idx(a)-idx(b)));
       const opener=elig[0]; pool.splice(pool.indexOf(opener),1);
       cnt[opener.id].o++; cnt[opener.id].ow++;
@@ -481,12 +485,19 @@ function generate(){
         pool.sort((a,b)=>(cnt[a.id].fw-cnt[b.id].fw)||(cnt[a.id].f-cnt[b.id].f)||(idx(a)-idx(b)));
         closer=pool.shift(); cnt[closer.id].f++; cnt[closer.id].fw++;
       }
+      // si l'apprentie ouvre, une collegue arrive a la meme heure qu'elle
+      let co=null;
+      if(isAppr(opener,d)&&pool.length){
+        pool.sort((a,b)=>(cnt[a.id].acw-cnt[b.id].acw)||(cnt[a.id].ac-cnt[b.id].ac)||(idx(a)-idx(b)));
+        co=pool.shift(); cnt[co.id].ac++; cnt[co.id].acw++;
+      }
       const list=[];
       const add=(e,start)=>{
         const a=daily[e.id]+c.breakMin;
         list.push({e,s:Math.max(open,Math.min(start,close-a)),a});
       };
       add(opener,open);
+      if(co) add(co,open);
       if(closer) add(closer,close-(daily[closer.id]+c.breakMin));
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
@@ -523,8 +534,11 @@ function generate(){
         let bs=sh.brkStart;
         opts.push({fs:sh.start,fe:sh.start+fm,bs:Math.min(Math.max(bs,sh.start+fm),sh.end-sh.brkMin)});
         opts.push({fs:sh.end-fm,fe:sh.end,bs:Math.max(Math.min(bs,sh.end-fm-sh.brkMin),sh.start)});
+        let cands=opts;
+        if(sh.start<=open&&sh.end<close) cands=[opts[1]];
+        else if(sh.end>=close&&sh.start>open) cands=[opts[0]];
         let best=null,bsc=null;
-        opts.forEach(x=>{
+        cands.forEach(x=>{
           sh.formStart=x.fs; sh.formEnd=x.fe; sh.brkStart=x.bs;
           const sl=coverage(d);
           const sc=[sl.filter(v=>!v).length,-Math.min(...sl),-sl.reduce((a,b)=>a+b,0)];
@@ -708,7 +722,7 @@ function renderEmp(){
         </label>
         <span class="lab">du</span><input type="date" class="e-adeb" value="${e.appDebut||''}">
         <span class="lab">au</span><input type="date" class="e-afin" value="${e.appFin||''}">
-        <p class="sub">Un apprenti ne fait jamais l'ouverture en solo, et n'ouvre ni ne ferme deux fois le même jour. Dates vides : la règle vaut sur toute la période.</p>
+        <p class="sub">Un apprenti participe au roulement des ouvertures et des fermetures, mais n'ouvre jamais seul : une collègue arrive à la même heure. Il n'assure pas l'ouverture et la fermeture le même jour. Dates vides : la règle vaut sur toute la période.</p>
       </div>
       <div class="appbox line">
         <span class="lab">Formation au bureau</span>
