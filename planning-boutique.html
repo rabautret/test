@@ -383,7 +383,7 @@ const STORE_KEY='planning-boutique-v2';
 
 function emp(name,jours,i,opt){
   return Object.assign({id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],
-    apprenti:false,appDebut:'',appFin:'',formation:{blocs:[],jours:[]}},opt||{});
+    apprenti:false,appDebut:'',appFin:'',finMax:'',formation:{blocs:[],jours:[]}},opt||{});
 }
 function migrate(e,i){
   if(!Array.isArray(e.jours)) e.jours=[1,2,3,4,5,6].filter(x=>x!==e.rest);
@@ -391,12 +391,15 @@ function migrate(e,i){
   if(typeof e.apprenti!=='boolean') e.apprenti=false;
   if(e.appDebut===undefined) e.appDebut='';
   if(e.appFin===undefined) e.appFin='';
+  if(e.finMax===undefined) e.finMax='';
   if(!e.formation||!Array.isArray(e.formation.blocs)) e.formation={blocs:[],jours:[]};
   if(!Array.isArray(e.formation.jours)) e.formation.jours=[];
   if(!e.color) e.color=PAL[i%PAL.length];
   return e;
 }
 const worksOn=(e,d)=>e.jours.includes(d.getDay());
+// heure a laquelle la personne doit avoir termine, qui peut etre plus tot que la fermeture
+const limOf=e=>{const c=mn(state.config.close); return e.finMax?Math.min(mn(e.finMax),c):c;};
 // duree theorique d une journee = heures hebdo / nb de jours de la semaine type
 function nominal(e){
   const n=e.jours.filter(i=>state.config.days.includes(i)).length;
@@ -421,7 +424,7 @@ function defaults(){
       emp('Delphine',[1,2,3,5,6],0),
       emp('Gaelle',[2,3,4,5,6],1),
       emp('Marta',[1,2,4,5,6],2),
-      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
+      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,finMax:'19:00',formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
     ],
     vacances:[
       {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
@@ -530,24 +533,25 @@ function generate(){
       if(opener&&isAppr(opener,d)&&nonAppr().length) co=prendre(nonAppr(),'o');
       if(closer&&isAppr(closer,d)&&nonAppr().length) cf=prendre(nonAppr(),'f');
       const list=[];
+      const ampOf=e=>Math.min(daily[e.id]+c.breakMin,limOf(e)-open);
       const add=(e,start)=>{
-        const a=daily[e.id]+c.breakMin;
-        list.push({e,s:Math.max(open,Math.min(start,close-a)),a});
+        const a=ampOf(e);
+        list.push({e,s:Math.max(open,Math.min(start,limOf(e)-a)),a});
       };
       add(opener,open);
       if(co) add(co,open);
-      if(closer) add(closer,close-(daily[closer.id]+c.breakMin));
-      if(cf) add(cf,close-(daily[cf.id]+c.breakMin));
+      if(closer) add(closer,limOf(closer)-ampOf(closer));
+      if(cf) add(cf,close-ampOf(cf));
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
-        const a=daily[e.id]+c.breakMin, win=Math.max(0,amp-a);
+        const win=Math.max(0,(limOf(e)-open)-ampOf(e));
         add(e,open+r15(win*(i+1)/(mid.length+1)));
       });
       // regle apprenti : jamais l'ouverture ET la fermeture le meme jour
       list.forEach(o=>{
         if(!isAppr(o.e,d))return;
-        if(o.s<=open&&o.s+o.a>=close){
-          o.a=Math.max(60,amp-30); o.s=open; o.trim=true;
+        if(o.s<=open&&o.s+o.a>=limOf(o.e)){
+          o.a=Math.max(60,limOf(o.e)-open-30); o.s=open; o.trim=true;
         }
       });
       // pauses echelonnees : jamais deux personnes en pause en meme temps
@@ -574,8 +578,8 @@ function generate(){
         opts.push({fs:sh.start,fe:sh.start+fm,bs:Math.min(Math.max(bs,sh.start+fm),sh.end-sh.brkMin)});
         opts.push({fs:sh.end-fm,fe:sh.end,bs:Math.max(Math.min(bs,sh.end-fm-sh.brkMin),sh.start)});
         let cands=opts;
-        if(sh.start<=open&&sh.end<close) cands=[opts[1]];
-        else if(sh.end>=close&&sh.start>open) cands=[opts[0]];
+        if(sh.start<=open&&sh.end<limOf(o.e)) cands=[opts[1]];
+        else if(sh.end>=limOf(o.e)&&sh.start>open) cands=[opts[0]];
         let best=null,bsc=null;
         cands.forEach(x=>{
           sh.formStart=x.fs; sh.formEnd=x.fe; sh.brkStart=x.bs;
@@ -678,7 +682,7 @@ function gridHTML(ws){
   });
   h+=`<div class="gc head"><div class="d">Total</div><div class="n">semaine</div></div>`;
   state.employees.forEach(e=>{
-    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}</div></div></div></div>`;
+    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}${e.finMax?' · fin '+e.finMax:''}</div></div></div></div>`;
     let tot=0,assim=0;
     ds.forEach(d=>{ h+=cellHTML(d,e); tot+=workMin(shiftOf(d,e)); assim+=assimMin(d,e); });
     const grand=tot+assim, diff=grand-e.hours*60;
@@ -750,6 +754,9 @@ function renderEmp(){
       <div class="line">
         <span class="lab">Heures par semaine</span>
         <input type="number" class="e-hours" min="1" max="48" step="0.5" value="${e.hours}" style="width:80px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">Fin au plus tard</span>
+        <input type="time" class="e-finmax" value="${e.finMax||''}" style="border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab" style="flex-basis:100%;margin:0">Vide : elle termine à l'heure de fermeture du magasin. Renseignée, elle ne dépasse jamais cette heure, même quand elle est désignée pour la fermeture — c'est alors la collègue qui l'accompagne qui reste jusqu'au rideau.</span>
       </div>
       <div class="line">
         <span class="lab">Semaine type</span>
@@ -827,7 +834,10 @@ function setType(t){
 const curType=()=>mType.querySelector('[aria-pressed="true"]').dataset.t;
 function calc(){
   const w=Math.max(0,mn(mEnd.value)-mn(mStart.value)-(+mBm.value||0));
-  mCalc.textContent=`Temps de travail effectif : ${dur(w)}.`;
+  const e=mCtx&&state.employees.find(x=>x.id===mCtx.eid);
+  const over=e&&e.finMax&&mn(mEnd.value)>mn(e.finMax);
+  mCalc.innerHTML=`Temps de travail effectif : ${dur(w)}.`
+    +(over?` <b style="color:var(--danger)">Au-delà de son heure de fin (${e.finMax}).</b>`:'');
 }
 ['input','change'].forEach(ev=>['mStart','mEnd','mBm'].forEach(id=>document.getElementById(id).addEventListener(ev,calc)));
 mType.addEventListener('click',ev=>{const b=ev.target.closest('button');if(b)setType(b.dataset.t);});
@@ -903,6 +913,7 @@ document.getElementById('applyEmp').onclick=()=>{
     e.name=tr.querySelector('.e-name').value.trim()||'Sans nom';
     e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
     e.color=tr.querySelector('.e-color').value;
+    e.finMax=tr.querySelector('.e-finmax').value;
     e.apprenti=tr.querySelector('.e-appr').checked;
     e.appDebut=tr.querySelector('.e-adeb').value;
     e.appFin=tr.querySelector('.e-afin').value;
