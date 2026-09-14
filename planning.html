@@ -294,7 +294,7 @@ h2.sec:first-child{margin-top:0}
 
       <h2 class="sec">Congés des employés</h2>
       <div id="congesBox"></div>
-      <p class="note">Les dates sont comprises, début et fin inclus. Une journée de congé posée sur un jour normalement travaillé est comptée à la durée habituelle de la journée, et la personne sort du planning ce jour-là. Tout est enregistré automatiquement.</p>
+      <p class="note">Les dates sont comprises, début et fin inclus. Le décompte suit la base choisie dans la fiche de chaque personne : à 6 jours, une semaine complète marque du lundi au samedi et le jour de repos disparaît ; à 5 jours, le repos hebdomadaire reste affiché. Dans les deux cas le total d'heures de la semaine reste inchangé, seul le nombre de jours posés change. Une journée de congé posée sur un jour normalement travaillé est comptée à la durée habituelle de la journée, et la personne sort du planning ce jour-là. Tout est enregistré automatiquement.</p>
 
       <h2 class="sec">Sauvegarde</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -389,7 +389,8 @@ const STORE_KEY='planning-boutique-v2';
 
 function emp(name,jours,i,opt){
   return Object.assign({id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],
-    apprenti:false,appDebut:'',appFin:'',finMax:'',formation:{blocs:[],jours:[]}},opt||{});
+    apprenti:false,appDebut:'',appFin:'',finMax:'',congesJours:6,hoursMin:30,hoursMax:39,
+    formation:{blocs:[],jours:[]}},opt||{});
 }
 function migrate(e,i){
   if(!Array.isArray(e.jours)) e.jours=[1,2,3,4,5,6].filter(x=>x!==e.rest);
@@ -398,12 +399,19 @@ function migrate(e,i){
   if(e.appDebut===undefined) e.appDebut='';
   if(e.appFin===undefined) e.appFin='';
   if(e.finMax===undefined) e.finMax='';
+  if(!e.congesJours) e.congesJours=6;
+  if(e.hoursMin===undefined||e.hoursMin===null) e.hoursMin=Math.max(0,e.hours-5);
+  if(e.hoursMax===undefined||e.hoursMax===null||e.hoursMax<=e.hours) e.hoursMax=e.hours+4;
   if(!e.formation||!Array.isArray(e.formation.blocs)) e.formation={blocs:[],jours:[]};
   if(!Array.isArray(e.formation.jours)) e.formation.jours=[];
   if(!e.color) e.color=PAL[i%PAL.length];
   return e;
 }
 const worksOn=(e,d)=>e.jours.includes(d.getDay());
+// un congé décompté 6 jours couvre aussi le jour de repos hebdomadaire de la personne
+function congeCouvreRepos(e){
+  return (e.congesJours||6) > e.jours.filter(i=>state.config.days.includes(i)).length;
+}
 // congé posé pour une personne, bornes incluses
 function congeOf(e,d){
   const k=key(d);
@@ -424,7 +432,8 @@ const limOf=(e,d)=>{const c=dayHours(d).c; return e.finMax?Math.min(mn(e.finMax)
 // duree theorique d une journee = heures hebdo / nb de jours de la semaine type
 function nominal(e){
   const n=e.jours.filter(i=>state.config.days.includes(i)).length;
-  return n?r5(e.hours*60/n):0;
+  const cible=Math.min(e.hours,e.hoursMax||e.hours);
+  return n?r5(cible*60/n):0;
 }
 // repos, conge, absence ou ferie tombant sur un jour prevu : compte comme une journee normale
 function assimMin(d,e){
@@ -511,6 +520,12 @@ function generate(){
     const daily={};
     state.employees.forEach(e=>{ daily[e.id]=nominal(e); cnt[e.id].ow=0; cnt[e.id].fw=0; });
 
+    // jours reellement travailles par chacune cette semaine, dans l'ordre
+    const jw={}, used={};
+    state.employees.forEach(e=>{
+      jw[e.id]=openDays.filter(d=>worksOn(e,d)&&!ok(key(d),e.id)&&!congeOf(e,d)).map(d=>key(d));
+      used[e.id]=0;
+    });
     // blocs de formation au bureau, repartis sur les jours autorises de la semaine
     const form={};
     state.employees.forEach(e=>{
@@ -586,6 +601,29 @@ function generate(){
           o.a=Math.max(60,limOf(o.e,d)-open-30); o.s=open; o.trim=true;
         }
       });
+      // Si la journee ne peut pas etre couverte de bout en bout avec les heures de base,
+      // on puise dans la marge jusqu'au maximum hebdomadaire de la personne.
+      const capa=e=>{
+        const i2=jw[e.id].indexOf(k); if(i2<0)return 0;
+        const prevu=nominal(e)*(jw[e.id].length-i2);
+        return Math.max(0,(e.hoursMax||e.hours)*60-used[e.id]-prevu);
+      };
+      if(list.length){
+        const fin=Math.max(...list.map(o=>o.s+o.a));
+        if(fin<close){
+          const t=list.filter(o=>!isAppr(o.e,d)&&limOf(o.e,d)>=close)
+                      .sort((x,y)=>(y.s+y.a)-(x.s+x.a))[0];
+          if(t){ const plus=Math.min(close-(t.s+t.a),capa(t.e));
+            if(plus>0){ t.a+=plus; t.s=Math.min(t.s,close-t.a); t.rallonge=true; } }
+        }
+        const deb=Math.min(...list.map(o=>o.s));
+        if(deb>open){
+          const t=list.filter(o=>!isAppr(o.e,d)).sort((x,y)=>x.s-y.s)[0];
+          if(t){ const plus=Math.min(t.s-open,capa(t.e));
+            if(plus>0){ t.s-=plus; t.a+=plus; t.rallonge=true; } }
+        }
+      }
+      list.forEach(o=>{ used[o.e.id]+=o.a-c.breakMin; });
       // pauses echelonnees : jamais deux personnes en pause en meme temps
       list.sort((x,y)=>x.s-y.s);
       let nextB=0;
@@ -628,8 +666,9 @@ function shiftOf(d,e){
   const k=key(d), o=ok(k,e.id);
   if(o)return o;
   if(!isOpenDay(d))return {type:'ferme'};
+  const cg=congeOf(e,d);
+  if(cg&&(worksOn(e,d)||congeCouvreRepos(e)))return {type:'conge',motif:cg.nom};
   if(!worksOn(e,d))return {type:'repos'};
-  const cg=congeOf(e,d); if(cg)return {type:'conge',motif:cg.nom};
   return plan[k+'|'+e.id]||{type:'repos'};
 }
 
@@ -637,6 +676,10 @@ function shiftOf(d,e){
 function weekDays(ws){
   const out=[];for(let i=0;i<7;i++){const d=addD(ws,i);if(state.config.days.includes(d.getDay()))out.push(d);}
   return out;
+}
+function totalSemaine(ws,e){
+  let t=0; weekDays(ws).forEach(d=>{t+=workMin(shiftOf(d,e))+assimMin(d,e);});
+  return t;
 }
 function coverage(d){
   const {o:open,c:close}=dayHours(d), slots=[];
@@ -753,9 +796,12 @@ function gridHTML(ws){
     let tot=0,assim=0;
     ds.forEach(d=>{ h+=cellHTML(d,e,false,bd); tot+=workMin(shiftOf(d,e)); assim+=assimMin(d,e); });
     const grand=tot+assim, diff=grand-e.hours*60;
-    const sub=diff!==0?((diff>0?'+':'−')+dur(Math.abs(diff))+(assim?' · '+dur(assim)+' assim.':''))
-                      :(assim?'dont '+dur(assim)+' assimilées':'conforme');
-    h+=`<div class="gc tot${Math.abs(diff)>5?' bad':''}">${dur(grand)}<small>${sub}</small></div>`;
+    const over=e.hoursMax&&grand>e.hoursMax*60+5, under=e.hoursMin&&grand<e.hoursMin*60-5;
+    const sub=over?`au-dessus du maxi ${e.hoursMax} h`
+      :under?`sous le mini ${e.hoursMin} h`
+      :(diff!==0?((diff>0?'+':'−')+dur(Math.abs(diff))+' / base'+(assim?' · '+dur(assim)+' assim.':''))
+                :(assim?'dont '+dur(assim)+' assimilées':'base respectée'));
+    h+=`<div class="gc tot${over||under?' bad':''}">${dur(grand)}<small>${sub}</small></div>`;
   });
   h+=`<div class="gc name"><div class="person"><div>Présence<div class="h">par demi-heure</div></div></div></div>`;
   ds.forEach(d=>{
@@ -803,6 +849,17 @@ function renderPlanning(){
   Object.keys(formWarn).forEach(k=>{
     if(wks.has(k.split('|')[0])) fl.push(`<span class="flag ferie">${esc(formWarn[k])}</span>`);
   });
+  [...new Set(jours.map(d=>key(weekStart(d))))].forEach(wk=>{
+    const ws=parse(wk);
+    state.employees.forEach(e=>{
+      if(!e.hoursMax)return;
+      const t=totalSemaine(ws,e);
+      if(t>e.hoursMax*60+5)
+        fl.push(`<span class="flag ferie">${esc(e.name)} : ${dur(t)} la semaine du ${fdate(ws)}, au-dessus de son maxi de ${e.hoursMax} h</span>`);
+      else if(e.hoursMin&&t<e.hoursMin*60-5&&t>0)
+        fl.push(`<span class="flag ferie">${esc(e.name)} : ${dur(t)} la semaine du ${fdate(ws)}, sous son mini de ${e.hoursMin} h</span>`);
+    });
+  });
   jours.forEach(d=>dayIssues(d).forEach(msg=>
     fl.push(`<span class="flag ferie">${DSHORT[d.getDay()]} ${d.getDate()} : ${esc(msg)}</span>`)));
   const vus=new Set();
@@ -826,8 +883,17 @@ function renderEmp(){
         <button class="btn ghost e-del">Retirer</button>
       </div>
       <div class="line">
-        <span class="lab">Heures par semaine</span>
-        <input type="number" class="e-hours" min="1" max="48" step="0.5" value="${e.hours}" style="width:80px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">Heures par semaine — mini</span>
+        <input type="number" class="e-hmin" min="0" max="60" step="0.5" value="${e.hoursMin||''}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">base</span>
+        <input type="number" class="e-hours" min="1" max="60" step="0.5" value="${e.hours}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">maxi</span>
+        <input type="number" class="e-hmax" min="0" max="60" step="0.5" value="${e.hoursMax||''}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">Congés décomptés</span>
+        <select class="e-cj" style="width:auto;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+          <option value="6"${e.congesJours===6?' selected':''}>6 jours par semaine</option>
+          <option value="5"${e.congesJours===5?' selected':''}>5 jours par semaine</option>
+        </select>
         <span class="lab">Fin au plus tard</span>
         <input type="time" class="e-finmax" value="${e.finMax||''}" style="border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
         <span class="lab" style="flex-basis:100%;margin:0">Vide : elle termine à l'heure de fermeture du magasin. Renseignée, elle ne dépasse jamais cette heure, même quand elle est désignée pour la fermeture — c'est alors la collègue qui l'accompagne qui reste jusqu'au rideau.</span>
@@ -864,7 +930,9 @@ function renderEmp(){
   const have=state.employees.reduce((s,e)=>s+e.hours,0);
   const jours={}; c.days.forEach(i=>jours[i]=state.employees.filter(e=>e.jours.includes(i)).length);
   const vide=c.days.filter(i=>!jours[i]).map(i=>DAYS[i]);
+  const souci=state.employees.filter(e=>(e.hoursMax&&e.hoursMax<e.hours)||(e.hoursMin&&e.hoursMin>e.hours)).map(e=>e.name);
   document.getElementById('empnote').innerHTML=
+    (souci.length?`<b style="color:var(--danger)">Fourchette incohérente pour ${souci.join(', ')} : la base doit rester entre le mini et le maxi.</b><br>`:'')+
     `${state.employees.length} personne(s), ${have} h par semaine. Il en faut au moins ${need} h pour tenir le magasin du début à la fin de chaque journée.`
     + (vide.length?`<br><b style="color:var(--danger)">Personne n'est prévu le ${vide.join(', le ')}.</b>`:'')
     + `<br>Présents : ${c.days.map(i=>DSHORT[i]+' '+jours[i]).join(' · ')}`;
@@ -912,14 +980,14 @@ function renderConges(){
         <span class="lab">au</span>
         <input type="date" class="cg-fin" value="${c.fin||''}" style="border:1px solid var(--line);border-radius:7px;padding:5px 7px;background:#fff">
         <button class="btn ghost cg-del">Retirer</button>
-        ${c.debut&&c.fin?`<span class="lab" style="flex-basis:100%;margin:0">${joursOuvres(e,c)} jour(s) travaillé(s) concerné(s)</span>`:''}
+        ${c.debut&&c.fin?`<span class="lab" style="flex-basis:100%;margin:0">${joursOuvres(e,c)} jour(s) décompté(s) · base ${e.congesJours||6} jours par semaine</span>`:''}
       </div>`).join('')
       : '<p class="sub" style="margin:0">Aucun congé enregistré.</p>'}
     </div>`;}).join('');
 }
 function joursOuvres(e,c){
   let n=0, d=parse(c.debut), f=parse(c.fin);
-  while(d<=f){ if(isOpenDay(d)&&worksOn(e,d))n++; d=addD(d,1); }
+  while(d<=f){ if(isOpenDay(d)&&(worksOn(e,d)||congeCouvreRepos(e)))n++; d=addD(d,1); }
   return n;
 }
 function renderAll(){ renderCfg(); renderConges(); renderEmp(); renderPlanning(); }
@@ -1032,6 +1100,9 @@ document.getElementById('applyEmp').onclick=()=>{
     e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
     e.color=tr.querySelector('.e-color').value;
     e.finMax=tr.querySelector('.e-finmax').value;
+    e.congesJours=+tr.querySelector('.e-cj').value||6;
+    e.hoursMax=+tr.querySelector('.e-hmax').value||0;
+    e.hoursMin=+tr.querySelector('.e-hmin').value||0;
     e.apprenti=tr.querySelector('.e-appr').checked;
     e.appDebut=tr.querySelector('.e-adeb').value;
     e.appFin=tr.querySelector('.e-afin').value;
