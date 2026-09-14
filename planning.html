@@ -464,7 +464,6 @@ function defaults(){
 let state=defaults();
 let plan={};            // "date|empId" -> shift
 let formWarn={};        // "semaine|empId" -> blocs de formation non placés
-let dayWarn={};         // "date" -> problèmes de couverture détectés à la génération
 let cursor=weekStart(new Date());
 
 /* ================= sauvegarde ================= */
@@ -500,7 +499,7 @@ const workMin=s=>s&&s.type==='travail'?Math.max(0,s.end-s.start-(s.brkMin||0)):0
 
 /* ================= génération ================= */
 function generate(){
-  plan={}; formWarn={}; dayWarn={};
+  plan={}; formWarn={};
   const c=state.config;
   const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
   const weeks={};
@@ -564,16 +563,7 @@ function generate(){
           if(isAppr(closer,d)&&nonAppr().length) cf=prendre(nonAppr(),'f');
         }
       }
-      if(!opener||!closer){
-        // qui pourrait etre appelee en renfort ce jour-la
-        const dispo=state.employees.filter(e=>!pool.includes(e)&&e!==opener&&e!==closer&&e!==co&&e!==cf
-          &&!congeOf(e,d)&&shiftOf(d,e).type==='repos').map(e=>e.name);
-        const abs=state.employees.filter(e=>congeOf(e,d)).map(e=>e.name);
-        const aide=dispo.length?` — ${dispo.join(' ou ')} ${dispo.length>1?'sont':'est'} en repos ce jour-là`
-                  :(abs.length?` — ${abs.join(' et ')} en congé`:'');
-        if(!opener) dayWarn[k]=(dayWarn[k]||[]).concat("personne pour ouvrir : l'apprentie ne peut pas ouvrir seule"+aide);
-        if(!closer) dayWarn[k]=(dayWarn[k]||[]).concat("personne pour fermer : l'apprentie ne peut pas fermer seule"+aide);
-      }
+
       const list=[];
       const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-open));
       const add=(e,start)=>{
@@ -662,6 +652,37 @@ function coverage(d){
     slots.push(n);
   }
   return slots;
+}
+// qui est reellement en boutique a un instant donne (hors pause et hors formation)
+function presentAt(d,t){
+  return state.employees.filter(e=>{
+    const s=shiftOf(d,e);
+    if(s.type!=='travail'||t<s.start||t>=s.end)return false;
+    if(s.brkMin>0&&t>=s.brkStart&&t<s.brkStart+s.brkMin)return false;
+    if(s.formEnd&&t>=s.formStart&&t<s.formEnd)return false;
+    return true;
+  });
+}
+// problemes constates sur le planning tel qu'il est, retouches manuelles comprises
+function dayIssues(d){
+  if(!isOpenDay(d))return [];
+  const {o,c}=dayHours(d);
+  const jour=state.employees.filter(e=>shiftOf(d,e).type==='travail');
+  if(!jour.length)return ['personne ne travaille ce jour-là'];
+  if(jour.every(e=>isAppr(e,d)))return ["l'apprentie est seule toute la journée"];
+  const renfort=()=>{
+    const r=state.employees.filter(e=>shiftOf(d,e).type==='repos').map(e=>e.name);
+    const a=state.employees.filter(e=>shiftOf(d,e).type==='conge').map(e=>e.name);
+    if(r.length)return ` — ${r.join(' ou ')} en repos ce jour-là`;
+    if(a.length)return ` — ${a.join(' et ')} en congé`;
+    return '';
+  };
+  const out=[], ouv=presentAt(d,o), fer=presentAt(d,c-5);
+  if(!ouv.length) out.push('personne à l\'ouverture'+renfort());
+  else if(ouv.length===1&&isAppr(ouv[0],d)) out.push(ouv[0].name+' ouvre seule'+renfort());
+  if(!fer.length) out.push('personne à la fermeture'+renfort());
+  else if(fer.length===1&&isAppr(fer[0],d)) out.push(fer[0].name+' ferme seule'+renfort());
+  return out;
 }
 function cellHTML(d,e,compact,bd){
   const s=shiftOf(d,e), B=bd||dayHours(d), open=B.o, amp=B.c-B.o;
@@ -782,21 +803,14 @@ function renderPlanning(){
   Object.keys(formWarn).forEach(k=>{
     if(wks.has(k.split('|')[0])) fl.push(`<span class="flag ferie">${esc(formWarn[k])}</span>`);
   });
-  jours.forEach(d=>{
-    (dayWarn[key(d)]||[]).forEach(msg=>
-      fl.push(`<span class="flag ferie">${DSHORT[d.getDay()]} ${d.getDate()} : ${msg}</span>`));
-  });
+  jours.forEach(d=>dayIssues(d).forEach(msg=>
+    fl.push(`<span class="flag ferie">${DSHORT[d.getDay()]} ${d.getDate()} : ${esc(msg)}</span>`)));
   const vus=new Set();
   jours.forEach(d=>state.employees.forEach(e=>{
     const c=congeOf(e,d);
     if(c&&!vus.has(c.id)){vus.add(c.id);
       fl.push(`<span class="flag info">${esc(e.name)} — ${esc(c.nom)} du ${fdate(parse(c.debut))} au ${fdate(parse(c.fin))}</span>`);}
   }));
-  jours.filter(isOpenDay).forEach(d=>{
-    const pres=state.employees.filter(e=>shiftOf(d,e).type==='travail');
-    if(pres.length&&pres.every(e=>isAppr(e,d)))
-      fl.push(`<span class="flag ferie">Apprenti seul ${DSHORT[d.getDay()]} ${d.getDate()} — ouverture impossible de bout en bout</span>`);
-  });
   document.getElementById('flags').innerHTML=fl.join('');
 }
 
