@@ -438,7 +438,6 @@ function defaults(){
 }
 let state=defaults();
 let plan={};            // "date|empId" -> shift
-let formWarn={};        // "semaine|empId" -> blocs de formation non placés
 let cursor=weekStart(new Date());
 
 /* ================= sauvegarde ================= */
@@ -474,7 +473,7 @@ const workMin=s=>s&&s.type==='travail'?Math.max(0,s.end-s.start-(s.brkMin||0)):0
 
 /* ================= génération ================= */
 function generate(){
-  plan={}; formWarn={};
+  plan={};
   const c=state.config, open=mn(c.open), close=mn(c.close), amp=close-open;
   const maxWork=Math.max(60,amp-c.breakMin);
   const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
@@ -493,15 +492,11 @@ function generate(){
       const F=e.formation; if(!F||!F.blocs.length||!F.jours.length)return;
       const cand=openDays.filter(d=>worksOn(e,d)&&F.jours.includes(d.getDay())&&!ok(key(d),e.id));
       if(!cand.length)return;
-      // un bloc par jour, jamais deux le meme jour : les plus longs sont places en premier
-      const blocs=F.blocs.slice().sort((x,y)=>y-x);
-      const n=Math.min(blocs.length,cand.length);
       const off=wi%cand.length;
-      for(let i=0;i<n;i++) form[key(cand[(off+i)%cand.length])+'|'+e.id]=Math.round(blocs[i]*60);
-      if(n<blocs.length){
-        const pose=blocs.slice(0,n).reduce((a,b)=>a+b,0), prevu=blocs.reduce((a,b)=>a+b,0);
-        formWarn[wk+'|'+e.id]=`${e.name} : seulement ${n} bloc${n>1?'s':''} de formation sur ${blocs.length} cette semaine (${pose} h au lieu de ${prevu} h) — pas assez de jours disponibles`;
-      }
+      F.blocs.forEach((b,i)=>{
+        const kk=key(cand[(off+i)%cand.length])+'|'+e.id;
+        form[kk]=(form[kk]||0)+Math.round(b*60);
+      });
     });
     wi++;
 
@@ -737,10 +732,6 @@ function renderPlanning(){
     const v=vacOf(d); if(v&&!seen.has('v'+v.id)){seen.add('v'+v.id);fl.push(`<span class="flag">Vacances de ${esc(v.nom)} — zone B</span>`);}
     const f=ferieName(d); if(f)fl.push(`<span class="flag ferie">${f} — ${DSHORT[d.getDay()]} ${d.getDate()}${state.config.closeOnFerie?' · fermé':''}</span>`);
   });
-  const wks=new Set(jours.map(d=>key(weekStart(d))));
-  Object.keys(formWarn).forEach(k=>{
-    if(wks.has(k.split('|')[0])) fl.push(`<span class="flag ferie">${esc(formWarn[k])}</span>`);
-  });
   jours.filter(isOpenDay).forEach(d=>{
     const pres=state.employees.filter(e=>shiftOf(d,e).type==='travail');
     if(pres.length&&pres.every(e=>isAppr(e,d)))
@@ -785,13 +776,7 @@ function renderEmp(){
         <span class="lab">h par bloc</span>
         <div class="dayset">${[1,2,3,4,5,6,0].map(i=>
           `<label><input type="checkbox" class="e-fj" value="${i}"${e.formation.jours.includes(i)?' checked':''}> ${DSHORT[i]}</label>`).join('')}</div>
-        <p class="sub">Un bloc par jour, jamais deux le même jour, et les jours tournent d'une semaine à l'autre. Heures comprises dans le contrat, mais la personne n'est pas comptée sur la surface de vente.${(()=>{
-          const n=e.formation.jours.filter(i=>e.jours.includes(i)&&state.config.days.includes(i)).length;
-          const b=e.formation.blocs.length;
-          if(!b)return '';
-          if(b>n)return `<br><b style="color:var(--danger)">${b} blocs pour seulement ${n} jour${n>1?'s':''} possible${n>1?'s':''} : cochez au moins ${b} jours, sinon des blocs sauteront.</b>`;
-          return `<br>${b} blocs sur ${n} jours possibles, soit ${e.formation.blocs.reduce((x,y)=>x+y,0)} h par semaine.`;
-        })()}</p>
+        <p class="sub">Heures comprises dans le contrat, mais la personne n'est pas comptée sur la surface de vente. Les blocs sont posés sur des jours différents et tournent d'une semaine à l'autre.</p>
       </div>
     </div>`).join('');
   const c=state.config, amp=mn(c.close)-mn(c.open);
