@@ -400,6 +400,7 @@ function migrate(e,i){
   if(e.appFin===undefined) e.appFin='';
   if(e.finMax===undefined) e.finMax='';
   if(!e.congesJours) e.congesJours=6;
+  if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; }
   if(e.hoursMin===undefined||e.hoursMin===null) e.hoursMin=Math.max(0,e.hours-5);
   if(e.hoursMax===undefined||e.hoursMax===null||e.hoursMax<=e.hours) e.hoursMax=e.hours+4;
   if(!e.formation||!Array.isArray(e.formation.blocs)) e.formation={blocs:[],jours:[]};
@@ -450,14 +451,15 @@ function defaults(){
   return {
     config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
             start:'2026-09-14',end:'2027-01-01',closeOnFerie:true,
-            hours:{1:{o:'09:00',c:'19:00'},2:{o:'09:00',c:'19:00'},3:{o:'09:00',c:'19:00'},
-                   4:{o:'09:00',c:'19:00'},5:{o:'09:00',c:'19:00'},6:{o:'09:00',c:'19:00'},
-                   0:{o:'09:00',c:'19:00'}}},
+            v:3,
+            hours:{1:{o:'09:00',c:'19:10'},2:{o:'09:00',c:'19:10'},3:{o:'09:00',c:'19:10'},
+                   4:{o:'09:00',c:'19:10'},5:{o:'09:00',c:'19:10'},6:{o:'09:50',c:'19:10'},
+                   0:{o:'09:00',c:'19:10'}}},
     employees:[
       emp('Delphine',[1,2,3,5,6],0),
       emp('Gaelle',[2,3,4,5,6],1),
       emp('Marta',[1,2,4,5,6],2),
-      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,finMax:'19:00',formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
+      emp('Apprentie',[1,2,3,4,6],3,{apprenti:true,finMax:'19:00',hoursMin:35,hoursMax:35,formation:{blocs:[3,2,2],jours:[1,2,3,4]}})
     ],
     vacances:[
       {id:uid(),nom:'Toussaint',debut:'2026-10-17',fin:'2026-11-02'},
@@ -883,12 +885,15 @@ function renderEmp(){
         <button class="btn ghost e-del">Retirer</button>
       </div>
       <div class="line">
-        <span class="lab">Heures par semaine — mini</span>
+        ${e.apprenti?`<span class="lab">Heures par semaine</span>
+        <input type="number" class="e-hours" min="1" max="60" step="0.5" value="${e.hours}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">pas de fourchette pour un apprenti</span>`
+        :`<span class="lab">Heures par semaine — mini</span>
         <input type="number" class="e-hmin" min="0" max="60" step="0.5" value="${e.hoursMin||''}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
         <span class="lab">base</span>
         <input type="number" class="e-hours" min="1" max="60" step="0.5" value="${e.hours}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
         <span class="lab">maxi</span>
-        <input type="number" class="e-hmax" min="0" max="60" step="0.5" value="${e.hoursMax||''}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <input type="number" class="e-hmax" min="0" max="60" step="0.5" value="${e.hoursMax||''}" style="width:74px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">`}
         <span class="lab">Congés décomptés</span>
         <select class="e-cj" style="width:auto;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
           <option value="6"${e.congesJours===6?' selected':''}>6 jours par semaine</option>
@@ -930,7 +935,7 @@ function renderEmp(){
   const have=state.employees.reduce((s,e)=>s+e.hours,0);
   const jours={}; c.days.forEach(i=>jours[i]=state.employees.filter(e=>e.jours.includes(i)).length);
   const vide=c.days.filter(i=>!jours[i]).map(i=>DAYS[i]);
-  const souci=state.employees.filter(e=>(e.hoursMax&&e.hoursMax<e.hours)||(e.hoursMin&&e.hoursMin>e.hours)).map(e=>e.name);
+  const souci=state.employees.filter(e=>!e.apprenti&&((e.hoursMax&&e.hoursMax<e.hours)||(e.hoursMin&&e.hoursMin>e.hours))).map(e=>e.name);
   document.getElementById('empnote').innerHTML=
     (souci.length?`<b style="color:var(--danger)">Fourchette incohérente pour ${souci.join(', ')} : la base doit rester entre le mini et le maxi.</b><br>`:'')+
     `${state.employees.length} personne(s), ${have} h par semaine. Il en faut au moins ${need} h pour tenir le magasin du début à la fin de chaque journée.`
@@ -1092,7 +1097,7 @@ document.getElementById('empbody').addEventListener('click',ev=>{
   if(state.employees.length<2){alert('Il faut au moins une personne.');return;}
   state.employees=state.employees.filter(e=>e.id!==id); renderEmp();
 });
-document.getElementById('applyEmp').onclick=()=>{
+function lireEmp(){
   let vide=null;
   document.querySelectorAll('#empbody .emp').forEach(tr=>{
     const e=state.employees.find(x=>x.id===tr.dataset.id); if(!e)return;
@@ -1101,9 +1106,11 @@ document.getElementById('applyEmp').onclick=()=>{
     e.color=tr.querySelector('.e-color').value;
     e.finMax=tr.querySelector('.e-finmax').value;
     e.congesJours=+tr.querySelector('.e-cj').value||6;
-    e.hoursMax=+tr.querySelector('.e-hmax').value||0;
-    e.hoursMin=+tr.querySelector('.e-hmin').value||0;
+    const hx=tr.querySelector('.e-hmax'), hn=tr.querySelector('.e-hmin');
+    if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; }
+    else { e.hoursMax=hx?(+hx.value||0):e.hoursMax; e.hoursMin=hn?(+hn.value||0):e.hoursMin; }
     e.apprenti=tr.querySelector('.e-appr').checked;
+    e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
     e.appDebut=tr.querySelector('.e-adeb').value;
     e.appFin=tr.querySelector('.e-afin').value;
     e.formation={
@@ -1113,9 +1120,16 @@ document.getElementById('applyEmp').onclick=()=>{
     const j=[...tr.querySelectorAll('.e-day:checked')].map(i=>+i.value);
     if(!j.length) vide=e.name; else e.jours=j;
   });
+  return vide;
+}
+document.getElementById('applyEmp').onclick=()=>{
+  const vide=lireEmp();
   if(vide) alert(vide+" n'a aucun jour coché : sa semaine type est restée telle quelle.");
   generate(); renderAll(); save();
 };
+document.getElementById('empbody').addEventListener('change',ev=>{
+  if(ev.target.classList.contains('e-appr')){ lireEmp(); renderEmp(); }
+});
 document.getElementById('applyCfg').onclick=()=>{
   const c=state.config;
   c.breakMin=+cBreak.value||0; c.closeOnFerie=cFerie.checked;
@@ -1232,6 +1246,10 @@ document.getElementById('printAllBtn').onclick=()=>{
     state.employees=state.employees.map(migrate);
     if(!state.config.hours){state.config.hours={};
       [0,1,2,3,4,5,6].forEach(i=>state.config.hours[i]={o:state.config.open,c:state.config.close});}
+    if((state.config.v||0)<3){
+      state.config.hours=defaults().config.hours; state.config.v=3;
+      state.config.open='09:00'; state.config.close='19:10';
+    }
   }
   const n=weekStart(new Date()),s=weekStart(parse(state.config.start)),e=parse(state.config.end);
   cursor=n<s?s:(n>e?weekStart(e):n);
