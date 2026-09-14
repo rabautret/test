@@ -1,7 +1,7 @@
 {
   "config": {
     "open": "09:00",
-    "close": "19:00",
+    "close": "19:10",
     "days": [
       1,
       2,
@@ -17,12 +17,12 @@
   },
   "employees": [
     {
-      "id": "y4iwnw9",
-      "name": "GAELLE",
+      "id": "21wq0ht",
+      "name": "Delphine",
       "hours": 35,
       "jours": [
+        1,
         2,
-        3,
         4,
         5,
         6
@@ -30,82 +30,112 @@
       "color": "#2c5fa8",
       "apprenti": false,
       "appDebut": "",
-      "appFin": ""
+      "appFin": "",
+      "finMax": "",
+      "formation": {
+        "blocs": [],
+        "jours": []
+      }
     },
     {
-      "id": "mnss3f3",
-      "name": "APPRENTI",
+      "id": "bs73q58",
+      "name": "Gaelle",
       "hours": 35,
       "jours": [
+        2,
         3,
         4,
         5,
         6
       ],
-      "color": "#b33d99",
-      "apprenti": true,
-      "appDebut": "2026-09-14",
-      "appFin": "2026-01-01"
+      "color": "#8a3b8f",
+      "apprenti": false,
+      "appDebut": "",
+      "appFin": "",
+      "finMax": "",
+      "formation": {
+        "blocs": [],
+        "jours": []
+      }
     },
     {
-      "id": "ymwucjr",
-      "name": "MARTA",
+      "id": "5nff999",
+      "name": "Marta",
       "hours": 35,
       "jours": [
         1,
+        2,
         3,
-        4,
         5,
         6
       ],
       "color": "#1e7a5a",
       "apprenti": false,
       "appDebut": "",
-      "appFin": ""
+      "appFin": "",
+      "finMax": "",
+      "formation": {
+        "blocs": [],
+        "jours": []
+      }
     },
     {
-      "id": "aykpdzr",
-      "name": "DELPHINE",
+      "id": "4ozura7",
+      "name": "Apprentie",
       "hours": 35,
       "jours": [
-        1,
         2,
+        4,
         5,
         6
       ],
-      "color": "#c9701d",
-      "apprenti": false,
+      "color": "#a9601a",
+      "apprenti": true,
       "appDebut": "",
-      "appFin": ""
+      "appFin": "",
+      "finMax": "19:00",
+      "formation": {
+        "blocs": [
+          3,
+          2,
+          2
+        ],
+        "jours": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
     }
   ],
   "vacances": [
     {
-      "id": "tj6q2in",
+      "id": "h1jmnn0",
       "nom": "Toussaint",
       "debut": "2026-10-17",
       "fin": "2026-11-02"
     },
     {
-      "id": "59mnr6x",
+      "id": "r6exuz1",
       "nom": "Noël",
       "debut": "2026-12-19",
       "fin": "2027-01-04"
     },
     {
-      "id": "83cn8no",
+      "id": "75e0hk4",
       "nom": "Hiver",
       "debut": "2027-02-20",
       "fin": "2027-03-08"
     },
     {
-      "id": "x7gh79a",
+      "id": "wykdneg",
       "nom": "Printemps",
       "debut": "2027-04-17",
       "fin": "2027-05-03"
     },
     {
-      "id": "mkosh38",
+      "id": "4a3brc2",
       "nom": "Été",
       "debut": "2027-07-03",
       "fin": "2027-08-31"
