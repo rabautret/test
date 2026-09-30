@@ -300,10 +300,6 @@ h2.sec:first-child{margin-top:0}
         <input type="time" id="sFin">
         <span class="lab" style="min-width:0;color:var(--muted);font-size:12.5px">vide : horaires calculés normalement</span>
       </div>
-      <div class="fld">
-        <label for="sAppr">L'apprenti peut fermer le samedi</label>
-        <input type="checkbox" id="sAppr" style="width:auto">
-      </div>
       <p class="note">Celle qui ouvre garde son heure d'arrivée : si vous fixez un départ plus tard, sa journée s'allonge dans la limite de son maxi hebdomadaire. Les autres voient leur arrivée décalée pour conserver leur durée de travail.</p>
 
       <h2 class="sec">Période couverte</h2>
@@ -394,6 +390,19 @@ const fdate=d=>`${d.getDate()} ${MONTHS[d.getMonth()]}`;
 const flong=d=>`${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 const weekStart=d=>addD(d,-((d.getDay()+6)%7));
 const uid=()=>Math.random().toString(36).slice(2,9);
+// "3", "2h30", "2:15", "2.5", "2,5", "90min" -> nombre d'heures
+function lireDuree(t){
+  t=String(t).trim().toLowerCase().replace(',','.');
+  let m=t.match(/^(\d+)\s*[h:]\s*(\d{1,2})$/);          if(m)return +m[1]+(+m[2])/60;
+  m=t.match(/^(\d+(?:\.\d+)?)\s*h$/);                    if(m)return +m[1];
+  m=t.match(/^(\d+)\s*(?:min|mn|m)$/);                    if(m)return (+m[1])/60;
+  const v=parseFloat(t);
+  return isNaN(v)?0:v;
+}
+const ecrireDuree=h=>{
+  const t=Math.round(h*60);
+  return t%60?Math.floor(t/60)+'h'+pad(t%60):Math.floor(t/60)+'h';
+};
 
 function easter(y){
   const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
@@ -427,7 +436,7 @@ const STORE_KEY='planning-boutique-v2';
 
 function emp(name,jours,i,opt){
   return Object.assign({id:uid(),name,hours:35,jours,color:PAL[i%PAL.length],
-    apprenti:false,appDebut:'',appFin:'',finMax:'',congesJours:6,hoursMin:28,hoursMax:44,
+    apprenti:false,appDebut:'',appFin:'',debutMin:'',finMax:'',congesJours:6,hoursMin:28,hoursMax:44,
     formation:{blocs:[],jours:[]}},opt||{});
 }
 function migrate(e,i){
@@ -437,6 +446,7 @@ function migrate(e,i){
   if(e.appDebut===undefined) e.appDebut='';
   if(e.appFin===undefined) e.appFin='';
   if(e.finMax===undefined) e.finMax='';
+  if(e.debutMin===undefined) e.debutMin='';
   if(!e.congesJours) e.congesJours=6;
   if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; }
   if(e.hoursMin===undefined||e.hoursMin===null) e.hoursMin=28;
@@ -468,6 +478,8 @@ function bounds(ds){
   return o.length?{o:Math.min(...o),c:Math.max(...c)}:{o:mn(state.config.open),c:mn(state.config.close)};
 }
 const limOf=(e,d)=>{const c=dayHours(d).c; return e.finMax?Math.min(mn(e.finMax),c):c;};
+// heure a partir de laquelle la personne peut commencer
+const debOf=(e,d)=>{const o=dayHours(d).o; return e.debutMin?Math.max(mn(e.debutMin),o):o;};
 // duree theorique d une journee = heures hebdo / nb de jours de la semaine type
 function nominal(e){
   const n=e.jours.filter(i=>state.config.days.includes(i)).length;
@@ -490,7 +502,7 @@ function defaults(){
     config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
             start:'2026-09-14',end:'2027-01-01',closeOnFerie:true,
             v:5,
-            samedi:{fermeture:1,finAutres:'',apprentiFerme:true},
+            samedi:{fermeture:1,finAutres:''},
             cible:{ouvertures:2,fermetures:2},
             hours:{1:{o:'09:00',c:'19:10'},2:{o:'09:00',c:'19:10'},3:{o:'09:00',c:'19:10'},
                    4:{o:'09:00',c:'19:10'},5:{o:'09:00',c:'19:10'},6:{o:'09:50',c:'19:10'},
@@ -592,7 +604,7 @@ function generate(){
         const o=ok(key(d),e.id);
         if(!o||o.type!=='travail'||!o.formEnd)return;
         const h=(o.formEnd-o.formStart)/60;
-        let i2=blocs.findIndex(b=>Math.abs(b-h)<0.02);
+        let i2=blocs.findIndex(b=>Math.abs(b-h)<0.05);
         if(i2<0)i2=blocs.length-1;
         if(i2>=0)blocs.splice(i2,1);
       });
@@ -602,7 +614,7 @@ function generate(){
       for(let i=0;i<n;i++) form[key(cand[(off+i)%cand.length])+'|'+e.id]=Math.round(blocs[i]*60);
       if(n<blocs.length){
         const pose=blocs.slice(0,n).reduce((a,b)=>a+b,0), prevu=blocs.reduce((a,b)=>a+b,0);
-        formWarn[wk+'|'+e.id]=`${e.name} : seulement ${n} bloc${n>1?'s':''} de formation sur ${blocs.length} cette semaine (${pose} h au lieu de ${prevu} h) — pas assez de jours disponibles`;
+        formWarn[wk+'|'+e.id]=`${e.name} : seulement ${n} bloc${n>1?'s':''} de formation sur ${blocs.length} cette semaine (${ecrireDuree(pose)} au lieu de ${ecrireDuree(prevu)}) — pas assez de jours disponibles`;
       }
     });
     wi++;
@@ -615,27 +627,15 @@ function generate(){
     const jours=openDays.map(d=>({d,k:key(d),
       pool:state.employees.filter(e=>worksOn(e,d)&&!ok(key(d),e.id)&&!congeOf(e,d)&&daily[e.id]>0)}));
     const optionsJour=j=>{
-      const P=j.pool, na=e=>!isAppr(e,j.d), out=[];
-      const ajoute=(op,co,cl,cf)=>out.push({opener:op||null,co:co||null,closer:cl||null,cf:cf||null});
-      const ops=P.concat([null]);
-      ops.forEach(op=>{
-        const r1=P.filter(e=>e!==op);
-        const cos=(op&&isAppr(op,j.d))?r1.filter(na):[null];
-        cos.forEach(co=>{
-          if(op&&isAppr(op,j.d)&&!co)return;
-          const r2=r1.filter(e=>e!==co);
-          r2.concat([null]).forEach(cl=>{
-            if(!cl){ if(op||co)ajoute(op,co,null,null); return; }
-            const r3=r2.filter(e=>e!==cl);
-            if(isAppr(cl,j.d)){
-              if(j.d.getDay()===6&&state.config.samedi&&state.config.samedi.apprentiFerme===false)return;
-              const cfs=r3.filter(na); cfs.forEach(cf=>ajoute(op,co,cl,cf));
-            }
-            else ajoute(op,co,cl,null);
-          });
+      // Un apprenti n'ouvre ni ne ferme jamais : il n'entre pas dans ces choix.
+      const P=j.pool.filter(e=>!isAppr(e,j.d)), out=[];
+      const ajoute=(op,cl)=>out.push({opener:op||null,co:null,closer:cl||null,cf:null});
+      P.concat([null]).forEach(op=>{
+        P.filter(e=>e!==op).concat([null]).forEach(cl=>{
+          if(op||cl)ajoute(op,cl);
         });
       });
-      if(!out.length)ajoute(null,null,null,null);
+      if(!out.length)ajoute(null,null);
       return out;
     };
     const roleMap=x=>{
@@ -735,10 +735,10 @@ function generate(){
       [opener,co,closer,cf].forEach(e=>{ if(e)pool.splice(pool.indexOf(e),1); });
 
       const list=[];
-      const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-open));
+      const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-debOf(e,d)));
       const add=(e,start)=>{
         const a=ampOf(e);
-        list.push({e,s:Math.max(open,Math.min(start,limOf(e,d)-a)),a});
+        list.push({e,s:Math.max(debOf(e,d),Math.min(start,limOf(e,d)-a)),a});
       };
       if(opener) add(opener,open);
       if(co) add(co,open);
@@ -746,11 +746,12 @@ function generate(){
       if(cf) add(cf,close-ampOf(cf));
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
-        const win=Math.max(0,(limOf(e,d)-open)-ampOf(e));
+        const deb=debOf(e,d);
+        const win=Math.max(0,(limOf(e,d)-deb)-ampOf(e));
         const pas=win/(mid.length+1);
         // decalage deterministe pour que les horaires ne soient pas figes d'une semaine a l'autre
         const r=(((sem*31+iJour*17+idx(e)*7)%7)-3)/3;
-        add(e,open+r15(pas*(i+1)+r*pas*0.75));
+        add(e,deb+r15(pas*(i+1)+r*pas*0.75));
       });
       const capa=e=>{
         const i2=jw[e.id].indexOf(k); if(i2<0)return 0;
@@ -764,8 +765,7 @@ function generate(){
         const voulu=Math.max(1,Math.min(+S.fermeture||1,list.length));
         let n=list.filter(ferme).length;
         if(n<voulu){
-          const cands=list.filter(o=>!ferme(o)&&o.e!==opener&&o.e!==co
-              &&(S.apprentiFerme!==false||!isAppr(o.e,d)))
+          const cands=list.filter(o=>!ferme(o)&&o.e!==opener&&!isAppr(o.e,d))
             .sort((a,b)=>(cnt[a.e.id].f-cnt[b.e.id].f)||((b.s+b.a)-(a.s+a.a)));
           for(const o of cands){
             if(n>=voulu)break;
@@ -917,7 +917,7 @@ function dayIssues(d){
   };
   const out=[], ouv=presentAt(d,o), fer=presentAt(d,c-5);
   if(!ouv.length) out.push('personne à l\'ouverture'+renfort());
-  else if(ouv.length===1&&isAppr(ouv[0],d)) out.push(ouv[0].name+' ouvre seule'+renfort());
+  else if(ouv.some(e=>isAppr(e,d))) out.push(ouv.filter(e=>isAppr(e,d))[0].name+" est là à l'ouverture alors qu'elle est apprentie");
   if(d.getDay()===6&&state.config.samedi){
     const voulu=+state.config.samedi.fermeture||1;
     const n=state.employees.filter(e=>{const s=shiftOf(d,e);
@@ -925,7 +925,7 @@ function dayIssues(d){
     if(n<voulu&&n>0) out.push(`${n} personne${n>1?'s':''} à la fermeture au lieu de ${voulu}`);
   }
   if(!fer.length) out.push('personne à la fermeture'+renfort());
-  else if(fer.length===1&&isAppr(fer[0],d)) out.push(fer[0].name+' ferme seule'+renfort());
+  else if(fer.some(e=>isAppr(e,d))) out.push(fer.filter(e=>isAppr(e,d))[0].name+" est là à la fermeture alors qu'elle est apprentie");
   return out;
 }
 function cellHTML(d,e,compact,bd){
@@ -993,7 +993,7 @@ function gridHTML(ws){
   });
   h+=`<div class="gc head"><div class="d">Total</div><div class="n">semaine</div></div>`;
   state.employees.forEach(e=>{
-    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}${e.finMax?' · fin '+e.finMax:''}</div></div></div></div>`;
+    h+=`<div class="gc name"><div class="person"><i class="dot" style="background:${e.color}"></i><div>${esc(e.name)}${e.apprenti?'<span class="tag">apprenti</span>':''}<div class="h">${e.hours} h · ${restLabel(e)}${e.debutMin?' · dès '+e.debutMin:''}${e.finMax?' · fin '+e.finMax:''}</div></div></div></div>`;
     let tot=0,assim=0;
     ds.forEach(d=>{ h+=cellHTML(d,e,false,bd); tot+=workMin(shiftOf(d,e)); assim+=assimMin(d,e); });
     const grand=tot+assim, diff=grand-e.hours*60;
@@ -1098,9 +1098,11 @@ function renderEmp(){
           <option value="6"${e.congesJours===6?' selected':''}>6 jours par semaine</option>
           <option value="5"${e.congesJours===5?' selected':''}>5 jours par semaine</option>
         </select>
+        <span class="lab">Début au plus tôt</span>
+        <input type="time" class="e-debmin" value="${e.debutMin||''}" style="border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
         <span class="lab">Fin au plus tard</span>
         <input type="time" class="e-finmax" value="${e.finMax||''}" style="border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
-        <span class="lab" style="flex-basis:100%;margin:0">Vide : elle termine à l'heure de fermeture du magasin. Renseignée, elle ne dépasse jamais cette heure, même quand elle est désignée pour la fermeture — c'est alors la collègue qui l'accompagne qui reste jusqu'au rideau.</span>
+        <span class="lab" style="flex-basis:100%;margin:0">Champs vides : la personne peut arriver dès l'ouverture et rester jusqu'à la fermeture. Renseignés, ses horaires ne sortent jamais de cette plage.</span>
       </div>
       <div class="line">
         <span class="lab">Semaine type</span>
@@ -1112,12 +1114,12 @@ function renderEmp(){
         </label>
         <span class="lab">du</span><input type="date" class="e-adeb" value="${e.appDebut||''}">
         <span class="lab">au</span><input type="date" class="e-afin" value="${e.appFin||''}">
-        <p class="sub">Un apprenti prend sa part des ouvertures et des fermetures, mais jamais seul : une collègue arrive à 9 h avec lui, ou reste jusqu'à 19 h avec lui. Il n'assure pas l'ouverture et la fermeture le même jour. Dates vides : la règle vaut sur toute la période.</p>
+        <p class="sub">Un apprenti n'est jamais désigné pour l'ouverture ni pour la fermeture du magasin, et n'entre pas dans le décompte de l'objectif hebdomadaire. Utilisez le début au plus tôt et la fin au plus tard pour encadrer ses horaires. Dates vides : la règle vaut sur toute la période.</p>
       </div>
       <div class="appbox line">
         <span class="lab">Formation au bureau</span>
-        <input type="text" class="e-fb" value="${(e.formation.blocs||[]).join(', ')}" placeholder="ex : 3, 2, 2" style="width:110px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
-        <span class="lab">h par bloc</span>
+        <input type="text" class="e-fb" value="${(e.formation.blocs||[]).map(ecrireDuree).join(' ')}" placeholder="ex : 3h 2h30 2h15" style="width:130px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff">
+        <span class="lab">un bloc par durée · 3h, 2h30, 2h15, 45min</span>
         <div class="dayset">${[1,2,3,4,5,6,0].map(i=>
           `<label><input type="checkbox" class="e-fj" value="${i}"${e.formation.jours.includes(i)?' checked':''}> ${DSHORT[i]}</label>`).join('')}</div>
         <p class="sub">Un bloc par jour, jamais deux le même jour, et les jours tournent d'une semaine à l'autre. Heures comprises dans le contrat, mais la personne n'est pas comptée sur la surface de vente.${(()=>{
@@ -1125,7 +1127,7 @@ function renderEmp(){
           const b=e.formation.blocs.length;
           if(!b)return '';
           if(b>n)return `<br><b style="color:var(--danger)">${b} blocs pour seulement ${n} jour${n>1?'s':''} possible${n>1?'s':''} : cochez au moins ${b} jours, sinon des blocs sauteront.</b>`;
-          return `<br>${b} blocs sur ${n} jours possibles, soit ${e.formation.blocs.reduce((x,y)=>x+y,0)} h par semaine.`;
+          return `<br>${b} blocs sur ${n} jours possibles, soit ${ecrireDuree(e.formation.blocs.reduce((x,y)=>x+y,0))} par semaine.`;
         })()}</p>
       </div>
     </div>`).join('');
@@ -1146,7 +1148,7 @@ function renderCfg(){
   const CB=c.cible||{ouvertures:2,fermetures:2};
   oOuv.value=CB.ouvertures; oFer.value=CB.fermetures;
   const S=c.samedi||{};
-  sFerm.value=String(S.fermeture||1); sFin.value=S.finAutres||''; sAppr.checked=S.apprentiFerme!==false;
+  sFerm.value=String(S.fermeture||1); sFin.value=S.finAutres||'';
   cBreak.value=c.breakMin; cStart.value=c.start; cEnd.value=c.end; cFerie.checked=c.closeOnFerie;
   cHours.innerHTML=[1,2,3,4,5,6,0].map(i=>{
     const hh=(c.hours||{})[i]||{o:c.open,c:c.close};
@@ -1330,6 +1332,7 @@ function lireEmp(){
     e.hours=Math.max(1,+tr.querySelector('.e-hours').value||35);
     e.color=tr.querySelector('.e-color').value;
     e.finMax=tr.querySelector('.e-finmax').value;
+    e.debutMin=tr.querySelector('.e-debmin').value;
     e.congesJours=+tr.querySelector('.e-cj').value||6;
     const hx=tr.querySelector('.e-hmax'), hn=tr.querySelector('.e-hmin');
     if(e.apprenti){ e.hoursMin=e.hours; e.hoursMax=e.hours; }
@@ -1339,7 +1342,10 @@ function lireEmp(){
     e.appDebut=tr.querySelector('.e-adeb').value;
     e.appFin=tr.querySelector('.e-afin').value;
     e.formation={
-      blocs:tr.querySelector('.e-fb').value.split(/[,;\s]+/).map(Number).filter(x=>x>0&&x<12),
+      blocs:tr.querySelector('.e-fb').value
+              .replace(/,(?=\s|$)/g,' ')      // "3, 2h30" : virgule de separation
+              .split(/[;+\s]+/).filter(Boolean)
+              .map(lireDuree).filter(x=>x>0&&x<12),
       jours:[...tr.querySelectorAll('.e-fj:checked')].map(i=>+i.value)
     };
     const j=[...tr.querySelectorAll('.e-day:checked')].map(i=>+i.value);
@@ -1358,7 +1364,7 @@ document.getElementById('empbody').addEventListener('change',ev=>{
 document.getElementById('applyCfg').onclick=()=>{
   const c=state.config;
   c.breakMin=+cBreak.value||0; c.closeOnFerie=cFerie.checked;
-  c.samedi={fermeture:+sFerm.value||1,finAutres:sFin.value||'',apprentiFerme:sAppr.checked};
+  c.samedi={fermeture:+sFerm.value||1,finAutres:sFin.value||''};
   c.cible={ouvertures:Math.max(0,+oOuv.value||0),fermetures:Math.max(0,+oFer.value||0)};
   const jours=[], hrs={}; let souci=null;
   [...cHours.querySelectorAll('tr')].forEach(tr=>{
@@ -1477,7 +1483,7 @@ document.getElementById('printAllBtn').onclick=()=>{
       state.config.hours=defaults().config.hours; state.config.v=3;
       state.config.open='09:00'; state.config.close='19:10';
     }
-    if(!state.config.samedi) state.config.samedi={fermeture:1,finAutres:'',apprentiFerme:true};
+    if(!state.config.samedi) state.config.samedi={fermeture:1,finAutres:''};
     if(!state.config.cible) state.config.cible={ouvertures:2,fermetures:2};
     if((state.config.v||0)<4){
       state.employees.forEach(e=>{
