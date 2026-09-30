@@ -114,6 +114,18 @@ button{cursor:pointer}
 .gc.hors{background:#F7F8F9;color:#AAB4BC;font-size:12px}
 .gc.mtot{font-size:13px;font-weight:600;text-align:center}
 .gc.mtot small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.gc.ann{font-size:11.5px;color:var(--muted);display:flex;align-items:center;letter-spacing:.01em}
+.gc.vide{min-height:26px}
+.gc.vide.sig{min-height:36px}
+.signbox{margin-top:16px}
+.signhdr{font-size:14px;font-weight:600;margin-bottom:9px}
+.signgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.signcase{border:1px solid var(--line);border-top:3px solid var(--line);border-radius:var(--r);padding:10px 11px;background:var(--surface);break-inside:avoid}
+.signnom{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;margin-bottom:9px}
+.signline{display:flex;align-items:flex-end;gap:8px;margin-top:9px}
+.signline span{font-size:11.5px;color:var(--muted);flex:none}
+.signline i{flex:1;border-bottom:1px solid var(--line);height:15px}
+.signline.sig i{height:38px}
 .cov{display:flex;align-items:flex-end;gap:1px;height:26px}
 .cov b{flex:1;background:var(--accent);opacity:.85;border-radius:1px;min-height:2px}
 .cov b.zero{background:var(--danger);opacity:.5}
@@ -171,6 +183,10 @@ h2.sec:first-child{margin-top:0}
 @media print{
   body{background:#fff}
   .top,.tabs,.acts,.toolbar,.nav button,.legend,.note,#modal{display:none!important}
+  .signbox{display:block!important;margin-top:14px}
+  .signcase{break-inside:avoid;border:1px solid #999}
+  .gc.vide{min-height:24px}
+  .gc.vide.sig{min-height:34px}
   .wrap{max-width:none;padding:0}
   .panel{border:0;padding:0}
   .scroller{overflow:visible;border:1px solid #999;border-radius:0}
@@ -242,6 +258,7 @@ h2.sec:first-child{margin-top:0}
       </div>
       <div class="flags" id="flags"></div>
       <div class="scroller" id="scroller"></div>
+      <div class="signbox" id="signBox"></div>
       <div class="legend">
         <span><i class="sw" style="background:#2C5FA8"></i> temps de travail</span>
         <span><i class="sw p" style="background:repeating-linear-gradient(45deg,#fff 0 3px,#D6DEE4 3px 6px);border:1px solid var(--line)"></i> pause</span>
@@ -274,6 +291,11 @@ h2.sec:first-child{margin-top:0}
         <thead><tr><th>Jour</th><th>Ouvert</th><th>Ouverture</th><th>Fermeture</th></tr></thead>
         <tbody id="cHours"></tbody>
       </table>
+      <div class="fld">
+        <label for="cDeux">Deuxième arrivée au plus tôt</label>
+        <input type="time" id="cDeux">
+        <span class="lab" style="min-width:0;font-size:12.5px">celle qui ouvre est seule jusque-là</span>
+      </div>
       <div class="fld"><label for="cBreak">Pause déjeuner (min)</label><input type="number" id="cBreak" min="0" max="180" step="15" style="max-width:90px"></div>
       <div class="fld"><label for="cFerie">Fermé les jours fériés</label><input type="checkbox" id="cFerie" style="width:auto"></div>
 
@@ -295,12 +317,22 @@ h2.sec:first-child{margin-top:0}
           <option value="3">3 personnes</option><option value="4">4 personnes</option>
         </select>
       </div>
-      <div class="fld">
-        <label for="sFin">Départ des autres</label>
-        <input type="time" id="sFin">
-        <span class="lab" style="min-width:0;color:var(--muted);font-size:12.5px">vide : horaires calculés normalement</span>
+      <div class="fld" style="border-top:1px dashed var(--line);padding-top:10px">
+        <label style="flex-basis:100%;margin:0;color:var(--ink);font-weight:600;min-width:0">Ajustements personnels</label>
       </div>
-      <p class="note">Celle qui ouvre garde son heure d'arrivée : si vous fixez un départ plus tard, sa journée s'allonge dans la limite de son maxi hebdomadaire. Les autres voient leur arrivée décalée pour conserver leur durée de travail.</p>
+      <div class="fld">
+        <label for="sA1" style="display:flex;align-items:center;gap:7px;color:var(--ink)">
+          <input type="checkbox" id="sA1" style="width:auto"> 1<sup>re</sup> personne — départ à
+        </label>
+        <input type="time" id="sD1">
+      </div>
+      <div class="fld">
+        <label for="sA2" style="display:flex;align-items:center;gap:7px;color:var(--ink)">
+          <input type="checkbox" id="sA2" style="width:auto"> 2<sup>e</sup> personne — départ à
+        </label>
+        <input type="time" id="sD2">
+      </div>
+      <p class="note">Les personnes concernées sont choisies parmi celles qui ne ferment pas, à tour de rôle d'un samedi à l'autre. Si la journée tombe à six heures de travail ou moins, la pause déjeuner est retirée. Les autres gardent leurs horaires calculés.</p>
 
       <h2 class="sec">Période couverte</h2>
       <div class="fld"><label for="cStart">Du</label><input type="date" id="cStart"><label for="cEnd" style="min-width:30px">au</label><input type="date" id="cEnd"></div>
@@ -502,7 +534,8 @@ function defaults(){
     config:{open:'09:00',close:'19:00',days:[1,2,3,4,5,6],breakMin:60,
             start:'2026-09-14',end:'2027-01-01',closeOnFerie:true,
             v:5,
-            samedi:{fermeture:1,finAutres:''},
+            deuxArrivee:'10:00',
+            samedi:{fermeture:1,ajust:[{actif:true,depart:'13:50'},{actif:false,depart:'17:00'}]},
             cible:{ouvertures:2,fermetures:2},
             hours:{1:{o:'09:00',c:'19:10'},2:{o:'09:00',c:'19:10'},3:{o:'09:00',c:'19:10'},
                    4:{o:'09:00',c:'19:10'},5:{o:'09:00',c:'19:10'},6:{o:'09:50',c:'19:10'},
@@ -564,7 +597,7 @@ const workMin=s=>s&&s.type==='travail'?Math.max(0,s.end-s.start-(s.brkMin||0)):0
 function generate(){
   plan={}; formWarn={};
   const c=state.config;
-  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0});
+  const cnt={}; state.employees.forEach(e=>cnt[e.id]={o:0,f:0,ow:0,fw:0,sam:0});
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
@@ -735,18 +768,22 @@ function generate(){
       [opener,co,closer,cf].forEach(e=>{ if(e)pool.splice(pool.indexOf(e),1); });
 
       const list=[];
+      // Celle qui ouvre tient la boutique seule jusqu'a cette heure : personne d'autre avant.
+      const deux=Math.max(open,c.deuxArrivee?mn(c.deuxArrivee):open);
+      const depOf=e=>Math.max(debOf(e,d),deux);
       const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-debOf(e,d)));
-      const add=(e,start)=>{
+      const add=(e,start,ouvre)=>{
         const a=ampOf(e);
-        list.push({e,s:Math.max(debOf(e,d),Math.min(start,limOf(e,d)-a)),a});
+        const mini=ouvre?debOf(e,d):depOf(e);
+        list.push({e,s:Math.max(mini,Math.min(start,limOf(e,d)-a)),a,ouvre:!!ouvre});
       };
-      if(opener) add(opener,open);
+      if(opener) add(opener,open,true);
       if(co) add(co,open);
       if(closer) add(closer,limOf(closer,d)-ampOf(closer));
       if(cf) add(cf,close-ampOf(cf));
       const mid=pool.sort((a,b)=>idx(a)-idx(b));
       mid.forEach((e,i)=>{
-        const deb=debOf(e,d);
+        const deb=depOf(e);
         const win=Math.max(0,(limOf(e,d)-deb)-ampOf(e));
         const pas=win/(mid.length+1);
         // decalage deterministe pour que les horaires ne soient pas figes d'une semaine a l'autre
@@ -774,20 +811,21 @@ function generate(){
             cnt[o.e.id].f++; cnt[o.e.id].fw++; n++;
           }
         }
-        if(S.finAutres){
-          const F=mn(S.finAutres);
-          list.forEach(o=>{
-            if(ferme(o))return;
-            if(o.e===opener||o.e===co){          // celles qui ouvrent gardent leur heure d'arrivee
-              const a2=Math.min(F-open,o.a+capa(o.e));
-              if(a2>=c.breakMin+60)o.a=a2;
-            } else {
-              const lim=Math.min(F,limOf(o.e,d));
-              o.s=Math.max(open,lim-o.a);
-              if(o.s+o.a>lim)o.a=Math.max(c.breakMin+60,lim-o.s);
-            }
-          });
-        }
+        // ajustements personnels : une ou deux personnes partent a une heure fixee
+        (S.ajust||[]).forEach(A=>{
+          if(!A||!A.actif||!A.depart)return;
+          const dep=mn(A.depart);
+          // seulement celles qui ont de la marge vers le bas : un contrat fixe n'est pas raccourci
+          const libre=list.filter(o=>!ferme(o)&&!o.ajuste&&dep>o.s+60
+            &&(o.e.hoursMin||0)<o.e.hours);
+          if(!libre.length)return;
+          libre.sort((a,b)=>(cnt[a.e.id].sam-cnt[b.e.id].sam)||(a.s-b.s));
+          const o=libre[0];
+          const base=o.ouvre?o.s:Math.max(depOf(o.e),o.s>deux?deux:o.s);
+          o.s=base; o.a=Math.max(120,dep-base); o.ajuste=true;
+          if(o.a<=360)o.sansPause=true;
+          cnt[o.e.id].sam++;
+        });
       }
       // regle apprenti : jamais l'ouverture ET la fermeture le meme jour
       list.forEach(o=>{
@@ -813,7 +851,8 @@ function generate(){
             if(plus>0){ t.s-=plus; t.a+=plus; t.rallonge=true; } }
         }
       }
-      list.forEach(o=>{ used[o.e.id]+=o.a-c.breakMin; });
+      const brkOf=o=>o.sansPause?0:c.breakMin;
+      list.forEach(o=>{ used[o.e.id]+=o.a-brkOf(o); });
       if(opener) roleLast[opener.id]={k,type:'o'};
       if(co) roleLast[co.id]={k,type:'o'};
       if(closer) roleLast[closer.id]={k,type:'f'};
@@ -823,15 +862,16 @@ function generate(){
       list.sort((x,y)=>x.s-y.s);
       let nextB=0;
       list.forEach(o=>{
+        const brk=brkOf(o);
         let bs=o.s;
-        if(c.breakMin>0){
-          const lo=Math.max(o.s+120,open+180), hi=Math.max(lo,o.s+o.a-c.breakMin-60);
+        if(brk>0){
+          const lo=Math.max(o.s+120,open+180), hi=Math.max(lo,o.s+o.a-brk-60);
           bs=r30(Math.max(lo,nextB));
           if(bs>hi)bs=r30(hi);
-          bs=Math.max(o.s,Math.min(bs,o.s+o.a-c.breakMin));
-          nextB=bs+c.breakMin;
+          bs=Math.max(o.s,Math.min(bs,o.s+o.a-brk));
+          nextB=bs+brk;
         }
-        plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:c.breakMin,trim:!!o.trim};
+        plan[k+'|'+o.e.id]={type:'travail',start:o.s,end:o.s+o.a,brkStart:bs,brkMin:brk,trim:!!o.trim};
       });
       // formation : en debut ou en fin de journee, on retient ce qui couvre le mieux le magasin
       list.forEach(o=>{
@@ -1003,6 +1043,11 @@ function gridHTML(ws){
       :(diff!==0?((diff>0?'+':'−')+dur(Math.abs(diff))+' / base'+(assim?' · '+dur(assim)+' assim.':''))
                 :(assim?'dont '+dur(assim)+' assimilées':'base respectée'));
     h+=`<div class="gc tot${over||under?' bad':''}">${dur(grand)}<small>${sub}</small></div>`;
+    const t1=teinte(e.color,.10), t2=teinte(e.color,.16);
+    h+=`<div class="gc name ann" style="background:${t1}">Modifications</div>`
+      +`<div class="gc vide" style="grid-column:2/-1;background:${t1}"></div>`
+      +`<div class="gc name ann" style="background:${t2}">Signature</div>`
+      +`<div class="gc vide sig" style="grid-column:2/-1;background:${t2}"></div>`;
   });
   h+=`<div class="gc name"><div class="person"><div>Présence<div class="h">par demi-heure</div></div></div></div>`;
   ds.forEach(d=>{
@@ -1013,6 +1058,13 @@ function gridHTML(ws){
   });
   h+=`<div class="gc"></div>`;
   return `<div class="grid" style="grid-template-columns:${cols}">${h}</div>`;
+}
+// melange une couleur avec du blanc pour obtenir un fond tres clair
+function teinte(hex,a){
+  const n=parseInt(String(hex).replace('#',''),16);
+  if(isNaN(n))return '#fff';
+  const m=x=>Math.round(255-(255-x)*a);
+  return `rgb(${m((n>>16)&255)},${m((n>>8)&255)},${m(n&255)})`;
 }
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -1041,6 +1093,7 @@ function renderPlanning(){
     document.getElementById('scroller').innerHTML=gridHTML(ws);
   }
 
+  document.getElementById('signBox').innerHTML=signHTML();
   document.getElementById('regenWeek').textContent=mode==='mois'?'Regénérer le mois':'Regénérer la semaine';
   jours.forEach(d=>{
     const v=vacOf(d); if(v&&!seen.has('v'+v.id)){seen.add('v'+v.id);fl.push(`<span class="flag">Vacances de ${esc(v.nom)} — zone B</span>`);}
@@ -1147,8 +1200,11 @@ function renderCfg(){
   const c=state.config;
   const CB=c.cible||{ouvertures:2,fermetures:2};
   oOuv.value=CB.ouvertures; oFer.value=CB.fermetures;
-  const S=c.samedi||{};
-  sFerm.value=String(S.fermeture||1); sFin.value=S.finAutres||'';
+  cDeux.value=c.deuxArrivee||'';
+  const S=c.samedi||{}, AJ=S.ajust||[];
+  sFerm.value=String(S.fermeture||1);
+  sA1.checked=!!(AJ[0]&&AJ[0].actif); sD1.value=(AJ[0]&&AJ[0].depart)||'13:50';
+  sA2.checked=!!(AJ[1]&&AJ[1].actif); sD2.value=(AJ[1]&&AJ[1].depart)||'17:00';
   cBreak.value=c.breakMin; cStart.value=c.start; cEnd.value=c.end; cFerie.checked=c.closeOnFerie;
   cHours.innerHTML=[1,2,3,4,5,6,0].map(i=>{
     const hh=(c.hours||{})[i]||{o:c.open,c:c.close};
@@ -1170,6 +1226,14 @@ function renderCfg(){
   document.getElementById('subtitle').textContent=
     Object.keys(grp).map(k=>grp[k].join(' ')+' '+k).join(' · ')
     +` · du ${fdate(parse(c.start))} au ${flong(parse(c.end))}`;
+}
+function signHTML(){
+  return `<div class="signhdr">Signature du planning</div><div class="signgrid">`
+    +state.employees.map(e=>`<div class="signcase" style="border-top-color:${e.color}">
+        <div class="signnom"><i class="dot" style="background:${e.color}"></i>${esc(e.name)}</div>
+        <div class="signline"><span>Date</span><i></i></div>
+        <div class="signline sig"><span>Signature</span><i></i></div>
+      </div>`).join('')+`</div>`;
 }
 function renderConges(){
   state.conges=state.conges||[];
@@ -1364,7 +1428,10 @@ document.getElementById('empbody').addEventListener('change',ev=>{
 document.getElementById('applyCfg').onclick=()=>{
   const c=state.config;
   c.breakMin=+cBreak.value||0; c.closeOnFerie=cFerie.checked;
-  c.samedi={fermeture:+sFerm.value||1,finAutres:sFin.value||''};
+  c.deuxArrivee=cDeux.value||'';
+  c.samedi={fermeture:+sFerm.value||1,ajust:[
+    {actif:sA1.checked,depart:sD1.value||'13:50'},
+    {actif:sA2.checked,depart:sD2.value||'17:00'}]};
   c.cible={ouvertures:Math.max(0,+oOuv.value||0),fermetures:Math.max(0,+oFer.value||0)};
   const jours=[], hrs={}; let souci=null;
   [...cHours.querySelectorAll('tr')].forEach(tr=>{
@@ -1461,7 +1528,7 @@ document.getElementById('printWeek').onclick=()=>{document.body.classList.remove
 document.getElementById('printAllBtn').onclick=()=>{
   let w=weekStart(parse(state.config.start)),e=parse(state.config.end),h='';
   while(w<=e){
-    h+=`<div class="pweek"><h3>Semaine du ${fdate(w)} au ${fdate(addD(w,6))} ${addD(w,6).getFullYear()}</h3>${gridHTML(w)}</div>`;
+    h+=`<div class="pweek"><h3>Semaine du ${fdate(w)} au ${fdate(addD(w,6))} ${addD(w,6).getFullYear()}</h3>${gridHTML(w)}<div class="signbox">${signHTML()}</div></div>`;
     w=addD(w,7);
   }
   document.getElementById('printall').innerHTML=h;
@@ -1483,7 +1550,10 @@ document.getElementById('printAllBtn').onclick=()=>{
       state.config.hours=defaults().config.hours; state.config.v=3;
       state.config.open='09:00'; state.config.close='19:10';
     }
-    if(!state.config.samedi) state.config.samedi={fermeture:1,finAutres:''};
+    if(!state.config.samedi) state.config.samedi={fermeture:1};
+    if(!Array.isArray(state.config.samedi.ajust))
+      state.config.samedi.ajust=[{actif:true,depart:'13:50'},{actif:false,depart:'17:00'}];
+    if(!state.config.deuxArrivee) state.config.deuxArrivee='10:00';
     if(!state.config.cible) state.config.cible={ouvertures:2,fermetures:2};
     if((state.config.v||0)<4){
       state.employees.forEach(e=>{
