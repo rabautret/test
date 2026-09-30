@@ -601,13 +601,13 @@ function generate(){
   const weeks={};
   allDays().forEach(d=>{const w=key(weekStart(d));(weeks[w]=weeks[w]||[]).push(d);});
 
+  const idxE=e=>state.employees.findIndex(x=>x.id===e.id);
   let wi=0, prevOpen=null;
   const roleLast={};   // empId -> {k, type} dernier jour ou la personne a ouvert ou ferme
   const histo={};      // "empId|jourDeSemaine" -> 3 dernieres semaines, pour ne pas tourner en rond
   Object.keys(weeks).sort().forEach(wk=>{
     const openDays=weeks[wk].filter(isOpenDay);
-    const daily={};
-    state.employees.forEach(e=>{ daily[e.id]=nominal(e); cnt[e.id].ow=0; cnt[e.id].fw=0; });
+    state.employees.forEach(e=>{ cnt[e.id].ow=0; cnt[e.id].fw=0; });
 
     // jours reellement travailles par chacune cette semaine, dans l'ordre
     const jw={}, used={}, assimW={};
@@ -658,7 +658,7 @@ function generate(){
     // corrige par ameliorations successives. Le cout penalise les enchainements
     // d'un jour sur l'autre et l'ecart d'equite, et interdit de fait un poste vide.
     const jours=openDays.map(d=>({d,k:key(d),
-      pool:state.employees.filter(e=>worksOn(e,d)&&!ok(key(d),e.id)&&!congeOf(e,d)&&daily[e.id]>0)}));
+      pool:state.employees.filter(e=>worksOn(e,d)&&!ok(key(d),e.id)&&!congeOf(e,d)&&nominal(e)>0)}));
     const optionsJour=j=>{
       // Un apprenti n'ouvre ni ne ferme jamais : il n'entre pas dans ces choix.
       const P=j.pool.filter(e=>!isAppr(e,j.d)), out=[];
@@ -691,7 +691,9 @@ function generate(){
       state.employees.forEach(e=>{O[e.id]=cnt[e.id].o;F[e.id]=cnt[e.id].f;sO[e.id]=0;sF[e.id]=0;});
       ch.forEach((x,i)=>{
         if(!x)return;
-        if(!x.opener)c+=60; if(!x.closer)c+=60;
+        // laisser l'ouverture ou la fermeture sans personne n'est jamais un compromis
+        // acceptable : le cout doit ecraser toutes les autres preferences
+        if(!x.opener)c+=500; if(!x.closer)c+=500;
         if(x.opener){O[x.opener.id]++;sO[x.opener.id]++;} if(x.co){O[x.co.id]++;sO[x.co.id]++;}
         if(x.closer){F[x.closer.id]++;sF[x.closer.id]++;} if(x.cf){F[x.cf.id]++;sF[x.cf.id]++;}
         // eviter de refaire exactement le meme jour le meme role que la semaine derniere
@@ -745,6 +747,44 @@ function generate(){
       const c=cout(c2);
       if(c<meilleur){meilleur=c;choix=c2;}
     }
+    // ---- Objectif d'heures jour par jour ----
+    // Le budget de la semaine (contrat moins heures assimilees) est reparti sur les jours
+    // travailles. Un depart anticipe le samedi est connu des maintenant : les heures
+    // retirees ce jour-la sont reportees sur les autres jours, pour rester sur le contrat.
+    const cible={}, samFix={};
+    state.employees.forEach(e=>{
+      const budget=Math.max(0,e.hours*60-assimW[e.id]), n=jw[e.id].length;
+      cible[e.id]={};
+      jw[e.id].forEach(kk=>cible[e.id][kk]=n?Math.round(budget/n):0);
+    });
+    const iSam=jours.findIndex(j=>j.d.getDay()===6);
+    if(iSam>=0&&c.samedi){
+      const jd=jours[iSam], ks=jd.k, ch=choix[iSam]||{};
+      const so=dayHours(jd.d).o;
+      const sdeux=Math.max(so,c.deuxArrivee?mn(c.deuxArrivee):so);
+      const pris=[];
+      (c.samedi.ajust||[]).forEach(A=>{
+        if(!A||!A.actif||!A.depart)return;
+        const dep=mn(A.depart);
+        const cands=jd.pool.filter(e=>e!==ch.closer&&pris.indexOf(e)<0
+          &&(e.hoursMin||0)<e.hours&&jw[e.id].indexOf(ks)>=0);
+        if(!cands.length)return;
+        cands.sort((a,b)=>(cnt[a.id].sam-cnt[b.id].sam)||(idxE(a)-idxE(b)));
+        const e=cands[0];
+        const deb=(e===ch.opener)?so:Math.max(debOf(e,jd.d),sdeux);
+        const amp=Math.max(120,dep-deb);
+        if(amp>=cible[e.id][ks]+c.breakMin)return;
+        pris.push(e); cnt[e.id].sam++;
+        const brk=amp<=360?0:c.breakMin;
+        samFix[e.id]={s:deb,a:amp,brk};
+        const budget=Math.max(0,e.hours*60-assimW[e.id]);
+        const autres=jw[e.id].filter(x=>x!==ks);
+        cible[e.id][ks]=amp-brk;
+        const reste=Math.max(0,budget-(amp-brk));
+        autres.forEach(x=>cible[e.id][x]=autres.length?Math.round(reste/autres.length):0);
+      });
+    }
+
     choix.forEach((x,i)=>{
       const jd=jours[i].d.getDay(), R=roleMap(x);
       for(const id in R){
@@ -760,7 +800,8 @@ function generate(){
     openDays.forEach((d,iJour)=>{
       const k=key(d);
       const {o:open,c:close}=dayHours(d), amp=close-open;
-      const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&!congeOf(e,d)&&daily[e.id]>0);
+      const cibleJ=e=>(cible[e.id]&&cible[e.id][k])||0;
+      const pool=state.employees.filter(e=>worksOn(e,d)&&!ok(k,e.id)&&!congeOf(e,d)&&nominal(e)>0);
       if(!pool.length)return;
       const idx=e=>state.employees.findIndex(x=>x.id===e.id);
       const plan_=choix[iJour]||{opener:null,co:null,closer:null,cf:null};
@@ -771,10 +812,11 @@ function generate(){
       // Celle qui ouvre tient la boutique seule jusqu'a cette heure : personne d'autre avant.
       const deux=Math.max(open,c.deuxArrivee?mn(c.deuxArrivee):open);
       const depOf=e=>Math.max(debOf(e,d),deux);
-      const ampOf=e=>Math.max(c.breakMin+30,Math.min(daily[e.id]+c.breakMin,limOf(e,d)-debOf(e,d)));
+      const ampOf=e=>Math.max(c.breakMin+30,Math.min(cibleJ(e)+c.breakMin,limOf(e,d)-debOf(e,d)));
       const add=(e,start,ouvre)=>{
-        const a=ampOf(e);
         const mini=ouvre?debOf(e,d):depOf(e);
+        // la journee ne peut jamais deborder de la plage autorisee de la personne
+        const a=Math.max(60,Math.min(ampOf(e),limOf(e,d)-mini));
         list.push({e,s:Math.max(mini,Math.min(start,limOf(e,d)-a)),a,ouvre:!!ouvre});
       };
       if(opener) add(opener,open,true);
@@ -792,7 +834,7 @@ function generate(){
       });
       const capa=e=>{
         const i2=jw[e.id].indexOf(k); if(i2<0)return 0;
-        const prevu=nominal(e)*(jw[e.id].length-i2);
+        let prevu=0; for(let x=i2;x<jw[e.id].length;x++) prevu+=cible[e.id][jw[e.id][x]]||0;
         return Math.max(0,(e.hoursMax||e.hours)*60-assimW[e.id]-used[e.id]-prevu);
       };
       // ---- regime particulier du samedi ----
@@ -811,20 +853,11 @@ function generate(){
             cnt[o.e.id].f++; cnt[o.e.id].fw++; n++;
           }
         }
-        // ajustements personnels : une ou deux personnes partent a une heure fixee
-        (S.ajust||[]).forEach(A=>{
-          if(!A||!A.actif||!A.depart)return;
-          const dep=mn(A.depart);
-          // seulement celles qui ont de la marge vers le bas : un contrat fixe n'est pas raccourci
-          const libre=list.filter(o=>!ferme(o)&&!o.ajuste&&dep>o.s+60
-            &&(o.e.hoursMin||0)<o.e.hours);
-          if(!libre.length)return;
-          libre.sort((a,b)=>(cnt[a.e.id].sam-cnt[b.e.id].sam)||(a.s-b.s));
-          const o=libre[0];
-          const base=o.ouvre?o.s:Math.max(depOf(o.e),o.s>deux?deux:o.s);
-          o.s=base; o.a=Math.max(120,dep-base); o.ajuste=true;
-          if(o.a<=360)o.sansPause=true;
-          cnt[o.e.id].sam++;
+        // ajustements personnels, decides au niveau de la semaine pour que les heures
+        // retirees soient deja reportees sur les autres jours
+        list.forEach(o=>{
+          const f=samFix[o.e.id]; if(!f)return;
+          o.s=f.s; o.a=f.a; o.ajuste=true; o.sansPause=f.brk===0;
         });
       }
       // regle apprenti : jamais l'ouverture ET la fermeture le meme jour
