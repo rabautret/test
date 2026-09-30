@@ -415,6 +415,15 @@ const hm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const mn=s=>{const[a,b]=s.split(':').map(Number);return a*60+b;};
 const dur=m=>m%60?`${Math.floor(m/60)} h ${pad(m%60)}`:`${Math.floor(m/60)} h`;
 const r5=m=>Math.round(m/5)*5, r15=m=>Math.round(m/15)*15, r30=m=>Math.round(m/30)*30;
+// repartit un total en n parts multiples d'un quart d'heure, sans perdre une minute
+function repartir(total,n,decalage){
+  if(n<=0)return [];
+  const base=Math.floor(total/n/15)*15, out=new Array(n).fill(base);
+  let reste=total-base*n;
+  for(let i=0;reste>=15&&i<n;i++){ out[(i+(decalage||0))%n]+=15; reste-=15; }
+  if(reste>0)out[(decalage||0)%n]+=reste;
+  return out;
+}
 const DAYS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const DSHORT=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -516,7 +525,7 @@ const debOf=(e,d)=>{const o=dayHours(d).o; return e.debutMin?Math.max(mn(e.debut
 function nominal(e){
   const n=e.jours.filter(i=>state.config.days.includes(i)).length;
   const cible=Math.min(e.hours,e.hoursMax||e.hours);
-  return n?r5(cible*60/n):0;
+  return n?r15(cible*60/n):0;
 }
 // repos, conge, absence ou ferie tombant sur un jour prevu : compte comme une journee normale
 function assimMin(d,e){
@@ -751,11 +760,15 @@ function generate(){
     // Le budget de la semaine (contrat moins heures assimilees) est reparti sur les jours
     // travailles. Un depart anticipe le samedi est connu des maintenant : les heures
     // retirees ce jour-la sont reportees sur les autres jours, pour rester sur le contrat.
-    const cible={}, samFix={};
+    const cible={}, samFix={}, budgetDe={};
     state.employees.forEach(e=>{
-      const budget=Math.max(0,e.hours*60-assimW[e.id]), n=jw[e.id].length;
+      // jours prevus de la semaine qui tombent dans la periode couverte, feries compris
+      const prevus=weeks[wk].filter(d=>state.config.days.includes(d.getDay())&&worksOn(e,d)).length;
+      budgetDe[e.id]=Math.max(0,nominal(e)*prevus-assimW[e.id]);
+      const n=jw[e.id].length;
+      const parts=repartir(budgetDe[e.id],n,wi);
       cible[e.id]={};
-      jw[e.id].forEach(kk=>cible[e.id][kk]=n?Math.round(budget/n):0);
+      jw[e.id].forEach((kk,i)=>cible[e.id][kk]=parts[i]||0);
     });
     const iSam=jours.findIndex(j=>j.d.getDay()===6);
     if(iSam>=0&&c.samedi){
@@ -777,11 +790,10 @@ function generate(){
         pris.push(e); cnt[e.id].sam++;
         const brk=amp<=360?0:c.breakMin;
         samFix[e.id]={s:deb,a:amp,brk};
-        const budget=Math.max(0,e.hours*60-assimW[e.id]);
         const autres=jw[e.id].filter(x=>x!==ks);
         cible[e.id][ks]=amp-brk;
-        const reste=Math.max(0,budget-(amp-brk));
-        autres.forEach(x=>cible[e.id][x]=autres.length?Math.round(reste/autres.length):0);
+        const parts=repartir(Math.max(0,budgetDe[e.id]-(amp-brk)),autres.length,wi);
+        autres.forEach((x,i)=>cible[e.id][x]=parts[i]||0);
       });
     }
 
@@ -817,7 +829,10 @@ function generate(){
         const mini=ouvre?debOf(e,d):depOf(e);
         // la journee ne peut jamais deborder de la plage autorisee de la personne
         const a=Math.max(60,Math.min(ampOf(e),limOf(e,d)-mini));
-        list.push({e,s:Math.max(mini,Math.min(start,limOf(e,d)-a)),a,ouvre:!!ouvre});
+        let s2=Math.max(mini,Math.min(start,limOf(e,d)-a));
+        // arrondi au quart d'heure quand l'heure n'est pas imposee par l'ouverture ou la fermeture
+        if(s2>mini){ const r=r15(s2); if(r>=mini&&r<=limOf(e,d)-a) s2=r; }
+        list.push({e,s:s2,a,ouvre:!!ouvre});
       };
       if(opener) add(opener,open,true);
       if(co) add(co,open);
@@ -835,7 +850,10 @@ function generate(){
       const capa=e=>{
         const i2=jw[e.id].indexOf(k); if(i2<0)return 0;
         let prevu=0; for(let x=i2;x<jw[e.id].length;x++) prevu+=cible[e.id][jw[e.id][x]]||0;
-        return Math.max(0,(e.hoursMax||e.hours)*60-assimW[e.id]-used[e.id]-prevu);
+        const nHab=Math.max(1,e.jours.filter(i=>c.days.includes(i)).length);
+        const prevusSem=weeks[wk].filter(x=>c.days.includes(x.getDay())&&worksOn(e,x)).length;
+        const plafond=Math.round((e.hoursMax||e.hours)*60*prevusSem/nHab);
+        return Math.max(0,plafond-assimW[e.id]-used[e.id]-prevu);
       };
       // ---- regime particulier du samedi ----
       const S=c.samedi||{};
