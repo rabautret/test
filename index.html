@@ -433,7 +433,7 @@ function evCard(e){
   return `<div class="ev ${st==='live'?'is-live':''}" role="button" tabindex="0" data-a="open-ev" data-id="${e.id}">
     <div class="when"><span class="t num">${fTime(e.start)}</span><span class="d">${fmt({day:'numeric',month:'short'},e.start)}</span></div>
     <div class="body">
-      <div class="row" style="gap:6px">${scopeChip(e)}${e.askPresence?'':'<span class="chip">Sans réponse demandée</span>'}</div>
+      <div class="row" style="gap:6px">${scopeChip(e)}${e.seriesId?'<span class="chip" title="Événement répété">↻</span>':''}${e.askPresence?'':'<span class="chip">Sans réponse demandée</span>'}</div>
       <div class="title">${esc(e.title)}</div>
       ${e.subtitle?`<div class="subtitle">${esc(e.subtitle)}</div>`:''}
       ${extra}
@@ -466,7 +466,8 @@ function renderSheet(){
       <button class="x" data-a="close-sheet" aria-label="Fermer">✕</button></div>
     <div class="panel-body">
       <div class="card row" style="justify-content:space-between"><div><div class="label">Début</div><div style="font-weight:600;text-transform:capitalize">${fDayLong(e.start)} · ${fTime(e.start)}</div></div>
-        ${manage?`<div class="row"><button class="btn small" data-a="ev-edit" data-id="${e.id}">Modifier</button><button class="btn small danger" data-a="ev-del" data-id="${e.id}" data-confirm>Supprimer</button></div>`:''}</div>
+        ${manage?`<div class="row"><button class="btn small" data-a="ev-edit" data-id="${e.id}">Modifier</button><button class="btn small danger" data-a="ev-del" data-id="${e.id}" data-confirm>Supprimer</button>${e.seriesId&&S.events.some(x=>x.seriesId===e.seriesId&&x!==e&&new Date(x.start)>new Date(e.start))?`<button class="btn small danger" data-a="ev-del-series" data-id="${e.id}" data-confirm>Supprimer la série</button>`:''}</div>`:''}</div>
+      ${e.seriesId?`<div class="muted" style="font-size:13px;margin-top:-8px">↻ Répété ${REP_LBL[e.repeat]||''} · ${S.events.filter(x=>x.seriesId===e.seriesId).length} événements dans la série. « Supprimer la série » retire celui-ci et les suivants.</div>`:''}
       ${(st!=='up'||e.live.status!=='none')?boardHtml(e,manage):''}
       ${e.askPresence?`<div class="section"><div class="spread"><h3 style="font-size:20px">Présences</h3><span class="muted num" style="font-size:14px">${conv.length} convoqué${conv.length>1?'s':''}</span></div>${presenceBar(e)}</div>
         ${grpBlock('present','Présents','var(--present)')}${grpBlock('absent','Absents','var(--absent)')}${grpBlock('none','Pas répondu','var(--pending)')}`
@@ -612,6 +613,29 @@ function openModal(title,body,label,onSubmit){
 const closeModal=()=>{document.getElementById('modal').innerHTML='';modalSubmit=null};
 const checks=(name,items,selected)=>items.length?`<div class="checks">${items.map(([v,l])=>`<label><input type="checkbox" name="${name}" value="${v}" ${selected.includes(v)?'checked':''}>${esc(l)}</label>`).join('')}</div>`:'<div class="muted" style="font-size:14px">Rien à sélectionner.</div>';
 
+const MAX_OCC=200;
+function occurrences(startISO,rep,untilStr){
+  const s=new Date(startISO);if(rep==='none'||!rep)return [s];
+  const until=new Date(untilStr+'T23:59:59');const out=[];
+  for(let i=0;i<MAX_OCC;i++){
+    let d=new Date(s);
+    if(rep==='week')d.setDate(s.getDate()+7*i);
+    else if(rep==='2week')d.setDate(s.getDate()+14*i);
+    else{const m=s.getMonth()+i,y=s.getFullYear()+Math.floor(m/12),mm=((m%12)+12)%12,last=new Date(y,mm+1,0).getDate();d=new Date(y,mm,Math.min(s.getDate(),last),s.getHours(),s.getMinutes())}
+    if(d>until)break;out.push(d);
+  }
+  return out;
+}
+const REP_LBL={week:'chaque semaine','2week':'toutes les 2 semaines',month:'chaque mois'};
+function updateRepeatHint(){
+  const r=document.getElementById('evRepeat');if(!r)return;
+  const on=r.value!=='none',w=document.getElementById('evUntilWrap'),h=document.getElementById('evRepeatHint');
+  w.hidden=!on;h.hidden=!on;if(!on)return;
+  const st=document.getElementById('evStart').value,u=document.getElementById('evUntil').value;
+  if(!st||!u){h.textContent='Choisissez une date de fin.';return}
+  const n=occurrences(new Date(st).toISOString(),r.value,u).length;
+  h.textContent=n?`${n} événement${n>1?'s':''} ser${n>1?'ont':'a'} créé${n>1?'s':''}, ${REP_LBL[r.value]}, du ${fDayShort(new Date(st))} au ${fDayShort(new Date(u+'T12:00'))}.${n>=MAX_OCC?' (limité à '+MAX_OCC+')':''}`:'La date de fin est avant la date de début.';
+}
 function eventForm(e){
   const teams=S.teams.filter(t=>canManage(t.id));
   const tid=e?(e.teamId||CLUB):(ui.teamFilter==='club'?CLUB:ui.teamFilter!=='all'&&canManage(ui.teamFilter)?ui.teamFilter:teams[0]?.id||CLUB);
@@ -627,6 +651,11 @@ function eventForm(e){
     <label class="field"><span>Sous-titre</span><input class="input" id="evSub" name="subtitle" value="${esc(e?.subtitle||'')}" placeholder="contre FC Rives – Journée 5"></label>
     <div class="grid2"><label class="field"><span>Date et heure de début</span><input class="input" id="evStart" type="datetime-local" name="start" required value="${toLocalInput(e?e.start:d)}"></label>
     <label class="field"><span>Adversaire (pour le live)</span><input class="input" id="evOpp" name="opponent" value="${esc(e?.opponent||'')}" placeholder="Facultatif"></label></div>
+    ${!e?`<div class="grid2"><label class="field"><span>Répétition</span><select class="input" id="evRepeat" name="repeat">
+        <option value="none">Ne pas répéter</option><option value="week">Chaque semaine</option><option value="2week">Toutes les 2 semaines</option><option value="month">Chaque mois</option></select></label>
+      <label class="field" id="evUntilWrap" hidden><span>Jusqu'au (inclus)</span><input class="input" id="evUntil" type="date" name="until" value="${toLocalInput(new Date(d.getTime()+60*864e5)).slice(0,10)}"></label></div>
+      <div class="muted" id="evRepeatHint" style="font-size:13px;margin-top:-8px" hidden></div>`
+    :e.seriesId?`<label class="toggle" style="font-weight:500"><input type="checkbox" id="evSeries" name="series"> Appliquer aussi aux événements suivants de la série (${S.events.filter(x=>x.seriesId===e.seriesId&&new Date(x.start)>new Date(e.start)).length})</label>`:''}
     <label class="toggle"><input type="checkbox" id="evAsk" name="ask" ${!e||e.askPresence?'checked':''}> Demander la présence aux parents</label>
     <div class="field"><span>Joueurs convoqués</span><div id="convBox">${convChecks(tid,e?e.convoked:null)}</div></div>
   `,e?'Enregistrer':"Créer l'événement",f=>{
@@ -635,8 +664,23 @@ function eventForm(e){
     if(fd.get('saveTitle')&&!S.titles.some(t=>low(t)===low(title)))S.titles.push(title);
     const data={title,subtitle:fd.get('subtitle').trim(),opponent:fd.get('opponent').trim(),start:new Date(start).toISOString(),askPresence:!!fd.get('ask'),convoked:fd.getAll('conv')};
     const scope=fd.get('team');data.teamId=scope===CLUB?null:scope;
-    if(e){Object.assign(e,data);Object.keys(e.responses).forEach(k=>{if(!e.convoked.includes(k))delete e.responses[k]});toast('Événement mis à jour')}
-    else{S.events.push({id:uid(),createdBy:me.id,responses:{},live:{status:'none',us:0,them:0},...data});toast('Événement créé')}
+    const clean=x=>Object.keys(x.responses).forEach(k=>{if(!x.convoked.includes(k))delete x.responses[k]});
+    if(e){
+      const oldStart=new Date(e.start),nd=new Date(data.start);
+      if(fd.get('series')){
+        const next=S.events.filter(x=>x.seriesId===e.seriesId&&x!==e&&new Date(x.start)>oldStart);
+        next.forEach(x=>{const t=new Date(x.start);t.setHours(nd.getHours(),nd.getMinutes(),0,0);Object.assign(x,{...data,start:t.toISOString(),convoked:[...data.convoked]});clean(x)});
+        Object.assign(e,data);clean(e);toast(`${next.length+1} événements mis à jour`);
+      }else{Object.assign(e,data);clean(e);toast('Événement mis à jour')}
+    }else{
+      const rep=fd.get('repeat')||'none';
+      if(rep!=='none'&&!fd.get('until'))return 'Indiquez la date de fin de la répétition.';
+      const dates=occurrences(data.start,rep,fd.get('until'));
+      if(!dates.length)return 'La date de fin est avant la date de début.';
+      const seriesId=dates.length>1?uid():null;
+      dates.forEach(dt=>S.events.push({id:uid(),createdBy:me.id,responses:{},live:{status:'none',us:0,them:0},...data,convoked:[...data.convoked],start:dt.toISOString(),...(seriesId?{seriesId,repeat:rep}:{})}));
+      toast(dates.length>1?`${dates.length} événements créés`:'Événement créé');
+    }
   });
 }
 const convChecks=(tid,sel)=>{
@@ -688,6 +732,8 @@ function act(a,d,el){
     case 'respond':{const e=ev(d.ev);e.responses[d.pl]=e.responses[d.pl]===d.v?undefined:d.v;if(!e.responses[d.pl])delete e.responses[d.pl];save();render();break}
     case 'ev-new':eventForm(null);break;
     case 'ev-edit':eventForm(ev(d.id));break;
+    case 'ev-del-series':{const e=ev(d.id),t0=new Date(e.start);const n=S.events.filter(x=>x.seriesId===e.seriesId&&new Date(x.start)>=t0).length;
+      S.events=S.events.filter(x=>!(x.seriesId===e.seriesId&&new Date(x.start)>=t0));ui.sheet=null;save();render();toast(`${n} événements supprimés`);break}
     case 'ev-del':S.events=S.events.filter(e=>e.id!==d.id);ui.sheet=null;save();render();toast('Événement supprimé');break;
     case 'live-start':{const e=ev(d.id);e.live={status:'live',us:0,them:0,startedAt:new Date().toISOString()};save();render();toast('Live lancé');break}
     case 'score':{const e=ev(d.id);e.live[d.side]=Math.max(0,e.live[d.side]+Number(d.d));save();render();break}
@@ -776,9 +822,10 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='teamFilter'){ui.teamFilter=t.value;render()}
   else if(t.dataset.a==='player-move'){const p=player(t.dataset.id);p.teamId=t.value||null;save();render();toast(`${p.first} → ${p.teamId?team(p.teamId).name:'sans équipe'}`)}
+  else if(['evRepeat','evUntil','evStart'].includes(t.id)){updateRepeatHint()}
   else if(t.id==='evTeam'){document.getElementById('convBox').innerHTML=convChecks(t.value,null);document.getElementById('evScopeHint').hidden=t.value!==CLUB}
 });
-document.addEventListener('input',e=>{if(e.target.id==='evTitle')document.querySelectorAll('.chip.pick').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v===e.target.value))});
+document.addEventListener('input',e=>{if(['evStart','evUntil'].includes(e.target.id))updateRepeatHint();if(e.target.id==='evTitle')document.querySelectorAll('.chip.pick').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v===e.target.value))});
 document.addEventListener('submit',e=>{
   e.preventDefault();const f=e.target;
   if(f.id==='loginForm'){login(f.email.value);return}
