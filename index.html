@@ -1,759 +1,794 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0B1F3A">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Revente Billets 26/27</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D4ED0">
+<title>Vestiaire Club</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
-  :root{
-    --navy:#0B1F3A;
-    --navy2:#122C4F;
-    --sky:#2FAEE0;
-    --om:#6FD3FF;
-    --sky-soft:#BFE6F7;
-    --pfc:#E63946;
-    --pfc-soft:#F7C6CB;
-    --gold:#D4A017;
-    --white:#F7FAFC;
-    --green:#2FBF71;
-    --red:#E8554E;
-    --line:rgba(191,230,247,.14);
-    --radius:14px;
-    font-size:16px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:var(--navy);color:var(--white);min-height:100vh;padding-bottom:100px;
-  }
-  header{
-    background:linear-gradient(160deg,#0B1F3A 0%,#123B63 60%,#16588A 100%);
-    padding:16px 16px 0;border-bottom:1px solid var(--line);
-  }
-  .brand h1{font-size:1.15rem;font-weight:800;letter-spacing:.5px}
-  .brand h1 span{color:var(--sky)}
-  .brand small{color:var(--sky-soft);font-weight:600;font-size:.7rem;letter-spacing:1px}
+/* Layout : appli mobile d'abord, en-tête collant, colonne unique 720px, barre d'onglets en bas. Tableau d'affichage façon stade pour le LIVE. */
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --surface-2:#F6F8FA; --ink:#13202D; --muted:#5A6878; --line:#D9E0E7;
+  --accent:#1D4ED0; --accent-soft:#E3EAFB; --accent-ink:#FFFFFF;
+  --present:#18925A; --present-soft:#DDF3E7; --absent:#D23838; --absent-soft:#FBE3E3;
+  --pending:#7C8896; --pending-soft:#E9EDF1; --live:#E3560B; --live-soft:#FDEBDF;
+  --board:#0F1A26; --board-ink:#F4F7FA; --board-digit:#FFC94A;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C131B; --surface:#152029; --surface-2:#1A2632; --ink:#E6ECF2; --muted:#93A1B0; --line:#26354A;
+  --accent:#6B90F2; --accent-soft:#1D2B4A; --accent-ink:#0C131B;
+  --present:#3DC27A; --present-soft:#173326; --absent:#F06663; --absent-soft:#3A1D1F;
+  --pending:#7F8C9A; --pending-soft:#212D39; --live:#FF7D36; --live-soft:#3A2416;
+  --board:#060B11; --board-ink:#F4F7FA; --board-digit:#FFC94A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C131B; --surface:#152029; --surface-2:#1A2632; --ink:#E6ECF2; --muted:#93A1B0; --line:#26354A;
+  --accent:#6B90F2; --accent-soft:#1D2B4A; --accent-ink:#0C131B;
+  --present:#3DC27A; --present-soft:#173326; --absent:#F06663; --absent-soft:#3A1D1F;
+  --pending:#7F8C9A; --pending-soft:#212D39; --live:#FF7D36; --live-soft:#3A2416;
+  --board:#060B11; --board-ink:#F4F7FA; --board-digit:#FFC94A; color-scheme:dark}
 
-  /* Onglets */
-  .tabs{display:flex;gap:4px;margin-top:14px}
-  .tab{
-    flex:1;background:transparent;border:none;color:var(--sky-soft);
-    padding:11px 4px;font-size:.8rem;font-weight:800;letter-spacing:.5px;cursor:pointer;
-    border-bottom:3px solid transparent;text-transform:uppercase;
-  }
-  .tab.active{color:var(--white);border-bottom-color:var(--sky)}
-  .tab.active[data-t="om"]{color:var(--om);border-bottom-color:var(--om)}
-  .tab.active[data-t="pfc"]{color:var(--pfc);border-bottom-color:var(--pfc)}
-  .tab.active[data-t="bilan"]{color:var(--gold);border-bottom-color:var(--gold)}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.muted{color:var(--muted)}
+.label{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;font-weight:600;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
 
-  /* Thème par club */
-  #page-om .abo{border-top:3px solid var(--om)}
-  #page-om .abo h2{color:var(--om)}
-  #page-om .card{border-left:3px solid rgba(111,211,255,.35)}
-  #page-om .card.done{border-left-color:var(--green)}
-  #page-om .card.loss{border-left-color:var(--red)}
-  #page-pfc .abo{border-top:3px solid var(--pfc)}
-  #page-pfc .abo h2{color:var(--pfc)}
-  #page-pfc .card{border-left:3px solid rgba(230,57,70,.35)}
-  #page-pfc .card.done{border-left-color:var(--green)}
-  #page-pfc .card.loss{border-left-color:var(--red)}
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;padding-block:10px}
+.crest{width:36px;height:36px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:16px;flex:none}
+.top h1{font-size:21px;line-height:1.1}
+.top .sub{font-size:13px;color:var(--muted)}
+.role{margin-left:auto;font-family:var(--f-display);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;padding:4px 10px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
 
-  .page{display:none;padding:0 16px}
-  .page.active{display:block}
+main{padding-block:18px 110px}
+.section{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:18px}
 
-  /* Bloc abonnements */
-  .abo{
-    margin-top:14px;background:var(--navy2);border:1px solid var(--line);
-    border-radius:var(--radius);padding:14px;
-  }
-  .abo h2{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:10px}
-  .abo-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end}
-  .abo-info{
-    margin-top:8px;padding-top:10px;border-top:1px solid var(--line);
-    font-size:.75rem;color:var(--sky-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;
-  }
-  .abo-info b{color:var(--white)}
-  .abo-add{
-    background:none;border:1px dashed var(--line);color:var(--sky-soft);border-radius:8px;
-    padding:8px;width:100%;font-size:.75rem;font-weight:700;cursor:pointer;margin-top:2px;
-  }
-  .abo-del{
-    background:none;border:none;color:var(--sky-soft);font-size:1rem;cursor:pointer;
-    padding:10px 8px;opacity:.6;
-  }
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.nav .wrap{display:grid;grid-template-columns:repeat(4,1fr);padding-block:6px}
+.nav button{background:none;border:0;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;border-radius:10px;position:relative}
+.nav button svg{width:22px;height:22px}
+.nav button[aria-current="true"]{color:var(--accent)}
+.nav .dot{position:absolute;top:4px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--live);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.nav .dot,.live-tag::before{animation:none}}
 
-  /* Champs */
-  .field label{display:block;font-size:.6rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;font-weight:700}
-  .field input{
-    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
-    color:var(--white);padding:9px 8px;font-size:16px;font-weight:700;text-align:center;
-    font-variant-numeric:tabular-nums;
-  }
-  .field input:focus{outline:none;border-color:var(--sky)}
-  .field input::placeholder{color:rgba(191,230,247,.3)}
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 14px;border-radius:10px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.danger{color:var(--absent)}
+.btn.danger[data-armed]{background:var(--absent);color:#fff;border-color:var(--absent)}
+.btn.live{background:var(--live);border-color:var(--live);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
 
-  /* Cartes match */
-  .list{padding-top:10px;display:flex;flex-direction:column;gap:10px}
-  .card{
-    background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);
-    padding:12px 14px;
-  }
-  .card.done{border-left:3px solid var(--green)}
-  .card.loss{border-left:3px solid var(--red)}
-  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .match-name{font-weight:800;font-size:.98rem}
-  .match-meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
-  .match-date{font-size:.7rem;color:var(--sky-soft)}
-  .tag{font-size:.58rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:99px}
-  .tag.L1{background:rgba(47,174,224,.18);color:var(--sky)}
-  .tag.CDF{background:rgba(47,191,113,.18);color:var(--green)}
-  .tag.CE{background:rgba(212,160,23,.18);color:var(--gold)}
-  .abo-check{
-    display:inline-flex;align-items:center;gap:4px;margin-right:6px;
-    background:rgba(247,250,252,.08);border:1px solid var(--line);border-radius:7px;
-    padding:2px 7px;cursor:pointer;vertical-align:middle;
-  }
-  .abo-check input{width:15px;height:15px;accent-color:var(--sky);cursor:pointer}
-  .abo-check-txt{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sky-soft)}
-  select{
-    width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
-    color:var(--white);padding:11px 10px;font-size:16px;font-weight:600;
-  }
-  .card-net{font-weight:800;font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .del-btn{background:none;border:none;color:var(--sky-soft);font-size:1.05rem;cursor:pointer;padding:2px 6px;opacity:.6;line-height:1}
-  .inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
-  .pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--sky-soft)}
-  .gold-v{color:var(--gold)}
+/* segmented */
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px;overflow-x:auto}
+.seg button{flex:1;border:0;background:none;padding:7px 10px;border-radius:8px;font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
 
-  /* Bilan */
-  .bilan-hero{
-    margin-top:14px;background:linear-gradient(160deg,#122C4F,#0F3A5F);
-    border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;text-align:center;
-  }
-  .bilan-hero .label{font-size:.72rem;color:var(--sky-soft);text-transform:uppercase;letter-spacing:2px;font-weight:700}
-  .bilan-hero .value{font-size:2.3rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
-  .bilan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-  .bcard{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px}
-  .bcard h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-  .bcard h3.om{color:var(--om)} .bcard h3.pfc{color:var(--pfc)}
-  .bcard .big{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
-  .bcard .sub{font-size:.68rem;color:var(--sky-soft);margin-top:6px;line-height:1.5}
-  .bcard .sub b{color:var(--white)}
-  .bilan-table{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
-  .bilan-table h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:8px}
-  .brow{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--line)}
-  .brow:last-child{border-bottom:none}
-  .brow .amt{font-weight:700;font-variant-numeric:tabular-nums}
+/* cards & lists */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .grow{flex:1;min-width:0}
+.item .name{font-weight:600}
+.item .meta{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.pick{cursor:pointer;font-size:13.5px;padding:6px 12px;color:var(--ink);background:var(--surface)}
+.chip.pick:hover{border-color:var(--accent)}
+.chip.pick[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.club{background:var(--live-soft);border-color:transparent;color:var(--live)}
+.chip.team{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:15px;flex:none}
 
-  /* Prix cible */
-  .cible{
-    margin-top:10px;background:linear-gradient(135deg,rgba(212,160,23,.14),rgba(18,44,79,.9));
-    border:1px solid rgba(212,160,23,.35);border-radius:var(--radius);padding:13px;
-  }
-  .cible h3{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px}
-  .cible .main{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-  .cible .main .t{font-size:.78rem;color:var(--sky-soft)}
-  .cible .main .v{font-size:1.55rem;font-weight:800;font-variant-numeric:tabular-nums}
-  .cible .lines{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
-  .cible .lines div{display:flex;justify-content:space-between;font-size:.73rem;color:var(--sky-soft)}
-  .cible .lines b{color:var(--white);font-variant-numeric:tabular-nums}
-  .cible .msg{font-size:.7rem;line-height:1.5;margin-top:8px;color:var(--sky-soft)}
-  .match-cible{
-    font-size:.66rem;color:var(--gold);font-weight:700;margin-top:8px;
-    background:rgba(212,160,23,.1);border-radius:6px;padding:5px 8px;display:inline-block;
-  }
-  .match-solde{
-    font-size:.66rem;color:var(--sky-soft);font-weight:700;margin-top:8px;
-    background:rgba(191,230,247,.07);border-radius:6px;padding:5px 8px;display:inline-block;
-  }
+/* day headings + events */
+.day{font-family:var(--f-display);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:4px 2px 0}
+.day.today{color:var(--accent)}
+.ev{display:grid;grid-template-columns:58px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
+.ev:hover{border-color:var(--accent)}
+.ev .when{display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--line);padding-right:12px}
+.ev .when .t{font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1}
+.ev .when .d{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.ev .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.ev .title{font-family:var(--f-display);font-weight:700;font-size:19px;line-height:1.15}
+.ev .subtitle{color:var(--muted);font-size:14px;margin-top:-4px}
+.ev.is-live{border-color:var(--live);box-shadow:inset 3px 0 0 var(--live)}
+.live-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-display);font-weight:700;font-size:12.5px;letter-spacing:.1em;color:var(--live);text-transform:uppercase}
+.live-tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--live);animation:pulse 1.4s infinite}
+.mini-score{font-family:var(--f-display);font-weight:700;font-size:17px;color:var(--ink)}
 
-  /* Partage */
-  .sync-box{background:var(--navy2);border:1px solid var(--line);border-radius:var(--radius);padding:13px;margin-top:10px}
-  .sync-box h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--sky-soft);margin-bottom:6px}
-  .sync-box p{font-size:.72rem;color:var(--sky-soft);line-height:1.5;margin-bottom:10px}
-  .sync-btns{display:flex;gap:10px}
-  .btn-sync{
-    flex:1;background:var(--navy);border:1px solid var(--line);color:var(--white);
-    border-radius:10px;padding:11px;font-size:.8rem;font-weight:800;cursor:pointer;
-  }
+/* presence bar */
+.pbar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:var(--pending-soft)}
+.pbar span{display:block}
+.pcount{display:flex;gap:12px;font-size:13px;font-weight:600}
+.pcount .p{color:var(--present)} .pcount .a{color:var(--absent)} .pcount .n{color:var(--pending)}
 
-  /* FAB + modal */
-  .fab{
-    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    background:var(--sky);color:var(--navy);border:none;border-radius:99px;
-    padding:13px 24px;font-size:.85rem;font-weight:800;cursor:pointer;
-    box-shadow:0 6px 20px rgba(47,174,224,.4);display:none;align-items:center;gap:8px;
-  }
-  .fab.show{display:flex}
-  .fab span{font-size:1.2rem;line-height:0}
-  .modal-bg{display:none;position:fixed;inset:0;background:rgba(4,12,24,.75);z-index:50;align-items:flex-end;justify-content:center}
-  .modal-bg.open{display:flex}
-  .modal{background:var(--navy2);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;border-top:3px solid var(--sky)}
-  .modal h2{font-size:1rem;margin-bottom:14px}
-  .modal .field{margin-bottom:12px}
-  .modal .field input{text-align:left;padding:11px 10px;font-weight:600}
-  .modal-actions{display:flex;gap:10px;margin-top:14px}
-  .modal-actions button{flex:1;padding:13px;border-radius:10px;font-size:.9rem;font-weight:800;cursor:pointer;border:none}
-  .btn-cancel{background:transparent;color:var(--sky-soft);border:1px solid var(--line)!important}
-  .btn-ok{background:var(--sky);color:var(--navy)}
-  .hint{font-size:.66rem;color:var(--sky-soft);opacity:.75;margin-top:8px;line-height:1.5}
+/* response buttons */
+.resp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.resp .who{font-weight:600;font-size:14px;margin-right:auto}
+.rbtn{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 13px;font-weight:600;font-size:13.5px}
+.rbtn.present[aria-pressed="true"]{background:var(--present);border-color:var(--present);color:#fff}
+.rbtn.absent[aria-pressed="true"]{background:var(--absent);border-color:var(--absent);color:#fff}
+.rbtn.present:not([aria-pressed="true"]){color:var(--present)}
+.rbtn.absent:not([aria-pressed="true"]){color:var(--absent)}
+.status{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.status.present{background:var(--present-soft);color:var(--present)}
+.status.absent{background:var(--absent-soft);color:var(--absent)}
+.status.none{background:var(--pending-soft);color:var(--pending)}
+
+/* scoreboard */
+.board{background:var(--board);color:var(--board-ink);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.board .head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;opacity:.85}
+.board .teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.board .side{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;text-align:center}
+.board .side .tn{font-family:var(--f-display);font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:.06em;overflow-wrap:anywhere}
+.board .digits{font-family:var(--f-display);font-weight:700;font-size:64px;line-height:.9;color:var(--board-digit);font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgb(255 201 74 / .25)}
+.board .sep{font-family:var(--f-display);font-size:40px;opacity:.5}
+.board .ctl{display:flex;gap:8px}
+.board .ctl button{width:42px;height:42px;border-radius:10px;border:1px solid rgb(255 255 255 / .2);background:rgb(255 255 255 / .08);color:var(--board-ink);font-size:22px;font-weight:700}
+.board .ctl button:hover{background:rgb(255 255 255 / .16)}
+.board .clock{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.08em;color:var(--board-digit)}
+.board .foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+
+/* sheet & modal */
+.overlay{position:fixed;inset:0;z-index:40;background:rgb(6 12 20 / .5);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:700px){.overlay{align-items:center}}
+.panel{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+@media (min-width:700px){.panel{border-radius:18px}}
+.panel-head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px;padding:14px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));z-index:2}
+.panel-head h2{font-size:23px;line-height:1.1}
+.panel-head .x{margin-left:auto;border:0;background:var(--surface-2);width:34px;height:34px;border-radius:50%;font-size:18px;flex:none}
+.panel-body{padding:16px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+
+/* forms */
+.field{display:flex;flex-direction:column;gap:5px}
+.field > span{font-size:13px;font-weight:600;color:var(--muted)}
+.input,select.input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+.checks{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-height:260px;overflow:auto}
+.checks label{display:flex;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)}
+.checks label:first-child{border-top:0}
+.checks input{width:18px;height:18px;accent-color:var(--accent)}
+.toggle{display:flex;gap:10px;align-items:center;font-weight:600}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+.err{color:var(--absent);font-weight:600;font-size:14px}
+.empty{text-align:center;padding:28px 16px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+
+/* login */
+.login{min-height:100%;display:flex;align-items:center;padding-block:40px}
+.login .wrap{max-width:440px;width:100%;display:flex;flex-direction:column;gap:20px}
+.login h1{font-size:44px;line-height:1}
+.login .crest{width:52px;height:52px;font-size:22px;border-radius:13px}
+.demo button{text-align:left;width:100%;background:var(--surface);border:0;border-top:1px solid var(--line);padding:11px 14px;display:flex;gap:10px;align-items:center}
+.demo button:first-child{border-top:0}
+.demo button:hover{background:var(--surface-2)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:60}
 </style>
+<style>html,body{margin:0}body{font-size:15px}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <h1>REVENTE <span>BILLETS</span> <small>· SAISON 2026-2027</small></h1>
-  </div>
-  <div class="tabs">
-    <button class="tab active" data-t="bilan">Bilan</button>
-    <button class="tab" data-t="om">OM</button>
-    <button class="tab" data-t="pfc">Paris FC</button>
-  </div>
-</header>
 
-<!-- BILAN -->
-<div class="page active" id="page-bilan">
-  <div class="bilan-hero">
-    <div class="label">Bilan net global</div>
-    <div class="value zero" id="gNet">0,00 €</div>
-  </div>
-  <div class="bilan-grid">
-    <div class="bcard">
-      <h3 class="om">OM</h3>
-      <div class="big zero" id="bNetOM">0 €</div>
-      <div class="sub" id="bSubOM"></div>
-    </div>
-    <div class="bcard">
-      <h3 class="pfc">Paris FC</h3>
-      <div class="big zero" id="bNetPFC">0 €</div>
-      <div class="sub" id="bSubPFC"></div>
-    </div>
-  </div>
-  <div class="bilan-table">
-    <h3>Détail</h3>
-    <div id="gRows"></div>
-  </div>
-  <div class="sync-box">
-    <h3>Partage des données</h3>
-    <p>Exporte tes données dans un fichier et partage-le (WhatsApp, mail…). L'autre personne l'importe pour voir exactement la même chose.</p>
-    <div class="sync-btns">
-      <button class="btn-sync" onclick="exportData()">⬇ Exporter</button>
-      <button class="btn-sync" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
-    </div>
-    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(this)">
-  </div>
-</div>
-
-<!-- OM -->
-<div class="page" id="page-om">
-  <div class="abo">
-    <h2>Abonnements OM (Vélodrome)</h2>
-    <div class="abo-row" style="grid-template-columns:1fr">
-      <div class="field">
-        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
-        <input type="number" readonly id="nbMatchs-om" style="opacity:.8">
-      </div>
-    </div>
-    <div id="abos-om"></div>
-    <button class="abo-add" onclick="addAbo('om')">+ Ajouter un abonnement (tarif différent)</button>
-    <div class="abo-info" id="aboInfo-om"></div>
-  </div>
-  <div class="cible" id="cible-om"></div>
-  <div class="list" id="list-om"></div>
-</div>
-
-<!-- PARIS FC -->
-<div class="page" id="page-pfc">
-  <div class="abo">
-    <h2>Abonnements Paris FC (Jean-Bouin)</h2>
-    <div class="abo-row" style="grid-template-columns:1fr">
-      <div class="field">
-        <label>Nb de matchs inclus dans l'abonnement (= matchs cochés « Abo »)</label>
-        <input type="number" readonly id="nbMatchs-pfc" style="opacity:.8">
-      </div>
-    </div>
-    <div id="abos-pfc"></div>
-    <button class="abo-add" onclick="addAbo('pfc')">+ Ajouter un abonnement (tarif différent)</button>
-    <div class="abo-info" id="aboInfo-pfc"></div>
-  </div>
-  <div class="cible" id="cible-pfc"></div>
-  <div class="list" id="list-pfc"></div>
-</div>
-
-<button class="fab" id="fab" onclick="openModal()"><span>+</span>&nbsp;Ajout</button>
-
-<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <h2 id="modalTitle">Ajouter un match</h2>
-    <div class="field" id="mCompetField">
-      <label>Compétition</label>
-      <select id="mCompet">
-        <option value="CE">Coupe d'Europe</option>
-        <option value="CDF">Coupe de France</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Adversaire</label>
-      <input type="text" id="mAdv" placeholder="Ex : Real Madrid">
-    </div>
-    <div class="field">
-      <label>Date (optionnel)</label>
-      <input type="text" id="mDate" placeholder="Ex : 15/01/2027">
-    </div>
-    <div class="field">
-      <label>Inclus dans l'abonnement ?</label>
-      <select id="mInAbo">
-        <option value="non">Non — billets achetés à part</option>
-        <option value="oui">Oui — inclus dans l'abonnement</option>
-      </select>
-    </div>
-    <p class="hint">Si le match est inclus dans l'abonnement, le nombre de billets et le prix d'achat seront remplis automatiquement (pense à ajuster le nb de matchs de l'abonnement en haut de page). Sinon, renseigne-les à la main.</p>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-ok" onclick="addMatch()">Ajouter</button>
-    </div>
-  </div>
-</div>
+<div id="app"></div>
+<div id="sheet"></div>
+<div id="modal"></div>
+<div id="toast" hidden class="toast"></div>
 
 <script>
-const KEY = 'revente_om_pfc_2627_v2';
-const NB_MATCHS_L1 = 17;
+/* ---------- Stockage ---------- */
+const KEY='vestiaire_club_v2', SKEY='vestiaire_club_session';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const low=s=>String(s||'').trim().toLowerCase();
 
-// Matchs à domicile Ligue 1 2026-27 (calendrier LFP du 10 juin 2026)
-const SEED_OM = [
-  {adv:'Strasbourg', date:'21/08/2026'},
-  {adv:'Paris FC',   date:'05/09/2026'},
-  {adv:'PSG',        date:'20/09/2026'},
-  {adv:'Le Havre',   date:'24/10/2026'},
-  {adv:'Toulouse',   date:'31/10/2026'},
-  {adv:'Le Mans',    date:'21/11/2026'},
-  {adv:'Nice',       date:'05/12/2026'},
-  {adv:'Lille',      date:'16/01/2027'},
-  {adv:'Troyes',     date:'30/01/2027'},
-  {adv:'Angers',     date:'13/02/2027'},
-  {adv:'Rennes',     date:'27/02/2027'},
-  {adv:'Monaco',     date:'13/03/2027'},
-  {adv:'Lyon',       date:'21/03/2027'},
-  {adv:'Brest',      date:'10/04/2027'},
-  {adv:'Auxerre',    date:'24/04/2027'},
-  {adv:'Lens',       date:'16/05/2027'},
-  {adv:'Lorient',    date:'29/05/2027'},
-];
-const SEED_PFC = [
-  {adv:'Nice',       date:'30/08/2026'},
-  {adv:'Lyon',       date:'12/09/2026'},
-  {adv:'Strasbourg', date:'19/09/2026'},
-  {adv:'Rennes',     date:'17/10/2026'},
-  {adv:'Monaco',     date:'31/10/2026'},
-  {adv:'Angers',     date:'21/11/2026'},
-  {adv:'Le Mans',    date:'05/12/2026'},
-  {adv:'Le Havre',   date:'02/01/2027'},
-  {adv:'Toulouse',   date:'16/01/2027'},
-  {adv:'Auxerre',    date:'30/01/2027'},
-  {adv:'Troyes',     date:'13/02/2027'},
-  {adv:'Brest',      date:'06/03/2027'},
-  {adv:'Lorient',    date:'13/03/2027'},
-  {adv:'PSG',        date:'03/04/2027'},
-  {adv:'Lens',       date:'24/04/2027'},
-  {adv:'Lille',      date:'08/05/2027'},
-  {adv:'Marseille',  date:'22/05/2027'},
-];
+function at(dayOffset,h,m){const d=new Date();d.setDate(d.getDate()+dayOffset);d.setHours(h,m,0,0);return d.toISOString()}
+function nextDow(dow,h,m){const d=new Date();let diff=(dow-d.getDay()+7)%7;if(diff===0)diff=7;return at(diff,h,m)}
+function lastDow(dow,h,m){const d=new Date();let diff=(d.getDay()-dow+7)%7;if(diff===0)diff=7;return at(-diff,h,m)}
 
-const CLUB_NAMES = {om:'OM', pfc:'Paris FC'};
-const COMPET_NAMES = {L1:'Ligue 1', CE:"Coupe d'Europe", CDF:'Coupe de France'};
-let data = load();
-let currentTab = 'bilan';
-
-function load(){
-  let d = null;
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(raw) d = JSON.parse(raw);
-  }catch(e){}
-  if(!d){
-    const mk = (seed, club) => seed.map((m,i)=>({
-      id:club+'_l1_'+i, compet:'L1', adv:m.adv, date:m.date, qty:'', buy:'', sell:'', inAbo:true
-    }));
-    d = {
-      om:  {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_OM,'om')},
-      pfc: {abos:[{n:'',price:''}], nbMatchs:'17', matches: mk(SEED_PFC,'pfc')},
-    };
-  }
-  // Migration des anciennes données
-  ['om','pfc'].forEach(c=>{
-    if(d[c].nbMatchs===undefined) d[c].nbMatchs='17';
-    d[c].matches.forEach(m=>{
-      if(m.inAbo===undefined) m.inAbo = (m.compet==='L1');
-    });
-  });
-  return d;
-}
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
-
-function fmt(n){ return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
-function fmt0(n){ return n.toLocaleString('fr-FR',{maximumFractionDigits:0})+' €'; }
-function sign(n){ return (n>0?'+':'')+fmt(n); }
-function cls(n){ return n>0?'pos':(n<0?'neg':'zero'); }
-function net(m){
-  const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
-  return q*(s-b);
-}
-function esc(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
-
-// ------- Abonnements -------
-function nbMatchsAbo(club){
-  return data[club].matches.filter(m=>m.inAbo).length;
-}
-function aboStats(club){
-  let nb=0, cost=0;
-  data[club].abos.forEach(a=>{
-    const n=parseFloat(a.n)||0, p=parseFloat(a.price)||0;
-    nb+=n; cost+=n*p;
-  });
-  const nm = nbMatchsAbo(club);
-  const perTicket = (nb>0 && nm>0) ? (cost/nb)/nm : 0;
-  return {nb, cost, perTicket, nm};
+const DEFAULT_TITLES=['Entraînement','Match de championnat','Match de coupe','Match amical','Tournoi','Stage','Réunion parents'];
+function seed(){
+  const u=[{id:'u1',email:'admin@club.fr',name:'Sophie Martin',role:'admin'},
+           {id:'u2',email:'coach.u11@club.fr',name:'Karim Benali',role:'coach'},
+           {id:'u3',email:'coach.u13@club.fr',name:'Julie Moreau',role:'coach'}];
+  const champs=[{id:'c1',name:'Championnat District U11 – Poule B',season:'2026-2027'},
+                {id:'c2',name:'Championnat Départemental U13 – D2',season:'2026-2027'},
+                {id:'c3',name:'Coupe du District U13',season:'2026-2027'}];
+  const teams=[{id:'t1',name:'U11',category:'Moins de 11 ans',coachIds:['u2'],champIds:['c1']},
+               {id:'t2',name:'U13',category:'Moins de 13 ans',coachIds:['u3'],champIds:['c2','c3']}];
+  const P=(id,first,last,birth,parentEmail,teamId,phones={})=>({id,first,last,birth,parentEmails:[].concat(parentEmail),teamId,phones});
+  const players=[
+    P('p1','Léo','Durand','2016-03-12',['famille.durand@mail.fr','papa.durand@mail.fr'],'t1',{'famille.durand@mail.fr':'06 12 34 56 78','papa.durand@mail.fr':'07 98 76 54 32'}),
+    P('p2','Inès','Petit','2016-07-02','petit.ines@mail.fr','t1'),
+    P('p3','Noah','Lefèvre','2016-01-25','lefevre.parents@mail.fr','t1'),
+    P('p4','Lina','Garcia','2016-11-08','garcia.maison@mail.fr','t1'),
+    P('p5','Adam','Roux','2016-05-19','roux.famille@mail.fr','t1'),
+    P('p6','Jade','Fontaine','2016-09-30','jade.fontaine.parents@mail.fr','t1'),
+    P('p7','Emma','Durand','2014-04-03','famille.durand@mail.fr','t2'),
+    P('p8','Hugo','Bernard','2014-02-14','bernard.h@mail.fr','t2'),
+    P('p9','Chloé','Lambert','2014-08-21','lambert.famille@mail.fr','t2'),
+    P('p10','Nathan','Girard','2014-12-01','girard.n@mail.fr','t2'),
+    P('p11','Manon','Faure','2014-06-11','faure.parents@mail.fr','t2'),
+    P('p12','Tom','Mercier','2014-10-17','mercier.t@mail.fr','t2'),
+    P('p13','Sacha','Blanc','2015-03-29','blanc.s@mail.fr',null)];
+  const t1=['p1','p2','p3','p4','p5','p6'], t2=['p7','p8','p9','p10','p11','p12'];
+  const liveStart=new Date(Date.now()-27*60000).toISOString();
+  const events=[
+    {id:'e1',teamId:'t1',title:'Match de championnat',subtitle:'contre FC Rives – Journée 4',opponent:'FC Rives',start:liveStart,askPresence:true,convoked:t1,
+     responses:{p1:'present',p2:'present',p3:'present',p4:'present',p5:'absent',p6:'present'},live:{status:'live',us:2,them:1,startedAt:liveStart}},
+    {id:'e2',teamId:'t1',title:'Entraînement',subtitle:'Stade municipal – terrain 2',opponent:'',start:nextDow(3,17,30),askPresence:true,convoked:t1,
+     responses:{p2:'present',p3:'absent',p4:'present'},live:{status:'none',us:0,them:0}},
+    {id:'e3',teamId:'t2',title:'Match de coupe',subtitle:'contre AS Vallon – 1er tour',opponent:'AS Vallon',start:nextDow(6,14,0),askPresence:true,convoked:['p7','p8','p9','p10','p11'],
+     responses:{p8:'present',p9:'present',p11:'absent'},live:{status:'none',us:0,them:0}},
+    {id:'e6',teamId:null,createdBy:'u2',title:'Stage',subtitle:'Stage de la Toussaint – toutes catégories',opponent:'',start:nextDow(1,9,30),askPresence:true,convoked:[...t1,...t2],
+     responses:{p1:'present',p7:'present',p9:'absent'},live:{status:'none',us:0,them:0}},
+    {id:'e4',teamId:'t2',title:'Entraînement',subtitle:'Gymnase Jean-Moulin',opponent:'',start:nextDow(2,18,0),askPresence:false,convoked:t2,responses:{},live:{status:'none',us:0,them:0}},
+    {id:'e5',teamId:'t1',title:'Match amical',subtitle:'contre ES Colline',opponent:'ES Colline',start:lastDow(6,10,30),askPresence:true,convoked:t1,
+     responses:{p1:'present',p2:'present',p3:'absent',p4:'present',p5:'present',p6:'present'},live:{status:'done',us:3,them:3,startedAt:lastDow(6,10,30)}}];
+  return {club:{name:'Olympique des Tilleuls',sport:'Football',short:'OT'},titles:[...DEFAULT_TITLES],users:u,champs,teams,players,events,validations:{}};
 }
 
-function renderAbos(club){
-  const box = document.getElementById('abos-'+club);
-  box.innerHTML = '';
-  data[club].abos.forEach((a,i)=>{
-    const row = document.createElement('div');
-    row.className = 'abo-row';
-    row.innerHTML = `
-      <div class="field">
-        <label>Nb abonnements</label>
-        <input type="number" inputmode="numeric" min="0" placeholder="0"
-          value="${a.n}" onchange="updAbo('${club}',${i},'n',this.value)">
-      </div>
-      <div class="field">
-        <label>Prix / abonnement</label>
-        <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
-          value="${a.price}" onchange="updAbo('${club}',${i},'price',this.value)">
-      </div>
-      ${data[club].abos.length>1 ? `<button class="abo-del" onclick="delAbo('${club}',${i})">✕</button>` : '<div></div>'}
-    `;
-    box.appendChild(row);
-  });
-  const s = aboStats(club);
-  document.getElementById('nbMatchs-'+club).value = s.nm;
-  document.getElementById('aboInfo-'+club).innerHTML =
-    `<span>Total : <b>${s.nb} abo${s.nb>1?'s':''}</b> · <b>${fmt0(s.cost)}</b></span>` +
-    `<span>Coût / billet abo : <b>${fmt(s.perTicket)}</b> <small>(÷ ${s.nm} match${s.nm>1?'s':''})</small></span>`;
+let S=migrate(store.get(KEY)||seed());
+function migrate(s){
+  s.players.forEach(p=>{if(!p.parentEmails){p.parentEmails=p.parentEmail?[p.parentEmail]:[];delete p.parentEmail}if(!p.phones){p.phones={};if(p.phone&&p.parentEmails[0])p.phones[low(p.parentEmails[0])]=p.phone}delete p.phone});
+  Object.keys(s.validations||{}).forEach(k=>{const v=s.validations[k];if(Array.isArray(v)){const o={};v.forEach(id=>o[id]='ok');s.validations[k]=o}});
+  s.validations=s.validations||{};if(!Array.isArray(s.titles))s.titles=[...DEFAULT_TITLES];return s;
+}
+let me=store.get(SKEY);
+const ui={tab:'cal',clubSec:'teams',calMode:'up',teamFilter:'all',sheet:null,loginErr:''};
+const save=()=>store.set(KEY,S);
+
+/* ---------- Requêtes ---------- */
+const team=id=>S.teams.find(t=>t.id===id);
+const player=id=>S.players.find(p=>p.id===id);
+const user=id=>S.users.find(u=>u.id===id);
+const champ=id=>S.champs.find(c=>c.id===id);
+const ev=id=>S.events.find(e=>e.id===id);
+const fullName=p=>p?`${p.first} ${p.last}`:'';
+const initials=s=>s.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+const isAdmin=()=>me&&me.role==='admin';
+const isCoach=()=>me&&me.role==='coach';
+const isParent=()=>me&&me.role==='parent';
+const hasParent=(p,email)=>(p.parentEmails||[]).some(e=>low(e)===low(email));
+const linkState=(p,email)=>(S.validations[low(email)]||{})[p.id]; // 'ok' | 'no' | undefined
+const linkedKids=()=>S.players.filter(p=>hasParent(p,me.email));
+const pendingKids=()=>linkedKids().filter(p=>!linkState(p,me.email));
+const children=()=>linkedKids().filter(p=>linkState(p,me.email)==='ok');
+const isStaff=()=>isAdmin()||isCoach();
+const phoneOf=(p,m)=>(p.phones||{})[low(m)]||'';
+function myTeamIds(){
+  if(isAdmin())return S.teams.map(t=>t.id);
+  if(isCoach())return S.teams.filter(t=>t.coachIds.includes(me.id)).map(t=>t.id);
+  return [...new Set(children().map(c=>c.teamId).filter(Boolean))];
+}
+const canManage=teamId=>isAdmin()||(isCoach()&&team(teamId)?.coachIds.includes(me.id));
+const teamPlayers=tid=>S.players.filter(p=>p.teamId===tid).sort((a,b)=>a.last.localeCompare(b.last));
+function evStatus(e){
+  if(e.live.status==='live')return 'live';
+  if(e.live.status==='done')return 'done';
+  return new Date(e.start)>Date.now()?'up':'started';
+}
+function isPast(e){const s=evStatus(e);if(s==='live')return false;if(s==='done')return true;return new Date(e.start).getTime()<Date.now()-12*3600e3}
+function counts(e){let p=0,a=0;e.convoked.forEach(id=>{const r=e.responses[id];if(r==='present')p++;else if(r==='absent')a++});return{p,a,n:e.convoked.length-p-a,t:e.convoked.length}}
+
+/* ---------- Formats ---------- */
+const fmt=(o,d)=>new Intl.DateTimeFormat('fr-FR',o).format(new Date(d));
+const fTime=d=>fmt({hour:'2-digit',minute:'2-digit'},d);
+const fDayLong=d=>fmt({weekday:'long',day:'numeric',month:'long'},d);
+const fDayShort=d=>fmt({weekday:'short',day:'numeric',month:'short'},d);
+const dayKey=d=>{const x=new Date(d);return x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate()};
+const toLocalInput=d=>{const x=new Date(d);const z=n=>String(n).padStart(2,'0');return `${x.getFullYear()}-${z(x.getMonth()+1)}-${z(x.getDate())}T${z(x.getHours())}:${z(x.getMinutes())}`};
+const fBirth=d=>d?fmt({day:'numeric',month:'long',year:'numeric'},d+'T12:00'):'—';
+function relDay(d){const k=dayKey(d),t=new Date();if(k===dayKey(t))return"Aujourd'hui";const tm=new Date();tm.setDate(t.getDate()+1);if(k===dayKey(tm))return'Demain';const y=new Date();y.setDate(t.getDate()-1);if(k===dayKey(y))return'Hier';return fDayLong(d)}
+const elapsed=e=>Math.max(0,Math.floor((Date.now()-new Date(e.live.startedAt||e.start))/60000));
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+
+/* ---------- Icônes ---------- */
+const I={
+ cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+ live:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 17.7a8 8 0 0 1 0-11.4M17.7 6.3a8 8 0 0 1 0 11.4"/></svg>',
+ team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3h-2a2 2 0 0 1-4 0Z"/></svg>',
+ club:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/></svg>',
+ me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+ child:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="7" r="3"/><path d="M7 21v-5l-2-3 4-2h6l4 2-2 3v5"/></svg>'
+};
+
+/* ---------- Rendu principal ---------- */
+function render(){
+  const app=document.getElementById('app');
+  if(!me){app.innerHTML=loginView();renderSheet();return}
+  if(isParent()&&pendingKids().length){app.innerHTML=validateView();renderSheet();return}
+  const tabs=isAdmin()?[['cal','Calendrier',I.cal],['live','Live',I.live],['club','Club',I.club],['me','Compte',I.me]]
+           :isCoach()?[['cal','Calendrier',I.cal],['live','Live',I.live],['team','Équipe',I.team],['me','Compte',I.me]]
+           :[['cal','Calendrier',I.cal],['live','Live',I.live],['kids','Enfant',I.child],['me','Compte',I.me]];
+  if(!tabs.some(t=>t[0]===ui.tab))ui.tab='cal';
+  const hasLive=visibleEvents().some(e=>evStatus(e)==='live');
+  const roleLbl={admin:'Admin',coach:'Coach',parent:'Parent'}[me.role];
+  let body='';
+  if(ui.tab==='cal')body=calView();
+  else if(ui.tab==='live')body=liveView();
+  else if(ui.tab==='club')body=clubView();
+  else if(ui.tab==='team')body=coachTeamView();
+  else if(ui.tab==='kids')body=kidsView();
+  else body=accountView();
+  app.innerHTML=`
+  <header class="top"><div class="wrap">
+    <div class="crest">${esc(S.club.short||initials(S.club.name))}</div>
+    <div style="min-width:0"><h1>${esc(S.club.name)}</h1><div class="sub">${esc(me.name||me.email)}</div></div>
+    <span class="role">${roleLbl}</span>
+  </div></header>
+  <main><div class="wrap">${body}</div></main>
+  <nav class="nav"><div class="wrap">${tabs.map(([k,l,ic])=>`<button data-a="tab" data-tab="${k}" aria-current="${ui.tab===k}">${ic}${l}${k==='live'&&hasLive?'<i class="dot"></i>':''}</button>`).join('')}</div></nav>`;
+  renderSheet();
 }
 
-function toggleAbo(club, id, checked){
-  const m = data[club].matches.find(x=>x.id===id);
-  if(!m) return;
-  m.inAbo = checked;
-  if(!checked){ m.qty=''; m.buy=''; } // billet hors abo : à saisir à la main
-  applyAboToMatches(club);
-  save(); renderAll();
-}
-
-function updAbo(club,i,field,value){
-  data[club].abos[i][field]=value;
-  applyAboToMatches(club);
-  save(); renderAll();
-}
-function addAbo(club){
-  data[club].abos.push({n:'',price:''});
-  save(); renderAbos(club);
-}
-function delAbo(club,i){
-  data[club].abos.splice(i,1);
-  applyAboToMatches(club);
-  save(); renderAll();
-}
-
-// Remplit nb billets + prix d'achat sur tous les matchs inclus dans l'abonnement
-function applyAboToMatches(club){
-  const s = aboStats(club);
-  data[club].matches.forEach(m=>{
-    if(!m.inAbo) return;
-    m.qty = s.nb>0 ? String(s.nb) : '';
-    m.buy = s.nb>0 ? s.perTicket.toFixed(2) : '';
-  });
-}
-
-// ------- Matchs -------
-function parseDate(str){
-  if(!str) return null;
-  const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(!m) return null;
-  return new Date(+m[3], +m[2]-1, +m[1]).getTime();
-}
-
-// ------- Prix cible pour rentrer dans ses frais -------
-// Un match est "soldé" dès que le prix de vente est renseigné (0 compris = non vendu).
-function isSolde(m){ return m.sell !== '' && m.sell !== null && m.sell !== undefined; }
-
-function cibleStats(club){
-  let depense=0, encaisse=0, billetsRestants=0, matchsRestants=0;
-  data[club].matches.forEach(m=>{
-    const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
-    depense += q*b;
-    if(isSolde(m)) encaisse += q*s;
-    else if(q>0){ billetsRestants += q; matchsRestants++; }
-  });
-  const reste = depense - encaisse;
-  const prixCible = billetsRestants>0 ? reste/billetsRestants : 0;
-  return {depense, encaisse, reste, billetsRestants, matchsRestants, prixCible};
-}
-
-function renderCible(club){
-  const c = cibleStats(club);
-  const box = document.getElementById('cible-'+club);
-  const atteint = c.reste <= 0;
-  const nbSoldes = data[club].matches.filter(isSolde).length;
-
-  let mainT, mainV, msg;
-  if(atteint){
-    mainT = 'Bénéfice déjà acquis';
-    mainV = `<span class="pos">${fmt(-c.reste)}</span>`;
-    msg = c.billetsRestants>0
-      ? `Tes frais sont couverts. Chaque billet vendu sur les ${c.matchsRestants} match${c.matchsRestants>1?'s':''} restant${c.matchsRestants>1?'s':''} est du bénéfice net.`
-      : 'Saison terminée : tous les matchs sont soldés.';
-  } else if(c.billetsRestants>0){
-    mainT = 'Prix cible / billet restant';
-    mainV = `<span class="gold-v">${fmt(c.prixCible)}</span>`;
-    msg = `Vends chaque billet au moins à ce prix sur les ${c.matchsRestants} match${c.matchsRestants>1?'s':''} restant${c.matchsRestants>1?'s':''} (${c.billetsRestants} billets) pour finir la saison à l'équilibre. Ce prix se recalcule après chaque vente saisie.`;
-  } else {
-    mainT = 'Perte de fin de saison';
-    mainV = `<span class="neg">${fmt(-c.reste)}</span>`;
-    msg = 'Plus aucun billet à vendre : le bilan de la saison est définitif.';
-  }
-
-  box.innerHTML = `
-    <h3>Objectif équilibre</h3>
-    <div class="main"><span class="t">${mainT}</span><span class="v">${mainV}</span></div>
-    <div class="lines">
-      <div><span>Total dépensé</span><b>${fmt(c.depense)}</b></div>
-      <div><span>Déjà encaissé (${nbSoldes} match${nbSoldes>1?'s':''} soldé${nbSoldes>1?'s':''})</span><b>${fmt(c.encaisse)}</b></div>
-      <div><span>${atteint?'Excédent':'Reste à récupérer'}</span><b class="${atteint?'pos':'neg'}">${fmt(Math.abs(c.reste))}</b></div>
-      <div><span>Billets encore à vendre</span><b>${c.billetsRestants}</b></div>
+/* ---------- Connexion ---------- */
+function loginView(){
+  const demo=[['admin@club.fr','Administrateur du club','Sophie Martin'],['coach.u11@club.fr','Coach des U11','Karim Benali'],['famille.durand@mail.fr','Parent de Léo (U11) et Emma (U13)','Famille Durand'],['papa.durand@mail.fr','2e parent de Léo (U11)','Papa Durand']];
+  return `<div class="login"><div class="wrap">
+    <div class="crest">${esc(S.club.short||'OT')}</div>
+    <div><div class="label">Espace club</div><h1>${esc(S.club.name)}</h1></div>
+    <form id="loginForm" class="card section">
+      <label class="field"><span>Adresse e-mail</span><input class="input" id="loginEmail" name="email" type="email" required autocomplete="email" placeholder="prenom.nom@mail.fr"></label>
+      ${ui.loginErr?`<div class="err">${esc(ui.loginErr)}</div>`:''}
+      <button class="btn primary block" type="submit">Se connecter</button>
+      <div class="muted" style="font-size:13px">Les parents se connectent avec l'adresse e-mail renseignée par le club.</div>
+    </form>
+    <div class="section"><div class="label">Comptes de démonstration</div>
+      <div class="list demo">${demo.map(([e,r,n])=>`<button data-a="demo" data-email="${e}"><span class="avatar">${initials(n)}</span><span class="grow" style="min-width:0"><span class="name" style="display:block;font-weight:600">${esc(n)}</span><span class="meta" style="font-size:13px;color:var(--muted)">${esc(r)} · ${esc(e)}</span></span></button>`).join('')}</div>
     </div>
-    <p class="msg">${msg}</p>`;
+  </div></div>`;
+}
+function login(email){
+  email=low(email);
+  const u=S.users.find(x=>low(x.email)===email);
+  if(u){me={role:u.role,id:u.id,email:u.email,name:u.name}}
+  else if(S.players.some(p=>hasParent(p,email))){me={role:'parent',email,name:'Parent'}}
+  else{ui.loginErr="Cette adresse n'est pas connue du club. Vérifiez l'orthographe ou demandez au club de l'ajouter à la fiche de votre enfant.";render();return}
+  ui.loginErr='';ui.tab='cal';store.set(SKEY,me);render();
 }
 
-function footerInfo(m, c){
-  const q = parseFloat(m.qty)||0;
-  if(isSolde(m)){
-    const s = parseFloat(m.sell)||0;
-    if(s===0) return `<div class="match-solde">Non vendu — coût absorbé par les autres matchs</div>`;
-    return `<div class="match-solde">Soldé à ${fmt(s)} / billet</div>`;
-  }
-  if(q>0 && c.reste>0) return `<div class="match-cible">Prix cible : ${fmt(c.prixCible)} / billet pour l'équilibre</div>`;
-  if(q>0 && c.reste<=0) return `<div class="match-solde">Frais couverts — tout est bénéfice net</div>`;
-  return '';
-}
-
-function renderList(club){
-  const list = document.getElementById('list-'+club);
-  list.innerHTML = '';
-  const c = cibleStats(club);
-  // Tri par date du match le plus proche au plus lointain ; matchs sans date en dernier
-  const sorted = [...data[club].matches].sort((a,b)=>{
-    const da = parseDate(a.date), db = parseDate(b.date);
-    if(da===null && db===null) return 0;
-    if(da===null) return 1;
-    if(db===null) return -1;
-    return da - db;
-  });
-  sorted.forEach(m=>{
-    const n = net(m);
-    const hasData = (parseFloat(m.qty)||0)>0 && (parseFloat(m.sell)||0)>0;
-    const card = document.createElement('div');
-    card.className = 'card' + (hasData ? (n>=0?' done':' loss') : '');
-    card.innerHTML = `
-      <div class="card-top">
-        <div>
-          <div class="match-name">
-            <label class="abo-check">
-              <input type="checkbox" ${m.inAbo?'checked':''}
-                onchange="toggleAbo('${club}','${m.id}',this.checked)">
-              <span class="abo-check-txt">Abo</span>
-            </label>
-            ${CLUB_NAMES[club]} – ${esc(m.adv)}
-          </div>
-          <div class="match-meta">
-            <span class="tag ${m.compet}">${COMPET_NAMES[m.compet]}</span>
-            <span class="match-date">${esc(m.date||'Date à définir')}</span>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="card-net ${hasData?cls(n):'zero'}">${hasData ? sign(n) : '—'}</div>
-          ${m.compet!=='L1' ? `<button class="del-btn" onclick="delMatch('${club}','${m.id}')">✕</button>` : ''}
-        </div>
+/* ---------- Validation parent ---------- */
+function validateView(){
+  const kids=pendingKids();
+  return `<header class="top"><div class="wrap"><div class="crest">${esc(S.club.short)}</div><div><h1>Bienvenue</h1><div class="sub">${esc(me.email)}</div></div></div></header>
+  <main><div class="wrap stack">
+    <div><h2 style="font-size:26px">${kids.length>1?'Est-ce bien vos enfants ?':'Est-ce bien votre enfant ?'}</h2><p class="muted" style="margin:6px 0 0">Le club a associé ${kids.length>1?`${kids.length} enfants`:'cet enfant'} à votre adresse e-mail. Confirmez pour accéder au calendrier et aux convocations.</p></div>
+    ${kids.map(k=>{const t=team(k.teamId);const others=k.parentEmails.filter(e=>low(e)!==low(me.email));return `<div class="card section">
+      <div class="spread"><div class="row"><span class="avatar">${initials(fullName(k))}</span><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">${t?esc(t.name)+' · '+esc(t.category||''):'Pas encore d\'équipe'}</div></div></div></div>
+      ${others.length?`<div class="muted" style="font-size:13px">Un autre parent est aussi rattaché à cette fiche.</div>`:''}
+      <div class="grid2">
+        <label class="field"><span>Date de naissance</span><input class="input" id="v-birth-${k.id}" type="date" value="${esc(k.birth)}"></label>
+        <label class="field"><span>Votre téléphone</span><input class="input" id="v-phone-${k.id}" type="tel" value="${esc(phoneOf(k,me.email))}" placeholder="06 00 00 00 00"></label>
       </div>
-      <div class="inputs">
-        <div class="field">
-          <label>Nb billets</label>
-          <input type="number" inputmode="numeric" min="0" placeholder="0"
-            value="${m.qty}" onchange="updMatch('${club}','${m.id}','qty',this.value)">
-        </div>
-        <div class="field">
-          <label>Achat / billet</label>
-          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
-            value="${m.buy}" onchange="updMatch('${club}','${m.id}','buy',this.value)">
-        </div>
-        <div class="field">
-          <label>Vente / billet</label>
-          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0 €"
-            value="${m.sell}" onchange="updMatch('${club}','${m.id}','sell',this.value)">
-        </div>
+      <div class="muted" style="font-size:13px">Le nom et le prénom sont gérés par le club. Votre téléphone n'est visible que par le club et les coachs.</div>
+      <div class="grid2">
+        <button class="btn primary" data-a="kid-ok" data-id="${k.id}">Oui, c'est mon enfant</button>
+        <button class="btn danger" data-a="kid-no" data-id="${k.id}" data-confirm>Ce n'est pas mon enfant</button>
       </div>
-      ${footerInfo(m,c)}`;
-    list.appendChild(card);
-  });
+    </div>`}).join('')}
+    <button class="btn block" type="button" data-a="logout">Se déconnecter</button>
+  </div></main>`;
 }
+const setPhone=(p,v)=>{p.phones=p.phones||{};p.phones[low(me.email)]=String(v||'').trim()};
+function setLink(id,state){const k=low(me.email);S.validations[k]=S.validations[k]||{};S.validations[k][id]=state}
 
-function updMatch(club,id,field,value){
-  const m = data[club].matches.find(x=>x.id===id);
-  if(!m) return;
-  m[field]=value;
-  save(); renderAll();
+/* ---------- Calendrier ---------- */
+function visibleEvents(){const ids=myTeamIds();return S.events.filter(e=>!e.teamId||ids.includes(e.teamId))}
+const CLUB='__club';
+const canManageEv=e=>e.teamId?canManage(e.teamId):(isAdmin()||(isCoach()&&e.createdBy===me.id));
+const scopeChip=e=>e.teamId?`<span class="chip team">${esc(team(e.teamId)?.name)}</span>`:'<span class="chip club">Tout le club</span>';
+const scopeName=e=>e.teamId?team(e.teamId)?.name:'';
+function calView(){
+  let list=visibleEvents();
+  if(ui.teamFilter==='club')list=list.filter(e=>!e.teamId);else if(ui.teamFilter!=='all')list=list.filter(e=>!e.teamId||e.teamId===ui.teamFilter);
+  const past=ui.calMode==='past';
+  list=list.filter(e=>past?isPast(e):!isPast(e)).sort((a,b)=>past?new Date(b.start)-new Date(a.start):new Date(a.start)-new Date(b.start));
+  const teams=myTeamIds().map(team);
+  const canCreate=isAdmin()||isCoach();
+  const groups=[];list.forEach(e=>{const k=dayKey(e.start);let g=groups.find(x=>x.k===k);if(!g)groups.push(g={k,d:e.start,items:[]});g.items.push(e)});
+  return `<div class="stack">
+    <div class="spread"><h2 style="font-size:28px">Calendrier</h2>${canCreate?`<button class="btn primary" data-a="ev-new">+ Événement</button>`:''}</div>
+    <div class="row" style="flex-wrap:nowrap">
+      <div class="seg" style="flex:1"><button data-a="cal-mode" data-v="up" aria-pressed="${!past}">À venir</button><button data-a="cal-mode" data-v="past" aria-pressed="${past}">Passés</button></div>
+      ${teams.length>1?`<select class="input" id="teamFilter" style="width:auto" aria-label="Filtrer par équipe"><option value="all">Toutes</option><option value="club" ${ui.teamFilter==='club'?'selected':''}>Tout le club</option>${teams.map(t=>`<option value="${t.id}" ${ui.teamFilter===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>`:''}
+    </div>
+    ${groups.length?groups.map(g=>`<div class="section"><div class="day ${relDay(g.d)==="Aujourd'hui"?'today':''}">${relDay(g.d)}</div>${g.items.map(evCard).join('')}</div>`).join('')
+      :`<div class="empty">${past?'Aucun événement passé.':'Aucun événement prévu pour le moment.'}${canCreate&&!past?'<br>Créez le premier avec « + Événement ».':''}</div>`}
+  </div>`;
 }
-function delMatch(club,id){
-  if(!confirm('Supprimer ce match ?')) return;
-  data[club].matches = data[club].matches.filter(m=>m.id!==id);
-  save(); renderAll();
+function presenceBar(e){const c=counts(e);if(!c.t)return'';return `<div class="pbar" aria-hidden="true"><span style="width:${c.p/c.t*100}%;background:var(--present)"></span><span style="width:${c.a/c.t*100}%;background:var(--absent)"></span></div>
+  <div class="pcount num"><span class="p">${c.p} présent${c.p>1?'s':''}</span><span class="a">${c.a} absent${c.a>1?'s':''}</span><span class="n">${c.n} sans réponse</span></div>`}
+function evCard(e){
+  const st=evStatus(e),t=team(e.teamId);
+  const kids=isParent()?children().filter(k=>e.convoked.includes(k.id)):[];
+  let extra='';
+  if(st==='live')extra=`<div class="row"><span class="live-tag">En direct · ${elapsed(e)}'</span><span class="mini-score num">${e.live.us} – ${e.live.them}</span></div>`;
+  else if(st==='done'&&(e.live.startedAt))extra=`<div class="row"><span class="chip">Terminé</span><span class="mini-score num">${e.live.us} – ${e.live.them}</span></div>`;
+  else if(st==='started')extra=`<div class="row"><span class="chip">Commencé</span></div>`;
+  return `<div class="ev ${st==='live'?'is-live':''}" role="button" tabindex="0" data-a="open-ev" data-id="${e.id}">
+    <div class="when"><span class="t num">${fTime(e.start)}</span><span class="d">${fmt({day:'numeric',month:'short'},e.start)}</span></div>
+    <div class="body">
+      <div class="row" style="gap:6px">${scopeChip(e)}${e.askPresence?'':'<span class="chip">Sans réponse demandée</span>'}</div>
+      <div class="title">${esc(e.title)}</div>
+      ${e.subtitle?`<div class="subtitle">${esc(e.subtitle)}</div>`:''}
+      ${extra}
+      ${e.askPresence&&!isParent()?presenceBar(e):''}
+      ${e.askPresence&&kids.length&&st==='up'?kids.map(k=>respRow(e,k)).join(''):''}
+      ${e.askPresence&&kids.length&&st!=='up'?kids.map(k=>`<div class="resp"><span class="who">${esc(k.first)}</span>${statusPill(e.responses[k.id])}</div>`).join(''):''}
+      ${isParent()&&!kids.length&&e.askPresence?'<span class="muted" style="font-size:13px">Votre enfant n\'est pas convoqué.</span>':''}
+    </div></div>`;
 }
+function respRow(e,k){const r=e.responses[k.id];return `<div class="resp"><span class="who">${esc(k.first)}</span>
+  <button class="rbtn present" data-a="respond" data-ev="${e.id}" data-pl="${k.id}" data-v="present" aria-pressed="${r==='present'}">Présent</button>
+  <button class="rbtn absent" data-a="respond" data-ev="${e.id}" data-pl="${k.id}" data-v="absent" aria-pressed="${r==='absent'}">Absent</button></div>`}
+const statusPill=r=>r==='present'?'<span class="status present">Présent</span>':r==='absent'?'<span class="status absent">Absent</span>':'<span class="status none">Pas répondu</span>';
 
-// ------- Bilan -------
-function clubStats(club){
-  let buy=0, sell=0, qty=0, netL1=0, netCDF=0, netCE=0;
-  data[club].matches.forEach(m=>{
-    const q=parseFloat(m.qty)||0, b=parseFloat(m.buy)||0, s=parseFloat(m.sell)||0;
-    qty+=q; buy+=q*b; sell+=q*s;
-    if(m.compet==='L1') netL1+=q*(s-b);
-    else if(m.compet==='CE') netCE+=q*(s-b);
-    else netCDF+=q*(s-b);
-  });
-  return {buy, sell, qty, net:sell-buy, netL1, netCDF, netCE};
+/* ---------- Fiche événement ---------- */
+function renderSheet(){
+  const root=document.getElementById('sheet');
+  const e=ui.sheet&&ev(ui.sheet);
+  if(!me||!e){root.innerHTML='';return}
+  const st=evStatus(e),manage=canManageEv(e);
+  const conv=e.convoked.map(player).filter(Boolean).sort((a,b)=>a.last.localeCompare(b.last));
+  const grp={present:[],absent:[],none:[]};conv.forEach(p=>grp[e.responses[p.id]||'none'].push(p));
+  const myKids=isParent()?children().map(c=>c.id):[];
+  const plRow=p=>`<div class="item"><span class="avatar">${initials(fullName(p))}</span><div class="grow"><div class="name">${esc(fullName(p))}${myKids.includes(p.id)?' <span class="chip team">Votre enfant</span>':''}</div>${isStaff()?p.parentEmails.filter(m=>phoneOf(p,m)).map(m=>`<div class="meta num">${esc(phoneOf(p,m))} · ${esc(m)}</div>`).join(''):''}</div>
+    ${(manage||(myKids.includes(p.id)&&st==='up'))?`<button class="rbtn present" data-a="respond" data-ev="${e.id}" data-pl="${p.id}" data-v="present" aria-pressed="${e.responses[p.id]==='present'}" aria-label="Présent">P</button><button class="rbtn absent" data-a="respond" data-ev="${e.id}" data-pl="${p.id}" data-v="absent" aria-pressed="${e.responses[p.id]==='absent'}" aria-label="Absent">A</button>`:statusPill(e.responses[p.id])}</div>`;
+  const grpBlock=(k,lbl,color)=>`<div class="section"><div class="label" style="color:${color}">${lbl} · <span class="num">${grp[k].length}</span></div>${grp[k].length?`<div class="list">${grp[k].map(plRow).join('')}</div>`:'<div class="muted" style="font-size:14px">Personne</div>'}</div>`;
+  root.innerHTML=`<div class="overlay" data-a="close-sheet"><div class="panel" role="dialog" aria-modal="true" aria-label="${esc(e.title)}">
+    <div class="panel-head"><div style="min-width:0"><div class="row" style="gap:6px;margin-bottom:6px">${scopeChip(e)}${st==='live'?'<span class="live-tag">En direct</span>':st==='done'?'<span class="chip">Terminé</span>':st==='started'?'<span class="chip">Commencé</span>':'<span class="chip">À venir</span>'}</div>
+      <h2>${esc(e.title)}</h2>${e.subtitle?`<div class="muted">${esc(e.subtitle)}</div>`:''}</div>
+      <button class="x" data-a="close-sheet" aria-label="Fermer">✕</button></div>
+    <div class="panel-body">
+      <div class="card row" style="justify-content:space-between"><div><div class="label">Début</div><div style="font-weight:600;text-transform:capitalize">${fDayLong(e.start)} · ${fTime(e.start)}</div></div>
+        ${manage?`<div class="row"><button class="btn small" data-a="ev-edit" data-id="${e.id}">Modifier</button><button class="btn small danger" data-a="ev-del" data-id="${e.id}" data-confirm>Supprimer</button></div>`:''}</div>
+      ${(st!=='up'||e.live.status!=='none')?boardHtml(e,manage):''}
+      ${e.askPresence?`<div class="section"><div class="spread"><h3 style="font-size:20px">Présences</h3><span class="muted num" style="font-size:14px">${conv.length} convoqué${conv.length>1?'s':''}</span></div>${presenceBar(e)}</div>
+        ${grpBlock('present','Présents','var(--present)')}${grpBlock('absent','Absents','var(--absent)')}${grpBlock('none','Pas répondu','var(--pending)')}`
+        :`<div class="section"><h3 style="font-size:20px">Convoqués · <span class="num">${conv.length}</span></h3>${conv.length?`<div class="list">${conv.map(p=>`<div class="item"><span class="avatar">${initials(fullName(p))}</span><div class="grow name">${esc(fullName(p))}</div></div>`).join('')}</div>`:'<div class="muted">Aucun joueur convoqué.</div>'}<div class="muted" style="font-size:13px">Aucune réponse de présence demandée pour cet événement.</div></div>`}
+    </div></div></div>`;
 }
-
-function renderBilan(){
-  const om = clubStats('om'), pfc = clubStats('pfc');
-  const total = om.net + pfc.net;
-
-  const g = document.getElementById('gNet');
-  g.textContent = sign(total);
-  g.className = 'value '+cls(total);
-
-  const setClub = (id, subId, st, club) => {
-    const el = document.getElementById(id);
-    el.textContent = sign(st.net);
-    el.className = 'big '+cls(st.net);
-    const c = cibleStats(club);
-    let extra = '';
-    if(c.billetsRestants>0){
-      extra = c.reste>0
-        ? `<br>Cible : <b class="gold-v">${fmt(c.prixCible)}</b> / billet (${c.billetsRestants} restants)`
-        : `<br><b class="pos">Frais couverts</b> · ${c.billetsRestants} billets restants`;
-    }
-    document.getElementById(subId).innerHTML =
-      `<b>${st.qty}</b> billets · Achats <b>${fmt0(st.buy)}</b> · Ventes <b>${fmt0(st.sell)}</b>` + extra;
-  };
-  setClub('bNetOM','bSubOM',om,'om');
-  setClub('bNetPFC','bSubPFC',pfc,'pfc');
-
-  const rows = [
-    ['OM · Ligue 1', om.netL1],
-    ["OM · Coupe d'Europe", om.netCE],
-    ['OM · Coupe de France', om.netCDF],
-    ['Paris FC · Ligue 1', pfc.netL1],
-    ['Paris FC · Coupe de France', pfc.netCDF],
-  ];
-  document.getElementById('gRows').innerHTML = rows
-    .map(([name,v])=>`<div class="brow"><span>${name}</span><span class="amt ${cls(v)}">${sign(v)}</span></div>`)
-    .join('');
-}
-
-// ------- Modal Coupe de France -------
-function openModal(){
-  document.getElementById('modalTitle').textContent =
-    'Ajouter un match – '+CLUB_NAMES[currentTab];
-  // Coupe d'Europe uniquement pour l'OM
-  document.getElementById('mCompetField').style.display = currentTab==='om' ? 'block' : 'none';
-  document.getElementById('modalBg').classList.add('open');
-}
-function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
-function addMatch(){
-  const adv = document.getElementById('mAdv').value.trim();
-  if(!adv){ alert("Indique l'adversaire"); return; }
-  const compet = currentTab==='om' ? document.getElementById('mCompet').value : 'CDF';
-  const inAbo = document.getElementById('mInAbo').value === 'oui';
-  const m = {
-    id:'cup_'+Date.now(), compet, adv, inAbo,
-    date: document.getElementById('mDate').value.trim(),
-    qty:'', buy:'', sell:''
-  };
-  if(inAbo){
-    const s = aboStats(currentTab);
-    if(s.nb>0){ m.qty = String(s.nb); m.buy = s.perTicket.toFixed(2); }
+function boardHtml(e,manage){
+  const st=evStatus(e),t=team(e.teamId);
+  if(st==='started'&&e.live.status==='none'){
+    return manage?`<div class="board"><div class="head"><span>LIVE</span><span>${esc(e.opponent||'Adversaire')}</span></div><div style="text-align:center">L'événement a commencé. Lancez le live pour suivre le score en temps réel.</div><div class="foot"><button class="btn live" data-a="live-start" data-id="${e.id}">Lancer le live</button></div></div>`:'';
   }
-  data[currentTab].matches.push(m);
-  document.getElementById('mAdv').value='';
-  document.getElementById('mDate').value='';
-  save(); closeModal(); renderAll();
+  const ctl=(side)=>manage&&st==='live'?`<div class="ctl"><button data-a="score" data-id="${e.id}" data-side="${side}" data-d="-1" aria-label="Retirer un point">−</button><button data-a="score" data-id="${e.id}" data-side="${side}" data-d="1" aria-label="Ajouter un point">+</button></div>`:'';
+  return `<div class="board" aria-live="polite">
+    <div class="head"><span>${st==='live'?'<span class="live-tag">En direct</span>':'Score final'}</span>${st==='live'?`<span class="clock num">${elapsed(e)}'</span>`:''}</div>
+    <div class="teams">
+      <div class="side"><span class="tn">${esc(S.club.short)} ${esc(scopeName(e))}</span><span class="digits">${e.live.us}</span>${ctl('us')}</div>
+      <span class="sep">–</span>
+      <div class="side"><span class="tn">${esc(e.opponent||'Adversaire')}</span><span class="digits">${e.live.them}</span>${ctl('them')}</div>
+    </div>
+    ${manage?`<div class="foot">${st==='live'?`<button class="btn small" data-a="live-end" data-id="${e.id}" data-confirm>Fin du match</button>`:`<button class="btn small" data-a="live-reopen" data-id="${e.id}">Reprendre le live</button>`}</div>`:''}
+  </div>`;
 }
 
-// ------- Onglets -------
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    currentTab = t.dataset.t;
-    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
-    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+currentTab));
-    document.getElementById('fab').classList.toggle('show', currentTab!=='bilan');
+/* ---------- Onglet LIVE ---------- */
+function liveView(){
+  const evs=visibleEvents();
+  const live=evs.filter(e=>evStatus(e)==='live');
+  const started=evs.filter(e=>evStatus(e)==='started'&&!isPast(e));
+  const today=evs.filter(e=>evStatus(e)==='up'&&dayKey(e.start)===dayKey(new Date()));
+  const recent=evs.filter(e=>evStatus(e)==='done').sort((a,b)=>new Date(b.start)-new Date(a.start)).slice(0,3);
+  return `<div class="stack">
+    <h2 style="font-size:28px">Live</h2>
+    ${live.length?live.map(e=>`<div class="section"><div class="spread"><div><div class="title" style="font-family:var(--f-display);font-weight:700;font-size:19px">${esc(e.title)}</div><div class="muted" style="font-size:14px">${esc(e.subtitle)}</div></div><button class="btn small" data-a="open-ev" data-id="${e.id}">Détails</button></div>${boardHtml(e,canManageEv(e))}</div>`).join('')
+      :'<div class="empty">Aucun match en cours.<br>Le score s\'affiche ici dès qu\'un coach lance le live.</div>'}
+    ${started.length?`<div class="section"><div class="label">Commencés, live non lancé</div>${started.map(evCard).join('')}</div>`:''}
+    ${today.length?`<div class="section"><div class="label">Plus tard aujourd'hui</div>${today.map(evCard).join('')}</div>`:''}
+    ${recent.length?`<div class="section"><div class="label">Derniers résultats</div>${recent.map(evCard).join('')}</div>`:''}
+  </div>`;
+}
+
+/* ---------- Club (admin) ---------- */
+function clubView(){
+  const secs=[['teams','Équipes'],['players','Joueurs'],['champs','Championnats'],['members','Membres'],['titles','Titres']];
+  let body='';
+  if(ui.clubSec==='teams')body=teamsSec();
+  else if(ui.clubSec==='players')body=playersSec(S.players,true);
+  else if(ui.clubSec==='champs')body=champsSec();
+  else if(ui.clubSec==='titles')body=titlesSec();
+  else body=membersSec();
+  return `<div class="stack">
+    <div class="card spread"><div><div class="label">Club</div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(S.club.name)}</div><div class="muted" style="font-size:14px">${esc(S.club.sport)} · <span class="num">${S.teams.length}</span> équipes · <span class="num">${S.players.length}</span> joueurs</div></div><button class="btn small" data-a="club-edit">Modifier</button></div>
+    <div class="seg">${secs.map(([k,l])=>`<button data-a="club-sec" data-v="${k}" aria-pressed="${ui.clubSec===k}">${l}</button>`).join('')}</div>
+    ${body}</div>`;
+}
+function teamsSec(){
+  return `<div class="section"><div class="spread"><h3 style="font-size:20px">Équipes</h3><button class="btn primary small" data-a="team-new">+ Équipe</button></div>
+  ${S.teams.length?S.teams.map(t=>`<div class="card section">
+    <div class="spread"><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(t.name)}</div><div class="muted" style="font-size:14px">${esc(t.category||'')} · <span class="num">${teamPlayers(t.id).length}</span> joueurs</div></div>
+      <div class="row"><button class="btn small" data-a="team-edit" data-id="${t.id}">Modifier</button><button class="btn small danger" data-a="team-del" data-id="${t.id}" data-confirm>Supprimer</button></div></div>
+    <div class="row" style="gap:6px"><span class="label" style="margin-right:4px">Coachs</span>${t.coachIds.length?t.coachIds.map(id=>`<span class="chip">${esc(user(id)?.name)}</span>`).join(''):'<span class="muted" style="font-size:13px">Aucun</span>'}</div>
+    <div class="row" style="gap:6px"><span class="label" style="margin-right:4px">Engagée en</span>${t.champIds.length?t.champIds.map(id=>`<span class="chip">${esc(champ(id)?.name)}</span>`).join(''):'<span class="muted" style="font-size:13px">Aucun championnat</span>'}</div>
+  </div>`).join(''):'<div class="empty">Aucune équipe. Créez-en une pour y placer vos joueurs.</div>'}</div>`;
+}
+function playersSec(list,adminMode,teamId){
+  const opts=sel=>`<option value="">Sans équipe</option>`+S.teams.filter(t=>adminMode||canManage(t.id)).map(t=>`<option value="${t.id}" ${sel===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  list=[...list].sort((a,b)=>a.last.localeCompare(b.last));
+  return `<div class="section"><div class="spread"><h3 style="font-size:20px">Joueurs · <span class="num">${list.length}</span></h3>
+    <div class="row">${!adminMode&&S.players.some(p=>!p.teamId)?`<button class="btn small" data-a="player-attach" data-team="${teamId}">Ajouter un joueur sans équipe</button>`:''}<button class="btn primary small" data-a="player-new" ${teamId?`data-team="${teamId}"`:''}>+ Joueur</button></div></div>
+  ${list.length?`<div class="list">${list.map(p=>`<div class="item" style="flex-wrap:wrap">
+    <span class="avatar">${initials(fullName(p))}</span>
+    <div class="grow"><div class="name">${esc(fullName(p))}</div><div class="meta">Né(e) le ${fBirth(p.birth)}</div>
+      <div class="row" style="gap:6px;margin-top:5px">${p.parentEmails.map(m=>{const s=linkState(p,m);return `<span class="chip" title="${s==='ok'?'Lien confirmé':s==='no'?'Le parent a indiqué que ce n\'est pas son enfant':'Pas encore confirmé'}" style="${s==='ok'?'color:var(--present)':s==='no'?'color:var(--absent);background:var(--absent-soft)':''}">${s==='ok'?'✓':s==='no'?'✕':'…'} ${esc(m)}${phoneOf(p,m)?` · <span class="num">${esc(phoneOf(p,m))}</span>`:''}</span>`}).join('')}</div></div>
+    <div class="row">${adminMode?`<select class="input" style="width:auto;padding:6px 8px" id="mv-${p.id}" data-a="player-move" data-id="${p.id}" aria-label="Équipe de ${esc(fullName(p))}">${opts(p.teamId)}</select>`:''}
+      <button class="btn small" data-a="player-edit" data-id="${p.id}">Modifier</button>
+      ${adminMode?`<button class="btn small danger" data-a="player-del" data-id="${p.id}" data-confirm>Supprimer</button>`:`<button class="btn small danger" data-a="player-remove" data-id="${p.id}" data-confirm>Retirer</button>`}</div>
+  </div>`).join('')}</div>`:'<div class="empty">Aucun joueur.</div>'}</div>`;
+}
+function champsSec(){
+  return `<div class="section"><div class="spread"><h3 style="font-size:20px">Championnats</h3><button class="btn primary small" data-a="champ-new">+ Championnat</button></div>
+  ${S.champs.length?`<div class="list">${S.champs.map(c=>{const ts=S.teams.filter(t=>t.champIds.includes(c.id));return `<div class="item" style="flex-wrap:wrap">
+    <div class="grow"><div class="name">${esc(c.name)}</div><div class="meta">Saison ${esc(c.season)} · ${ts.length?ts.map(t=>esc(t.name)).join(', '):'aucune équipe engagée'}</div></div>
+    <div class="row"><button class="btn small" data-a="champ-edit" data-id="${c.id}">Modifier</button><button class="btn small danger" data-a="champ-del" data-id="${c.id}" data-confirm>Supprimer</button></div></div>`}).join('')}</div>`:'<div class="empty">Aucun championnat.</div>'}</div>`;
+}
+function titlesSec(){
+  return `<div class="section"><div class="spread"><h3 style="font-size:20px">Titres d'événements</h3><button class="btn primary small" data-a="title-new">+ Titre</button></div>
+  <div class="muted" style="font-size:14px">Ces titres sont proposés en un clic à la création d'un événement. Le champ reste libre.</div>
+  ${S.titles.length?`<div class="list">${S.titles.map((t,i)=>`<div class="item"><div class="grow name">${esc(t)}</div>
+    <div class="row"><button class="btn small" data-a="title-move" data-i="${i}" data-d="-1" ${i===0?'disabled':''} aria-label="Monter">↑</button><button class="btn small" data-a="title-move" data-i="${i}" data-d="1" ${i===S.titles.length-1?'disabled':''} aria-label="Descendre">↓</button>
+    <button class="btn small" data-a="title-edit" data-i="${i}">Renommer</button><button class="btn small danger" data-a="title-del" data-i="${i}" data-confirm>Supprimer</button></div></div>`).join('')}</div>`:'<div class="empty">Aucun titre prédéfini. Ajoutez-en pour aller plus vite à la création des événements.</div>'}</div>`;
+}
+function membersSec(){
+  return `<div class="section"><div class="spread"><h3 style="font-size:20px">Admins et coachs</h3><button class="btn primary small" data-a="user-new">+ Membre</button></div>
+  <div class="list">${S.users.map(u=>{const ts=S.teams.filter(t=>t.coachIds.includes(u.id));return `<div class="item" style="flex-wrap:wrap">
+    <span class="avatar">${initials(u.name)}</span><div class="grow"><div class="name">${esc(u.name)} <span class="chip ${u.role==='admin'?'team':''}">${u.role==='admin'?'Admin':'Coach'}</span></div><div class="meta">${esc(u.email)}${ts.length?' · Coach de '+ts.map(t=>esc(t.name)).join(', '):''}</div></div>
+    <div class="row"><button class="btn small" data-a="user-edit" data-id="${u.id}">Modifier</button>${u.id!==me.id?`<button class="btn small danger" data-a="user-del" data-id="${u.id}" data-confirm>Supprimer</button>`:''}</div></div>`}).join('')}</div>
+  <div class="muted" style="font-size:13px">Les parents n'ont pas besoin de compte : ils se connectent avec l'e-mail renseigné sur la fiche de leur enfant.</div></div>`;
+}
+
+/* ---------- Équipe (coach) ---------- */
+function coachTeamView(){
+  const ts=S.teams.filter(t=>t.coachIds.includes(me.id));
+  if(!ts.length)return '<div class="empty">Vous n\'êtes coach d\'aucune équipe pour le moment. Demandez à un admin de vous associer à une équipe.</div>';
+  return `<div class="stack">${ts.map(t=>`<div class="stack">
+    <div class="card"><div class="label">Mon équipe</div><div style="font-family:var(--f-display);font-weight:700;font-size:26px">${esc(t.name)}</div><div class="muted" style="font-size:14px">${esc(t.category||'')}</div>
+      <div class="row" style="gap:6px;margin-top:10px">${t.champIds.map(id=>`<span class="chip">${esc(champ(id)?.name)}</span>`).join('')||'<span class="muted" style="font-size:13px">Aucun championnat</span>'}</div></div>
+    ${playersSec(teamPlayers(t.id),false,t.id)}</div>`).join('')}</div>`;
+}
+
+/* ---------- Enfant (parent) ---------- */
+function kidsView(){
+  if(!children().length)return `<div class="stack"><h2 style="font-size:28px">Mon enfant</h2><div class="empty">Aucun enfant n'est rattaché à votre adresse.<br>Si c'est une erreur, contactez le club.</div></div>`;
+  return `<div class="stack"><h2 style="font-size:28px">${children().length>1?'Mes enfants':'Mon enfant'}</h2>
+  ${children().map(k=>{const t=team(k.teamId);const coaches=t?t.coachIds.map(user).filter(Boolean):[];
+    const next=S.events.filter(e=>(!e.teamId||e.teamId===k.teamId)&&e.convoked.includes(k.id)&&evStatus(e)==='up').sort((a,b)=>new Date(a.start)-new Date(b.start))[0];
+    return `<div class="card section">
+    <div class="spread"><div class="row"><span class="avatar">${initials(fullName(k))}</span><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">Né(e) le ${fBirth(k.birth)}</div></div></div><button class="btn small" data-a="child-edit" data-id="${k.id}">Modifier</button></div>
+    <div class="grid2"><div><div class="label">Équipe</div><div style="font-weight:600">${t?esc(t.name)+' · '+esc(t.category||''):'Pas encore d\'équipe'}</div></div>
+      <div><div class="label">Coach</div><div style="font-weight:600">${coaches.length?coaches.map(c=>esc(c.name)).join(', '):'—'}</div></div></div>
+    <div><div class="label">Votre téléphone</div><div style="font-weight:600" class="num">${phoneOf(k,me.email)?esc(phoneOf(k,me.email)):'Non renseigné'}</div><div class="muted" style="font-size:13px">Visible uniquement par le club et les coachs.</div></div>
+    ${t&&t.champIds.length?`<div><div class="label">Compétitions</div><div class="row" style="gap:6px;margin-top:4px">${t.champIds.map(id=>`<span class="chip">${esc(champ(id)?.name)}</span>`).join('')}</div></div>`:''}
+    ${next?`<div><div class="label">Prochaine convocation</div><div style="font-weight:600">${esc(next.title)} · <span style="text-transform:capitalize">${fDayShort(next.start)}</span> à ${fTime(next.start)}</div></div>`:''}
+  </div>`}).join('')}</div>`;
+}
+
+/* ---------- Compte ---------- */
+function accountView(){
+  return `<div class="stack"><h2 style="font-size:28px">Compte</h2>
+    <div class="card section"><div class="row"><span class="avatar">${initials(me.name||me.email)}</span><div><div style="font-weight:600">${esc(me.name||'Parent')}</div><div class="muted" style="font-size:14px">${esc(me.email)}</div></div></div>
+    <button class="btn block" data-a="logout">Se déconnecter</button></div>
+    <div class="card section"><div class="label">Démonstration</div><div class="muted" style="font-size:14px">Les données sont enregistrées dans ce navigateur. Déconnectez-vous pour tester un autre rôle (admin, coach, parent).</div>
+    <button class="btn danger block" data-a="reset" data-confirm>Réinitialiser les données d'exemple</button></div></div>`;
+}
+
+/* ---------- Modale générique ---------- */
+let modalSubmit=null;
+function openModal(title,body,label,onSubmit){
+  modalSubmit=onSubmit;
+  document.getElementById('modal').innerHTML=`<div class="overlay" data-a="close-modal"><div class="panel" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="panel-head"><h2>${esc(title)}</h2><button class="x" type="button" data-a="close-modal" aria-label="Fermer">✕</button></div>
+    <form id="modalForm" class="panel-body">${body}<div class="err" id="modalErr" hidden></div><button class="btn primary block" type="submit">${esc(label)}</button></form></div></div>`;
+  const f=document.querySelector('#modalForm .input');if(f)f.focus();
+}
+const closeModal=()=>{document.getElementById('modal').innerHTML='';modalSubmit=null};
+const checks=(name,items,selected)=>items.length?`<div class="checks">${items.map(([v,l])=>`<label><input type="checkbox" name="${name}" value="${v}" ${selected.includes(v)?'checked':''}>${esc(l)}</label>`).join('')}</div>`:'<div class="muted" style="font-size:14px">Rien à sélectionner.</div>';
+
+function eventForm(e){
+  const teams=S.teams.filter(t=>canManage(t.id));
+  const tid=e?(e.teamId||CLUB):(ui.teamFilter==='club'?CLUB:ui.teamFilter!=='all'&&canManage(ui.teamFilter)?ui.teamFilter:teams[0]?.id||CLUB);
+  const d=new Date();d.setDate(d.getDate()+1);d.setHours(18,0,0,0);
+  openModal(e?"Modifier l'événement":'Nouvel événement',`
+    <label class="field"><span>Concerne</span><select class="input" id="evTeam" name="team">${teams.map(t=>`<option value="${t.id}" ${t.id===tid?'selected':''}>Équipe ${esc(t.name)}</option>`).join('')}<option value="${CLUB}" ${tid===CLUB?'selected':''}>Tout le club</option></select></label>
+    <div class="muted" id="evScopeHint" style="font-size:13px;margin-top:-8px" ${tid===CLUB?'':'hidden'}>Visible par tous les membres et parents du club. Tous les joueurs sont convoqués par défaut, décochez ceux qui ne sont pas concernés.</div>
+    <div class="field"><span>Titre</span>
+      ${S.titles.length?`<div class="row" style="gap:6px">${S.titles.map(t=>`<button type="button" class="chip pick" data-a="pick-title" data-v="${esc(t)}" aria-pressed="${e&&e.title===t}">${esc(t)}</button>`).join('')}</div>`:''}
+      <input class="input" id="evTitle" name="title" required value="${esc(e?.title||'')}" placeholder="Choisissez un titre ci-dessus ou saisissez le vôtre" aria-label="Titre">
+      ${isAdmin()?`<label class="toggle" style="font-weight:500;font-size:14px"><input type="checkbox" id="evSaveTitle" name="saveTitle"> Ajouter ce titre à la liste des titres prédéfinis</label>`:''}
+    </div>
+    <label class="field"><span>Sous-titre</span><input class="input" id="evSub" name="subtitle" value="${esc(e?.subtitle||'')}" placeholder="contre FC Rives – Journée 5"></label>
+    <div class="grid2"><label class="field"><span>Date et heure de début</span><input class="input" id="evStart" type="datetime-local" name="start" required value="${toLocalInput(e?e.start:d)}"></label>
+    <label class="field"><span>Adversaire (pour le live)</span><input class="input" id="evOpp" name="opponent" value="${esc(e?.opponent||'')}" placeholder="Facultatif"></label></div>
+    <label class="toggle"><input type="checkbox" id="evAsk" name="ask" ${!e||e.askPresence?'checked':''}> Demander la présence aux parents</label>
+    <div class="field"><span>Joueurs convoqués</span><div id="convBox">${convChecks(tid,e?e.convoked:null)}</div></div>
+  `,e?'Enregistrer':"Créer l'événement",f=>{
+    const fd=new FormData(f),title=fd.get('title').trim(),start=fd.get('start');
+    if(!title)return 'Indiquez un titre.';if(!start)return 'Indiquez la date et l\'heure de début.';
+    if(fd.get('saveTitle')&&!S.titles.some(t=>low(t)===low(title)))S.titles.push(title);
+    const data={title,subtitle:fd.get('subtitle').trim(),opponent:fd.get('opponent').trim(),start:new Date(start).toISOString(),askPresence:!!fd.get('ask'),convoked:fd.getAll('conv')};
+    const scope=fd.get('team');data.teamId=scope===CLUB?null:scope;
+    if(e){Object.assign(e,data);Object.keys(e.responses).forEach(k=>{if(!e.convoked.includes(k))delete e.responses[k]});toast('Événement mis à jour')}
+    else{S.events.push({id:uid(),createdBy:me.id,responses:{},live:{status:'none',us:0,them:0},...data});toast('Événement créé')}
   });
+}
+const convChecks=(tid,sel)=>{
+  if(tid!==CLUB){const ps=teamPlayers(tid);return checks('conv',ps.map(p=>[p.id,fullName(p)]),sel||ps.map(p=>p.id))}
+  const ps=S.teams.flatMap(t=>teamPlayers(t.id));
+  return checks('conv',ps.map(p=>[p.id,`${fullName(p)} · ${team(p.teamId).name}`]),sel||ps.map(p=>p.id));
+};
+
+function playerForm(p,presetTeam){
+  const teams=S.teams.filter(t=>canManage(t.id));
+  const tid=p?p.teamId:presetTeam;
+  openModal(p?'Modifier le joueur':'Nouveau joueur',`
+    <div class="grid2"><label class="field"><span>Prénom</span><input class="input" id="plFirst" name="first" required value="${esc(p?.first||'')}"></label>
+    <label class="field"><span>Nom</span><input class="input" id="plLast" name="last" required value="${esc(p?.last||'')}"></label></div>
+    <label class="field"><span>Date de naissance</span><input class="input" id="plBirth" type="date" name="birth" value="${esc(p?.birth||'')}"></label>
+    <div class="grid2"><label class="field"><span>E-mail parent 1</span><input class="input" id="plMail" type="email" name="mail" required value="${esc(p?.parentEmails[0]||'')}" placeholder="parent@mail.fr"></label>
+    <label class="field"><span>Téléphone parent 1</span><input class="input" id="plPhone" type="tel" name="phone" value="${esc(p?phoneOf(p,p.parentEmails[0]):'')}" placeholder="06 00 00 00 00"></label></div>
+    <div class="grid2"><label class="field"><span>E-mail parent 2 (facultatif)</span><input class="input" id="plMail2" type="email" name="mail2" value="${esc(p?.parentEmails[1]||'')}" placeholder="autre.parent@mail.fr"></label>
+    <label class="field"><span>Téléphone parent 2</span><input class="input" id="plPhone2" type="tel" name="phone2" value="${esc(p&&p.parentEmails[1]?phoneOf(p,p.parentEmails[1]):'')}" placeholder="06 00 00 00 00"></label></div>
+    <div class="muted" style="font-size:13px">Les téléphones ne sont visibles que par le club et les coachs. Chaque parent peut modifier le sien.</div>
+    <label class="field"><span>Équipe</span><select class="input" id="plTeam" name="team">${isAdmin()?'<option value="">Sans équipe</option>':''}${teams.map(t=>`<option value="${t.id}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label>
+  `,p?'Enregistrer':'Ajouter le joueur',f=>{
+    const fd=new FormData(f),first=fd.get('first').trim(),last=fd.get('last').trim(),mail=low(fd.get('mail')),mail2=low(fd.get('mail2'));
+    const re=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if(!first||!last)return 'Indiquez le prénom et le nom.';
+    if(!re.test(mail))return "L'e-mail du parent 1 n'est pas valide.";
+    if(mail2&&!re.test(mail2))return "L'e-mail du parent 2 n'est pas valide.";
+    if(mail2===mail)return 'Les deux e-mails parents sont identiques.';
+    const phones={[mail]:fd.get('phone').trim()};if(mail2)phones[mail2]=fd.get('phone2').trim();
+    const data={first,last,birth:fd.get('birth'),phones,parentEmails:mail2?[mail,mail2]:[mail],teamId:fd.get('team')||null};
+    if(p){p.parentEmails.filter(m=>!data.parentEmails.includes(low(m))).forEach(m=>unvalidate(p,m));Object.assign(p,data);toast('Joueur mis à jour')}
+    else{S.players.push({id:uid(),...data});toast(`${first} ajouté(e)`)}
+  });
+}
+function unvalidate(p,m){const k=low(m);if(S.validations[k])delete S.validations[k][p.id]}
+
+/* ---------- Actions ---------- */
+function act(a,d,el){
+  switch(a){
+    case 'demo':login(d.email);break;
+    case 'logout':me=null;store.del(SKEY);ui.sheet=null;render();break;
+    case 'reset':S=seed();save();me=null;store.del(SKEY);ui.sheet=null;render();toast('Données réinitialisées');break;
+    case 'tab':ui.tab=d.tab;window.scrollTo(0,0);render();break;
+    case 'cal-mode':ui.calMode=d.v;render();break;
+    case 'club-sec':ui.clubSec=d.v;render();break;
+    case 'open-ev':ui.sheet=d.id;renderSheet();break;
+    case 'close-sheet':ui.sheet=null;renderSheet();break;
+    case 'close-modal':closeModal();break;
+    case 'respond':{const e=ev(d.ev);e.responses[d.pl]=e.responses[d.pl]===d.v?undefined:d.v;if(!e.responses[d.pl])delete e.responses[d.pl];save();render();break}
+    case 'ev-new':eventForm(null);break;
+    case 'ev-edit':eventForm(ev(d.id));break;
+    case 'ev-del':S.events=S.events.filter(e=>e.id!==d.id);ui.sheet=null;save();render();toast('Événement supprimé');break;
+    case 'live-start':{const e=ev(d.id);e.live={status:'live',us:0,them:0,startedAt:new Date().toISOString()};save();render();toast('Live lancé');break}
+    case 'score':{const e=ev(d.id);e.live[d.side]=Math.max(0,e.live[d.side]+Number(d.d));save();render();break}
+    case 'live-end':ev(d.id).live.status='done';save();render();toast('Match terminé');break;
+    case 'live-reopen':ev(d.id).live.status='live';save();render();break;
+    case 'club-edit':openModal('Modifier le club',`
+      <label class="field"><span>Nom du club</span><input class="input" id="clName" name="name" required value="${esc(S.club.name)}"></label>
+      <div class="grid2"><label class="field"><span>Sigle (2-3 lettres)</span><input class="input" id="clShort" name="short" maxlength="3" value="${esc(S.club.short)}"></label>
+      <label class="field"><span>Sport</span><input class="input" id="clSport" name="sport" value="${esc(S.club.sport)}"></label></div>`,'Enregistrer',f=>{
+        const fd=new FormData(f);if(!fd.get('name').trim())return 'Indiquez un nom.';
+        S.club={name:fd.get('name').trim(),short:(fd.get('short').trim()||initials(fd.get('name'))).toUpperCase(),sport:fd.get('sport').trim()}});break;
+    case 'team-new':case 'team-edit':{const t=a==='team-edit'?team(d.id):null;
+      openModal(t?"Modifier l'équipe":'Nouvelle équipe',`
+        <div class="grid2"><label class="field"><span>Nom</span><input class="input" id="tmName" name="name" required value="${esc(t?.name||'')}" placeholder="U15"></label>
+        <label class="field"><span>Catégorie</span><input class="input" id="tmCat" name="cat" value="${esc(t?.category||'')}" placeholder="Moins de 15 ans"></label></div>
+        <div class="field"><span>Coachs</span>${checks('coach',S.users.filter(u=>u.role==='coach'||u.role==='admin').map(u=>[u.id,u.name+(u.role==='admin'?' (admin)':'')]),t?.coachIds||[])}</div>
+        <div class="field"><span>Championnats</span>${checks('champ',S.champs.map(c=>[c.id,c.name]),t?.champIds||[])}</div>`,t?'Enregistrer':"Créer l'équipe",f=>{
+          const fd=new FormData(f),name=fd.get('name').trim();if(!name)return 'Indiquez un nom.';
+          const data={name,category:fd.get('cat').trim(),coachIds:fd.getAll('coach'),champIds:fd.getAll('champ')};
+          if(t)Object.assign(t,data);else S.teams.push({id:uid(),...data});toast(t?'Équipe mise à jour':'Équipe créée')});break}
+    case 'team-del':S.teams=S.teams.filter(t=>t.id!==d.id);S.players.forEach(p=>{if(p.teamId===d.id)p.teamId=null});S.events=S.events.filter(e=>e.teamId!==d.id);save();render();toast('Équipe supprimée');break;
+    case 'player-new':playerForm(null,d.team);break;
+    case 'player-edit':playerForm(player(d.id));break;
+    case 'player-del':S.players=S.players.filter(p=>p.id!==d.id);S.events.forEach(e=>{e.convoked=e.convoked.filter(x=>x!==d.id);delete e.responses[d.id]});save();render();toast('Joueur supprimé');break;
+    case 'player-remove':player(d.id).teamId=null;save();render();toast("Joueur retiré de l'équipe");break;
+    case 'player-attach':{const free=S.players.filter(p=>!p.teamId);
+      openModal('Ajouter des joueurs sans équipe',`<div class="field"><span>Joueurs inscrits au club sans équipe</span>${checks('pl',free.map(p=>[p.id,fullName(p)]),[])}</div>`,"Ajouter à l'équipe",f=>{
+        const ids=new FormData(f).getAll('pl');if(!ids.length)return 'Sélectionnez au moins un joueur.';ids.forEach(id=>player(id).teamId=d.team);toast(`${ids.length} joueur(s) ajouté(s)`)});break}
+    case 'champ-new':case 'champ-edit':{const c=a==='champ-edit'?champ(d.id):null;
+      openModal(c?'Modifier le championnat':'Nouveau championnat',`
+        <label class="field"><span>Nom</span><input class="input" id="chName" name="name" required value="${esc(c?.name||'')}" placeholder="Championnat District U15"></label>
+        <label class="field"><span>Saison</span><input class="input" id="chSeason" name="season" value="${esc(c?.season||'2026-2027')}"></label>
+        <div class="field"><span>Équipes engagées</span>${checks('team',S.teams.map(t=>[t.id,t.name]),c?S.teams.filter(t=>t.champIds.includes(c.id)).map(t=>t.id):[])}</div>`,c?'Enregistrer':'Créer le championnat',f=>{
+          const fd=new FormData(f),name=fd.get('name').trim();if(!name)return 'Indiquez un nom.';
+          let cc=c;if(cc){cc.name=name;cc.season=fd.get('season').trim()}else{cc={id:uid(),name,season:fd.get('season').trim()};S.champs.push(cc)}
+          const sel=fd.getAll('team');S.teams.forEach(t=>{const has=t.champIds.includes(cc.id);if(sel.includes(t.id)&&!has)t.champIds.push(cc.id);if(!sel.includes(t.id)&&has)t.champIds=t.champIds.filter(x=>x!==cc.id)});
+          toast(c?'Championnat mis à jour':'Championnat créé')});break}
+    case 'champ-del':S.champs=S.champs.filter(c=>c.id!==d.id);S.teams.forEach(t=>t.champIds=t.champIds.filter(x=>x!==d.id));save();render();toast('Championnat supprimé');break;
+    case 'user-new':case 'user-edit':{const u=a==='user-edit'?user(d.id):null;
+      openModal(u?'Modifier le membre':'Nouveau membre',`
+        <label class="field"><span>Nom</span><input class="input" id="usName" name="name" required value="${esc(u?.name||'')}"></label>
+        <label class="field"><span>E-mail</span><input class="input" id="usMail" type="email" name="mail" required value="${esc(u?.email||'')}"></label>
+        <label class="field"><span>Rôle</span><select class="input" id="usRole" name="role" ${u&&u.id===me.id?'disabled':''}><option value="coach" ${u?.role==='coach'?'selected':''}>Coach : gère ses équipes et ses événements</option><option value="admin" ${u?.role==='admin'?'selected':''}>Admin : gère tout le club</option></select></label>`,u?'Enregistrer':'Ajouter le membre',f=>{
+          const fd=new FormData(f),name=fd.get('name').trim(),mail=low(fd.get('mail'));
+          if(!name)return 'Indiquez un nom.';if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail))return "L'e-mail n'est pas valide.";
+          if(S.users.some(x=>low(x.email)===mail&&x!==u))return 'Cet e-mail est déjà utilisé par un autre membre.';
+          if(u){u.name=name;u.email=mail;if(u.id!==me.id)u.role=fd.get('role');if(u.id===me.id){me.name=name;me.email=mail;store.set(SKEY,me)}}
+          else S.users.push({id:uid(),name,email:mail,role:fd.get('role')});toast(u?'Membre mis à jour':'Membre ajouté')});break}
+    case 'user-del':S.users=S.users.filter(u=>u.id!==d.id);S.teams.forEach(t=>t.coachIds=t.coachIds.filter(x=>x!==d.id));save();render();toast('Membre supprimé');break;
+    case 'child-edit':{const k=player(d.id);
+      openModal(`Modifier ${k.first}`,`<div class="card"><div class="label">Enfant</div><div style="font-weight:600">${esc(fullName(k))}</div><div class="muted" style="font-size:13px">Pour corriger le nom ou le prénom, contactez le club.</div></div>
+        <label class="field"><span>Date de naissance</span><input class="input" id="ckBirth" type="date" name="birth" value="${esc(k.birth)}"></label>
+        <label class="field"><span>Votre téléphone</span><input class="input" id="ckPhone" type="tel" name="phone" value="${esc(phoneOf(k,me.email))}" placeholder="06 00 00 00 00"></label>
+        <div class="muted" style="font-size:13px">Votre téléphone n'est visible que par le club et les coachs. L'autre parent renseigne le sien.</div>`,'Enregistrer',f=>{
+          const fd=new FormData(f);k.birth=fd.get('birth');setPhone(k,fd.get('phone'));toast('Informations mises à jour')});break}
+    case 'kid-ok':{const p=player(d.id);const b=document.getElementById('v-birth-'+p.id),ph=document.getElementById('v-phone-'+p.id);
+      if(b&&b.value)p.birth=b.value;if(ph)setPhone(p,ph.value);setLink(p.id,'ok');save();ui.tab='cal';render();toast(`${p.first} est rattaché(e) à votre compte`);break}
+    case 'pick-title':{const inp=document.getElementById('evTitle');inp.value=d.v;document.querySelectorAll('.chip.pick').forEach(c=>c.setAttribute('aria-pressed',c===el));inp.focus();break}
+    case 'title-new':case 'title-edit':{const i=a==='title-edit'?Number(d.i):-1;
+      openModal(i<0?'Nouveau titre':'Renommer le titre',`<label class="field"><span>Titre</span><input class="input" id="ttName" name="name" required value="${esc(i<0?'':S.titles[i])}" placeholder="Plateau U9"></label>`,i<0?'Ajouter':'Enregistrer',f=>{
+        const v=new FormData(f).get('name').trim();if(!v)return 'Indiquez un titre.';
+        if(S.titles.some((t,j)=>j!==i&&low(t)===low(v)))return 'Ce titre existe déjà.';
+        if(i<0)S.titles.push(v);else S.titles[i]=v;toast(i<0?'Titre ajouté':'Titre renommé')});break}
+    case 'title-del':S.titles.splice(Number(d.i),1);save();render();toast('Titre supprimé');break;
+    case 'title-move':{const i=Number(d.i),j=i+Number(d.d);if(j<0||j>=S.titles.length)break;[S.titles[i],S.titles[j]]=[S.titles[j],S.titles[i]];save();render();break}
+    case 'kid-no':setLink(d.id,'no');save();render();toast('Le club sera informé');break;
+  }
+}
+
+document.addEventListener('click',ev_=>{
+  const el=ev_.target.closest('[data-a]');if(!el)return;
+  const a=el.dataset.a;
+  if((a==='close-sheet'||a==='close-modal')&&el.classList.contains('overlay')&&ev_.target!==el)return;
+  if(el.tagName==='SELECT')return;
+  if(el.hasAttribute('data-confirm')&&!el.dataset.armed){
+    el.dataset.armed='1';const old=el.textContent;el.textContent='Confirmer ?';
+    setTimeout(()=>{if(el.isConnected){delete el.dataset.armed;el.textContent=old}},3000);return}
+  if(a==='respond'||a==='score')ev_.stopPropagation();
+  act(a,el.dataset,el);
 });
-
-function renderAll(){
-  renderAbos('om'); renderAbos('pfc');
-  renderCible('om'); renderCible('pfc');
-  renderList('om'); renderList('pfc');
-  renderBilan();
-}
-
-// ------- Export / Import -------
-function exportData(){
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const d = new Date();
-  a.download = 'revente-billets-'+d.toISOString().slice(0,10)+'.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-function importData(input){
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try{
-      const imported = JSON.parse(e.target.result);
-      if(!imported.om || !imported.pfc || !imported.om.matches){
-        alert('Fichier invalide : ce n\'est pas un export de cette application.');
-        return;
-      }
-      if(!confirm('Remplacer tes données actuelles par celles du fichier ?')) return;
-      data = imported;
-      save(); renderAll();
-      alert('Données importées ✔');
-    }catch(err){
-      alert('Fichier illisible.');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
-
-renderAll();
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(document.getElementById('modal').innerHTML)closeModal();else if(ui.sheet){ui.sheet=null;renderSheet()}}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.ev[data-a]')){e.preventDefault();act('open-ev',e.target.dataset)}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='teamFilter'){ui.teamFilter=t.value;render()}
+  else if(t.dataset.a==='player-move'){const p=player(t.dataset.id);p.teamId=t.value||null;save();render();toast(`${p.first} → ${p.teamId?team(p.teamId).name:'sans équipe'}`)}
+  else if(t.id==='evTeam'){document.getElementById('convBox').innerHTML=convChecks(t.value,null);document.getElementById('evScopeHint').hidden=t.value!==CLUB}
+});
+document.addEventListener('input',e=>{if(e.target.id==='evTitle')document.querySelectorAll('.chip.pick').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v===e.target.value))});
+document.addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target;
+  if(f.id==='loginForm'){login(f.email.value);return}
+  if(f.id==='modalForm'&&modalSubmit){const err=modalSubmit(f);const box=document.getElementById('modalErr');
+    if(err){box.textContent=err;box.hidden=false;return}closeModal();save();render()}
+});
+// horloge du live
+setInterval(()=>{if(me&&visibleEvents().some(e=>evStatus(e)==='live')&&!document.getElementById('modal').innerHTML)render()},30000);
+render();
 </script>
+
 </body>
 </html>
