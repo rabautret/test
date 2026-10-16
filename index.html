@@ -3,36 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1D4ED0">
+<meta name="theme-color" content="#2B59FF">
 <title>Vestiaire Club</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap">
 <style>
-/* Layout : appli mobile d'abord, en-tête collant, colonne unique 720px, barre d'onglets en bas. Tableau d'affichage façon stade pour le LIVE. */
+/* Layout : appli mobile d'abord, bandeau dégradé en tête, cartes à grosses icônes colorées par équipe, barre d'onglets en bas, tableau d'affichage pour le LIVE. */
 :root{
-  --bg:#EEF1F4; --surface:#FFFFFF; --surface-2:#F6F8FA; --ink:#13202D; --muted:#5A6878; --line:#D9E0E7;
-  --accent:#1D4ED0; --accent-soft:#E3EAFB; --accent-ink:#FFFFFF;
-  --present:#18925A; --present-soft:#DDF3E7; --absent:#D23838; --absent-soft:#FBE3E3;
-  --pending:#7C8896; --pending-soft:#E9EDF1; --live:#E3560B; --live-soft:#FDEBDF;
-  --board:#0F1A26; --board-ink:#F4F7FA; --board-digit:#FFC94A;
+  --bg:#F2F4FF; --surface:#FFFFFF; --surface-2:#ECEFFD; --ink:#121633; --muted:#5B6285; --line:#DDE2F6;
+  --accent:#2B59FF; --accent-soft:#E2E8FF; --accent-ink:#FFFFFF;
+  --present:#10A562; --present-soft:#D7F5E7; --absent:#EE3348; --absent-soft:#FFE0E4;
+  --pending:#8A90AE; --pending-soft:#ECEEF7; --live:#FF5A1F; --live-soft:#FFE6DB;
+  --board:#0F1438; --board-ink:#FFFFFF; --board-digit:#FFD23F;
+  --hot:#FF6A3D; --sun:#FFC93C; --violet:#7B5CFF;
+  --grad:linear-gradient(118deg,#2B59FF 0%,#6C4DFF 58%,#FF6A3D 125%);
+  --shadow:0 1px 0 rgb(30 40 120 / .06),0 12px 30px -18px rgb(30 40 120 / .45);
   --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --r:12px;
+  --r:20px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0C131B; --surface:#152029; --surface-2:#1A2632; --ink:#E6ECF2; --muted:#93A1B0; --line:#26354A;
-  --accent:#6B90F2; --accent-soft:#1D2B4A; --accent-ink:#0C131B;
-  --present:#3DC27A; --present-soft:#173326; --absent:#F06663; --absent-soft:#3A1D1F;
-  --pending:#7F8C9A; --pending-soft:#212D39; --live:#FF7D36; --live-soft:#3A2416;
-  --board:#060B11; --board-ink:#F4F7FA; --board-digit:#FFC94A; color-scheme:dark}}
+  --bg:#090D22; --surface:#141A3A; --surface-2:#1B2248; --ink:#EEF1FF; --muted:#9AA2C9; --line:#283163;
+  --accent:#7090FF; --accent-soft:#1F2A66; --accent-ink:#090D22;
+  --present:#2FD488; --present-soft:#0F3A2A; --absent:#FF5A6B; --absent-soft:#43161F;
+  --pending:#7E86AD; --pending-soft:#20274D; --live:#FF7A45; --live-soft:#45220F;
+  --board:#04071A; --board-ink:#FFFFFF; --board-digit:#FFD23F;
+  --hot:#FF7A52; --sun:#FFD23F; --violet:#9B83FF;
+  --grad:linear-gradient(118deg,#3150E6 0%,#6544EA 58%,#E35A30 125%);
+  --shadow:0 1px 0 rgb(0 0 0 / .3),0 14px 30px -18px rgb(0 0 0 / .8); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0C131B; --surface:#152029; --surface-2:#1A2632; --ink:#E6ECF2; --muted:#93A1B0; --line:#26354A;
-  --accent:#6B90F2; --accent-soft:#1D2B4A; --accent-ink:#0C131B;
-  --present:#3DC27A; --present-soft:#173326; --absent:#F06663; --absent-soft:#3A1D1F;
-  --pending:#7F8C9A; --pending-soft:#212D39; --live:#FF7D36; --live-soft:#3A2416;
-  --board:#060B11; --board-ink:#F4F7FA; --board-digit:#FFC94A; color-scheme:dark}
+  --bg:#090D22; --surface:#141A3A; --surface-2:#1B2248; --ink:#EEF1FF; --muted:#9AA2C9; --line:#283163;
+  --accent:#7090FF; --accent-soft:#1F2A66; --accent-ink:#090D22;
+  --present:#2FD488; --present-soft:#0F3A2A; --absent:#FF5A6B; --absent-soft:#43161F;
+  --pending:#7E86AD; --pending-soft:#20274D; --live:#FF7A45; --live-soft:#45220F;
+  --board:#04071A; --board-ink:#FFFFFF; --board-digit:#FFD23F;
+  --hot:#FF7A52; --sun:#FFD23F; --violet:#9B83FF;
+  --grad:linear-gradient(118deg,#3150E6 0%,#6544EA 58%,#E35A30 125%);
+  --shadow:0 1px 0 rgb(0 0 0 / .3),0 14px 30px -18px rgb(0 0 0 / .8); color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
@@ -108,7 +117,7 @@ main{padding-block:18px 110px}
 .day.today{color:var(--accent)}
 .ev{display:grid;grid-template-columns:58px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
 .ev:hover{border-color:var(--accent)}
-.ev .when{display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--line);padding-right:12px}
+.ev .when-old{display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--line);padding-right:12px}
 .ev .when .t{font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1}
 .ev .when .d{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
 .ev .body{min-width:0;display:flex;flex-direction:column;gap:6px}
@@ -186,6 +195,95 @@ main{padding-block:18px 110px}
 .demo button:first-child{border-top:0}
 .demo button:hover{background:var(--surface-2)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:60}
+
+/* ===== Habillage « punchy » ===== */
+body::before{background:#2B59FF}
+h1,h2,h3{font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.005em}
+.top{background:var(--grad);border:0;color:#fff;box-shadow:0 10px 30px -16px rgb(43 89 255 / .8)}
+.top .wrap{padding-block:12px}
+.top .crest{width:46px;height:46px;border-radius:15px;font-size:20px;background:#fff;color:#2B59FF;font-style:italic;box-shadow:0 6px 16px -6px rgb(0 0 0 / .35)}
+.top h1{font-size:25px;color:#fff}
+.top .sub{color:rgb(255 255 255 / .82)}
+.role{background:rgb(255 255 255 / .2);color:#fff;backdrop-filter:blur(4px)}
+main{padding-block:22px 120px}
+.page-title{display:flex;align-items:center;gap:14px;min-width:0}
+.page-title .pi{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;color:#fff;background:var(--tc,var(--accent));box-shadow:0 10px 22px -10px var(--tc,var(--accent));flex:none;transform:rotate(-4deg)}
+.page-title .pi svg{width:32px;height:32px}
+.page-title h2{font-size:34px;line-height:.95}
+.page-title .ps{font-size:14px;color:var(--muted);font-weight:500}
+.nav{border-top:0;box-shadow:0 -10px 30px -18px rgb(30 40 120 / .5)}
+.nav .wrap{padding-block:6px 4px}
+.nav button{gap:3px;padding:4px 2px;font-size:12px}
+.nav button .ni{width:52px;height:36px;border-radius:14px;display:grid;place-items:center;transition:background .2s,transform .2s}
+.nav button svg{width:28px;height:28px}
+.nav button[aria-current="true"]{color:var(--accent)}
+.nav button[aria-current="true"] .ni{background:var(--accent);color:#fff;transform:translateY(-2px);box-shadow:0 8px 16px -8px var(--accent)}
+.nav .dot{top:2px;right:calc(50% - 26px);width:11px;height:11px;border:2px solid var(--surface)}
+.btn{border-radius:14px;font-weight:700;border-width:1.5px}
+.btn.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 10px 20px -12px #2B59FF;padding:10px 16px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.live{box-shadow:0 10px 20px -12px var(--live)}
+.card,.list{border:0;box-shadow:var(--shadow);border-radius:var(--r)}
+.ev{border:0;box-shadow:var(--shadow);border-radius:var(--r);grid-template-columns:64px 1fr;padding:14px;transition:transform .15s,box-shadow .15s;cursor:pointer}
+.ev:hover{transform:translateY(-2px);border-color:transparent}
+.ev .evi{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;color:#fff;background:var(--tc);box-shadow:0 10px 20px -10px var(--tc);position:relative}
+.ev .evi svg{width:36px;height:36px}
+.ev .evi .rep{position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;border-radius:50%;background:var(--surface);color:var(--tc);display:grid;place-items:center;font-size:13px;font-weight:800;box-shadow:0 2px 6px rgb(0 0 0 / .2)}
+.ev .top-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ev .time{font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1;color:var(--tc)}
+.ev .title{font-size:22px;font-weight:800;font-style:italic;text-transform:uppercase;line-height:1.05}
+.ev.is-live{box-shadow:0 0 0 2.5px var(--live),var(--shadow)}
+.chip{border-radius:99px;font-weight:700}
+.chip.team{background:color-mix(in srgb,var(--tc,var(--accent)) 15%,transparent);color:var(--tc,var(--accent))}
+.chip.club{background:var(--hot);color:#fff}
+.avatar{background:var(--ac,var(--accent));color:#fff;width:40px;height:40px;font-size:16px;font-style:italic;border-radius:14px}
+.day{font-size:18px;font-style:italic;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px}
+.day::after{content:"";flex:1;height:3px;border-radius:3px;background:var(--line)}
+.day.today{color:var(--accent)}
+.day.today::after{background:var(--grad)}
+.seg{border:0;background:var(--surface);box-shadow:var(--shadow);border-radius:16px;padding:4px}
+.seg button{border-radius:12px;font-style:italic;font-weight:800}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;box-shadow:0 6px 14px -8px var(--accent)}
+.rbtn{padding:8px 16px;font-size:14.5px;border-width:2px;font-weight:700}
+.rbtn.present[aria-pressed="true"]::before{content:"✓ "}
+.rbtn.absent[aria-pressed="true"]::before{content:"✕ "}
+.pbar{height:9px}
+.status{padding:4px 11px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}
+.tile{border:0;border-radius:20px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--surface);box-shadow:var(--shadow);font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:15px;color:var(--ink);transition:transform .15s}
+.tile:hover{transform:translateY(-2px)}
+.tile .ti{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;color:#fff;background:var(--tc)}
+.tile .ti svg{width:30px;height:30px}
+.tile .n{font-size:12.5px;font-style:normal;font-weight:600;color:var(--muted);text-transform:none;margin-top:-6px}
+.tile[aria-pressed="true"]{background:var(--tc);color:#fff;box-shadow:0 12px 24px -12px var(--tc)}
+.tile[aria-pressed="true"] .ti{background:rgb(255 255 255 / .22)}
+.tile[aria-pressed="true"] .n{color:rgb(255 255 255 / .85)}
+.board{background:radial-gradient(120% 90% at 50% -10%,rgb(108 77 255 / .55),transparent 60%),repeating-linear-gradient(90deg,rgb(255 255 255 / .03) 0 40px,transparent 40px 80px),var(--board);border-radius:22px;padding:18px}
+.board .digits{font-size:76px}
+.empty{border:0;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 18px}
+.empty .ei{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.empty .ei svg{width:36px;height:36px}
+.panel{border-radius:26px 26px 0 0}
+@media (min-width:700px){.panel{border-radius:26px}}
+.panel-head{border-bottom:0;box-shadow:0 8px 20px -18px rgb(0 0 0 / .5)}
+.panel-head h2{font-size:26px}
+.input,select.input{border-radius:12px;border-width:1.5px}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.checks{border-radius:14px}
+.login{background:var(--grad);color:#fff}
+.login .crest{background:#fff;color:#2B59FF;width:60px;height:60px;font-size:26px;border-radius:18px;font-style:italic}
+.login h1{font-size:52px;color:#fff;line-height:.9}
+.login .label{color:rgb(255 255 255 / .8)}
+.login .card,.login .list{color:var(--ink)}
+.login .hero{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.login{position:relative;overflow:hidden}
+.login .hero svg{position:absolute;top:calc(20px + env(safe-area-inset-top,0px));right:-30px;width:170px;height:170px;color:#fff;opacity:.18;transform:rotate(-14deg);pointer-events:none}
+.login .demo-lbl{color:#fff}
+.kid-card{position:relative;overflow:hidden}
+.kid-card::before{content:"";position:absolute;inset:0 0 auto;height:6px;background:var(--tc,var(--accent))}
+@media (prefers-reduced-motion:reduce){.ev,.tile,.nav button .ni{transition:none}}
+.evi-s{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;color:#fff;background:var(--tc);flex:none}
+.evi-s svg{width:26px;height:26px}
 </style>
 <style>html,body{margin:0}body{font-size:15px}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head>
@@ -309,6 +407,13 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 /* ---------- Icônes ---------- */
 const I={
+ ball:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m12 7.2 4 2.9-1.5 4.7h-5L8 10.1Z" fill="currentColor"/><path d="M12 7.2V2.6M16 10.1l4.3-1.4M14.5 14.8l2.7 3.7M9.5 14.8l-2.7 3.7M8 10.1 3.7 8.7"/></svg>',
+ whistle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a5 5 0 1 0 10 0h8V8H9.5A5 5 0 0 0 3 12Z" fill="currentColor" fill-opacity=".25"/><circle cx="8" cy="12" r="1.6" fill="currentColor"/><path d="M14 4v4M17 5l-1 3M11 5l1 3"/></svg>',
+ trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0Z" fill="currentColor" fill-opacity=".25"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v3M8 21h8M9 17h6v4H9z"/></svg>',
+ star:'<svg viewBox="0 0 24 24" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1.1 6.3L12 17.4 6.4 20.4l1.1-6.3L3 9.7l6.2-.9Z"/></svg>',
+ people:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.5" fill="currentColor" fill-opacity=".25"/><path d="M2.5 20c.8-3.7 3.3-5.7 6.5-5.7s5.7 2 6.5 5.7"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.4c2.6 0 4.4 1.7 5 4.6"/></svg>',
+ cone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4l5 16H5Z" fill="currentColor" fill-opacity=".25"/><path d="M8 11h8M6.8 15h10.4M3 21h18"/></svg>',
+ list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.4" fill="currentColor"/><circle cx="4.5" cy="12" r="1.4" fill="currentColor"/><circle cx="4.5" cy="18" r="1.4" fill="currentColor"/></svg>',
  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
  live:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 17.7a8 8 0 0 1 0-11.4M17.7 6.3a8 8 0 0 1 0 11.4"/></svg>',
  team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3h-2a2 2 0 0 1-4 0Z"/></svg>',
@@ -342,7 +447,7 @@ function render(){
     <span class="role">${roleLbl}</span>
   </div></header>
   <main><div class="wrap">${body}</div></main>
-  <nav class="nav"><div class="wrap">${tabs.map(([k,l,ic])=>`<button data-a="tab" data-tab="${k}" aria-current="${ui.tab===k}">${ic}${l}${k==='live'&&hasLive?'<i class="dot"></i>':''}</button>`).join('')}</div></nav>`;
+  <nav class="nav"><div class="wrap">${tabs.map(([k,l,ic])=>`<button data-a="tab" data-tab="${k}" aria-current="${ui.tab===k}"><span class="ni">${ic}</span>${l}${k==='live'&&hasLive?'<i class="dot"></i>':''}</button>`).join('')}</div></nav>`;
   renderSheet();
 }
 
@@ -350,16 +455,16 @@ function render(){
 function loginView(){
   const demo=[['admin@club.fr','Administrateur du club','Sophie Martin'],['coach.u11@club.fr','Coach des U11','Karim Benali'],['famille.durand@mail.fr','Parent de Léo (U11) et Emma (U13)','Famille Durand'],['papa.durand@mail.fr','2e parent de Léo (U11)','Papa Durand']];
   return `<div class="login"><div class="wrap">
-    <div class="crest">${esc(S.club.short||'OT')}</div>
-    <div><div class="label">Espace club</div><h1>${esc(S.club.name)}</h1></div>
+    <div class="hero"><div class="stack" style="gap:14px"><div class="crest">${esc(S.club.short||'OT')}</div>
+    <div><div class="label">Espace club</div><h1>${esc(S.club.name)}</h1></div></div>${I.ball}</div>
     <form id="loginForm" class="card section">
       <label class="field"><span>Adresse e-mail</span><input class="input" id="loginEmail" name="email" type="email" required autocomplete="email" placeholder="prenom.nom@mail.fr"></label>
       ${ui.loginErr?`<div class="err">${esc(ui.loginErr)}</div>`:''}
       <button class="btn primary block" type="submit">Se connecter</button>
       <div class="muted" style="font-size:13px">Les parents se connectent avec l'adresse e-mail renseignée par le club.</div>
     </form>
-    <div class="section"><div class="label">Comptes de démonstration</div>
-      <div class="list demo">${demo.map(([e,r,n])=>`<button data-a="demo" data-email="${e}"><span class="avatar">${initials(n)}</span><span class="grow" style="min-width:0"><span class="name" style="display:block;font-weight:600">${esc(n)}</span><span class="meta" style="font-size:13px;color:var(--muted)">${esc(r)} · ${esc(e)}</span></span></button>`).join('')}</div>
+    <div class="section"><div class="label demo-lbl">Comptes de démonstration</div>
+      <div class="list demo">${demo.map(([e,r,n])=>`<button data-a="demo" data-email="${e}">${av(n)}<span class="grow" style="min-width:0"><span class="name" style="display:block;font-weight:600">${esc(n)}</span><span class="meta" style="font-size:13px;color:var(--muted)">${esc(r)} · ${esc(e)}</span></span></button>`).join('')}</div>
     </div>
   </div></div>`;
 }
@@ -379,7 +484,7 @@ function validateView(){
   <main><div class="wrap stack">
     <div><h2 style="font-size:26px">${kids.length>1?'Est-ce bien vos enfants ?':'Est-ce bien votre enfant ?'}</h2><p class="muted" style="margin:6px 0 0">Le club a associé ${kids.length>1?`${kids.length} enfants`:'cet enfant'} à votre adresse e-mail. Confirmez pour accéder au calendrier et aux convocations.</p></div>
     ${kids.map(k=>{const t=team(k.teamId);const others=k.parentEmails.filter(e=>low(e)!==low(me.email));return `<div class="card section">
-      <div class="spread"><div class="row"><span class="avatar">${initials(fullName(k))}</span><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">${t?esc(t.name)+' · '+esc(t.category||''):'Pas encore d\'équipe'}</div></div></div></div>
+      <div class="spread"><div class="row">${av(fullName(k))}<div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">${t?esc(t.name)+' · '+esc(t.category||''):'Pas encore d\'équipe'}</div></div></div></div>
       ${others.length?`<div class="muted" style="font-size:13px">Un autre parent est aussi rattaché à cette fiche.</div>`:''}
       <div class="grid2">
         <label class="field"><span>Date de naissance</span><input class="input" id="v-birth-${k.id}" type="date" value="${esc(k.birth)}"></label>
@@ -401,7 +506,14 @@ function setLink(id,state){const k=low(me.email);S.validations[k]=S.validations[
 function visibleEvents(){const ids=myTeamIds();return S.events.filter(e=>!e.teamId||ids.includes(e.teamId))}
 const CLUB='__club';
 const canManageEv=e=>e.teamId?canManage(e.teamId):(isAdmin()||(isCoach()&&e.createdBy===me.id));
-const scopeChip=e=>e.teamId?`<span class="chip team">${esc(team(e.teamId)?.name)}</span>`:'<span class="chip club">Tout le club</span>';
+const PALETTE=['#2B59FF','#FF6A3D','#7B5CFF','#12B5A0','#E8417A','#F2A100','#0EA5E9','#22A855'];
+const teamColor=id=>{const i=S.teams.findIndex(t=>t.id===id);return i<0?'#FF6A3D':PALETTE[i%PALETTE.length]};
+const evColor=e=>e.teamId?teamColor(e.teamId):'#FF6A3D';
+function evIcon(t){t=low(t);if(/coupe|tournoi|finale|plateau/.test(t))return I.trophy;if(/match|amical|championnat|rencontre/.test(t))return I.ball;if(/entra[iî]n/.test(t))return I.whistle;if(/stage/.test(t))return I.star;if(/r[ée]union|assembl|f[êe]te|repas/.test(t))return I.people;return I.cone}
+const av=n=>{let h=0;for(const c of String(n||''))h=(h*31+c.charCodeAt(0))>>>0;return `<span class="avatar" style="--ac:${PALETTE[h%PALETTE.length]}">${initials(n||'?')}</span>`};
+const pageTitle=(title,icon,color,sub='')=>`<div class="page-title"><span class="pi" style="--tc:${color}">${icon}</span><div style="min-width:0"><h2>${title}</h2>${sub?`<div class="ps">${sub}</div>`:''}</div></div>`;
+const emptyBox=(icon,html)=>`<div class="empty"><span class="ei">${icon}</span><div>${html}</div></div>`;
+const scopeChip=e=>e.teamId?`<span class="chip team" style="--tc:${teamColor(e.teamId)}">${esc(team(e.teamId)?.name)}</span>`:'<span class="chip club">Tout le club</span>';
 const scopeName=e=>e.teamId?team(e.teamId)?.name:'';
 function calView(){
   let list=visibleEvents();
@@ -412,13 +524,13 @@ function calView(){
   const canCreate=isAdmin()||isCoach();
   const groups=[];list.forEach(e=>{const k=dayKey(e.start);let g=groups.find(x=>x.k===k);if(!g)groups.push(g={k,d:e.start,items:[]});g.items.push(e)});
   return `<div class="stack">
-    <div class="spread"><h2 style="font-size:28px">Calendrier</h2>${canCreate?`<button class="btn primary" data-a="ev-new">+ Événement</button>`:''}</div>
+    <div class="spread">${pageTitle('Calendrier',I.cal,'#2B59FF',`${visibleEvents().filter(e=>!isPast(e)).length} à venir`)}${canCreate?`<button class="btn primary" data-a="ev-new">+ Événement</button>`:''}</div>
     <div class="row" style="flex-wrap:nowrap">
       <div class="seg" style="flex:1"><button data-a="cal-mode" data-v="up" aria-pressed="${!past}">À venir</button><button data-a="cal-mode" data-v="past" aria-pressed="${past}">Passés</button></div>
       ${teams.length>1?`<select class="input" id="teamFilter" style="width:auto" aria-label="Filtrer par équipe"><option value="all">Toutes</option><option value="club" ${ui.teamFilter==='club'?'selected':''}>Tout le club</option>${teams.map(t=>`<option value="${t.id}" ${ui.teamFilter===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>`:''}
     </div>
     ${groups.length?groups.map(g=>`<div class="section"><div class="day ${relDay(g.d)==="Aujourd'hui"?'today':''}">${relDay(g.d)}</div>${g.items.map(evCard).join('')}</div>`).join('')
-      :`<div class="empty">${past?'Aucun événement passé.':'Aucun événement prévu pour le moment.'}${canCreate&&!past?'<br>Créez le premier avec « + Événement ».':''}</div>`}
+      :emptyBox(I.cal,`${past?'Aucun événement passé.':'Aucun événement prévu pour le moment.'}${canCreate&&!past?'<br>Créez le premier avec « + Événement ».':''}`)}
   </div>`;
 }
 function presenceBar(e){const c=counts(e);if(!c.t)return'';return `<div class="pbar" aria-hidden="true"><span style="width:${c.p/c.t*100}%;background:var(--present)"></span><span style="width:${c.a/c.t*100}%;background:var(--absent)"></span></div>
@@ -430,10 +542,10 @@ function evCard(e){
   if(st==='live')extra=`<div class="row"><span class="live-tag">En direct · ${elapsed(e)}'</span><span class="mini-score num">${e.live.us} – ${e.live.them}</span></div>`;
   else if(st==='done'&&(e.live.startedAt))extra=`<div class="row"><span class="chip">Terminé</span><span class="mini-score num">${e.live.us} – ${e.live.them}</span></div>`;
   else if(st==='started')extra=`<div class="row"><span class="chip">Commencé</span></div>`;
-  return `<div class="ev ${st==='live'?'is-live':''}" role="button" tabindex="0" data-a="open-ev" data-id="${e.id}">
-    <div class="when"><span class="t num">${fTime(e.start)}</span><span class="d">${fmt({day:'numeric',month:'short'},e.start)}</span></div>
+  return `<div class="ev ${st==='live'?'is-live':''}" style="--tc:${evColor(e)}" role="button" tabindex="0" data-a="open-ev" data-id="${e.id}">
+    <div class="evi">${evIcon(e.title)}${e.seriesId?'<span class="rep" title="Événement répété">↻</span>':''}</div>
     <div class="body">
-      <div class="row" style="gap:6px">${scopeChip(e)}${e.seriesId?'<span class="chip" title="Événement répété">↻</span>':''}${e.askPresence?'':'<span class="chip">Sans réponse demandée</span>'}</div>
+      <div class="top-line"><span class="time num">${fTime(e.start)}</span>${scopeChip(e)}${e.askPresence?'':'<span class="chip">Sans réponse demandée</span>'}</div>
       <div class="title">${esc(e.title)}</div>
       ${e.subtitle?`<div class="subtitle">${esc(e.subtitle)}</div>`:''}
       ${extra}
@@ -457,7 +569,7 @@ function renderSheet(){
   const conv=e.convoked.map(player).filter(Boolean).sort((a,b)=>a.last.localeCompare(b.last));
   const grp={present:[],absent:[],none:[]};conv.forEach(p=>grp[e.responses[p.id]||'none'].push(p));
   const myKids=isParent()?children().map(c=>c.id):[];
-  const plRow=p=>`<div class="item"><span class="avatar">${initials(fullName(p))}</span><div class="grow"><div class="name">${esc(fullName(p))}${myKids.includes(p.id)?' <span class="chip team">Votre enfant</span>':''}</div>${isStaff()?p.parentEmails.filter(m=>phoneOf(p,m)).map(m=>`<div class="meta num">${esc(phoneOf(p,m))} · ${esc(m)}</div>`).join(''):''}</div>
+  const plRow=p=>`<div class="item">${av(fullName(p))}<div class="grow"><div class="name">${esc(fullName(p))}${myKids.includes(p.id)?' <span class="chip team">Votre enfant</span>':''}</div>${isStaff()?p.parentEmails.filter(m=>phoneOf(p,m)).map(m=>`<div class="meta num">${esc(phoneOf(p,m))} · ${esc(m)}</div>`).join(''):''}</div>
     ${(manage||(myKids.includes(p.id)&&st==='up'))?`<button class="rbtn present" data-a="respond" data-ev="${e.id}" data-pl="${p.id}" data-v="present" aria-pressed="${e.responses[p.id]==='present'}" aria-label="Présent">P</button><button class="rbtn absent" data-a="respond" data-ev="${e.id}" data-pl="${p.id}" data-v="absent" aria-pressed="${e.responses[p.id]==='absent'}" aria-label="Absent">A</button>`:statusPill(e.responses[p.id])}</div>`;
   const grpBlock=(k,lbl,color)=>`<div class="section"><div class="label" style="color:${color}">${lbl} · <span class="num">${grp[k].length}</span></div>${grp[k].length?`<div class="list">${grp[k].map(plRow).join('')}</div>`:'<div class="muted" style="font-size:14px">Personne</div>'}</div>`;
   root.innerHTML=`<div class="overlay" data-a="close-sheet"><div class="panel" role="dialog" aria-modal="true" aria-label="${esc(e.title)}">
@@ -471,7 +583,7 @@ function renderSheet(){
       ${(st!=='up'||e.live.status!=='none')?boardHtml(e,manage):''}
       ${e.askPresence?`<div class="section"><div class="spread"><h3 style="font-size:20px">Présences</h3><span class="muted num" style="font-size:14px">${conv.length} convoqué${conv.length>1?'s':''}</span></div>${presenceBar(e)}</div>
         ${grpBlock('present','Présents','var(--present)')}${grpBlock('absent','Absents','var(--absent)')}${grpBlock('none','Pas répondu','var(--pending)')}`
-        :`<div class="section"><h3 style="font-size:20px">Convoqués · <span class="num">${conv.length}</span></h3>${conv.length?`<div class="list">${conv.map(p=>`<div class="item"><span class="avatar">${initials(fullName(p))}</span><div class="grow name">${esc(fullName(p))}</div></div>`).join('')}</div>`:'<div class="muted">Aucun joueur convoqué.</div>'}<div class="muted" style="font-size:13px">Aucune réponse de présence demandée pour cet événement.</div></div>`}
+        :`<div class="section"><h3 style="font-size:20px">Convoqués · <span class="num">${conv.length}</span></h3>${conv.length?`<div class="list">${conv.map(p=>`<div class="item">${av(fullName(p))}<div class="grow name">${esc(fullName(p))}</div></div>`).join('')}</div>`:'<div class="muted">Aucun joueur convoqué.</div>'}<div class="muted" style="font-size:13px">Aucune réponse de présence demandée pour cet événement.</div></div>`}
     </div></div></div>`;
 }
 function boardHtml(e,manage){
@@ -499,9 +611,9 @@ function liveView(){
   const today=evs.filter(e=>evStatus(e)==='up'&&dayKey(e.start)===dayKey(new Date()));
   const recent=evs.filter(e=>evStatus(e)==='done').sort((a,b)=>new Date(b.start)-new Date(a.start)).slice(0,3);
   return `<div class="stack">
-    <h2 style="font-size:28px">Live</h2>
+    ${pageTitle('Live',I.live,'#FF5A1F',live.length?`${live.length} match${live.length>1?'s':''} en cours`:'Scores en direct')}
     ${live.length?live.map(e=>`<div class="section"><div class="spread"><div><div class="title" style="font-family:var(--f-display);font-weight:700;font-size:19px">${esc(e.title)}</div><div class="muted" style="font-size:14px">${esc(e.subtitle)}</div></div><button class="btn small" data-a="open-ev" data-id="${e.id}">Détails</button></div>${boardHtml(e,canManageEv(e))}</div>`).join('')
-      :'<div class="empty">Aucun match en cours.<br>Le score s\'affiche ici dès qu\'un coach lance le live.</div>'}
+      :emptyBox(I.live,'Aucun match en cours.<br>Le score s\'affiche ici dès qu\'un coach lance le live.')}
     ${started.length?`<div class="section"><div class="label">Commencés, live non lancé</div>${started.map(evCard).join('')}</div>`:''}
     ${today.length?`<div class="section"><div class="label">Plus tard aujourd'hui</div>${today.map(evCard).join('')}</div>`:''}
     ${recent.length?`<div class="section"><div class="label">Derniers résultats</div>${recent.map(evCard).join('')}</div>`:''}
@@ -510,7 +622,7 @@ function liveView(){
 
 /* ---------- Club (admin) ---------- */
 function clubView(){
-  const secs=[['teams','Équipes'],['players','Joueurs'],['champs','Championnats'],['members','Membres'],['titles','Titres']];
+  const secs=[['teams','Équipes',I.team,'#2B59FF',S.teams.length],['players','Joueurs',I.people,'#FF6A3D',S.players.length],['champs','Compétitions',I.trophy,'#F2A100',S.champs.length],['members','Staff',I.whistle,'#12B5A0',S.users.length],['titles','Titres',I.list,'#7B5CFF',S.titles.length]];
   let body='';
   if(ui.clubSec==='teams')body=teamsSec();
   else if(ui.clubSec==='players')body=playersSec(S.players,true);
@@ -518,14 +630,14 @@ function clubView(){
   else if(ui.clubSec==='titles')body=titlesSec();
   else body=membersSec();
   return `<div class="stack">
-    <div class="card spread"><div><div class="label">Club</div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(S.club.name)}</div><div class="muted" style="font-size:14px">${esc(S.club.sport)} · <span class="num">${S.teams.length}</span> équipes · <span class="num">${S.players.length}</span> joueurs</div></div><button class="btn small" data-a="club-edit">Modifier</button></div>
-    <div class="seg">${secs.map(([k,l])=>`<button data-a="club-sec" data-v="${k}" aria-pressed="${ui.clubSec===k}">${l}</button>`).join('')}</div>
+    <div class="card spread">${pageTitle(esc(S.club.name),I.club,'#2B59FF',`${esc(S.club.sport)} · ${S.teams.length} équipes · ${S.players.length} joueurs`)}<button class="btn small" data-a="club-edit">Modifier</button></div>
+    <div class="tiles">${secs.map(([k,l,ic,c,n])=>`<button class="tile" style="--tc:${c}" data-a="club-sec" data-v="${k}" aria-pressed="${ui.clubSec===k}"><span class="ti">${ic}</span>${l}<span class="n num">${n}</span></button>`).join('')}</div>
     ${body}</div>`;
 }
 function teamsSec(){
   return `<div class="section"><div class="spread"><h3 style="font-size:20px">Équipes</h3><button class="btn primary small" data-a="team-new">+ Équipe</button></div>
   ${S.teams.length?S.teams.map(t=>`<div class="card section">
-    <div class="spread"><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(t.name)}</div><div class="muted" style="font-size:14px">${esc(t.category||'')} · <span class="num">${teamPlayers(t.id).length}</span> joueurs</div></div>
+    <div class="spread"><div class="row"><span class="evi-s" style="--tc:${teamColor(t.id)}">${I.team}</span><div><div style="font-family:var(--f-display);font-weight:800;font-style:italic;font-size:24px;text-transform:uppercase">${esc(t.name)}</div><div class="muted" style="font-size:14px">${esc(t.category||'')} · <span class="num">${teamPlayers(t.id).length}</span> joueurs</div></div></div>
       <div class="row"><button class="btn small" data-a="team-edit" data-id="${t.id}">Modifier</button><button class="btn small danger" data-a="team-del" data-id="${t.id}" data-confirm>Supprimer</button></div></div>
     <div class="row" style="gap:6px"><span class="label" style="margin-right:4px">Coachs</span>${t.coachIds.length?t.coachIds.map(id=>`<span class="chip">${esc(user(id)?.name)}</span>`).join(''):'<span class="muted" style="font-size:13px">Aucun</span>'}</div>
     <div class="row" style="gap:6px"><span class="label" style="margin-right:4px">Engagée en</span>${t.champIds.length?t.champIds.map(id=>`<span class="chip">${esc(champ(id)?.name)}</span>`).join(''):'<span class="muted" style="font-size:13px">Aucun championnat</span>'}</div>
@@ -537,7 +649,7 @@ function playersSec(list,adminMode,teamId){
   return `<div class="section"><div class="spread"><h3 style="font-size:20px">Joueurs · <span class="num">${list.length}</span></h3>
     <div class="row">${!adminMode&&S.players.some(p=>!p.teamId)?`<button class="btn small" data-a="player-attach" data-team="${teamId}">Ajouter un joueur sans équipe</button>`:''}<button class="btn primary small" data-a="player-new" ${teamId?`data-team="${teamId}"`:''}>+ Joueur</button></div></div>
   ${list.length?`<div class="list">${list.map(p=>`<div class="item" style="flex-wrap:wrap">
-    <span class="avatar">${initials(fullName(p))}</span>
+    ${av(fullName(p))}
     <div class="grow"><div class="name">${esc(fullName(p))}</div><div class="meta">Né(e) le ${fBirth(p.birth)}</div>
       <div class="row" style="gap:6px;margin-top:5px">${p.parentEmails.map(m=>{const s=linkState(p,m);return `<span class="chip" title="${s==='ok'?'Lien confirmé':s==='no'?'Le parent a indiqué que ce n\'est pas son enfant':'Pas encore confirmé'}" style="${s==='ok'?'color:var(--present)':s==='no'?'color:var(--absent);background:var(--absent-soft)':''}">${s==='ok'?'✓':s==='no'?'✕':'…'} ${esc(m)}${phoneOf(p,m)?` · <span class="num">${esc(phoneOf(p,m))}</span>`:''}</span>`}).join('')}</div></div>
     <div class="row">${adminMode?`<select class="input" style="width:auto;padding:6px 8px" id="mv-${p.id}" data-a="player-move" data-id="${p.id}" aria-label="Équipe de ${esc(fullName(p))}">${opts(p.teamId)}</select>`:''}
@@ -561,7 +673,7 @@ function titlesSec(){
 function membersSec(){
   return `<div class="section"><div class="spread"><h3 style="font-size:20px">Admins et coachs</h3><button class="btn primary small" data-a="user-new">+ Membre</button></div>
   <div class="list">${S.users.map(u=>{const ts=S.teams.filter(t=>t.coachIds.includes(u.id));return `<div class="item" style="flex-wrap:wrap">
-    <span class="avatar">${initials(u.name)}</span><div class="grow"><div class="name">${esc(u.name)} <span class="chip ${u.role==='admin'?'team':''}">${u.role==='admin'?'Admin':'Coach'}</span></div><div class="meta">${esc(u.email)}${ts.length?' · Coach de '+ts.map(t=>esc(t.name)).join(', '):''}</div></div>
+    ${av(u.name)}<div class="grow"><div class="name">${esc(u.name)} <span class="chip ${u.role==='admin'?'team':''}">${u.role==='admin'?'Admin':'Coach'}</span></div><div class="meta">${esc(u.email)}${ts.length?' · Coach de '+ts.map(t=>esc(t.name)).join(', '):''}</div></div>
     <div class="row"><button class="btn small" data-a="user-edit" data-id="${u.id}">Modifier</button>${u.id!==me.id?`<button class="btn small danger" data-a="user-del" data-id="${u.id}" data-confirm>Supprimer</button>`:''}</div></div>`}).join('')}</div>
   <div class="muted" style="font-size:13px">Les parents n'ont pas besoin de compte : ils se connectent avec l'e-mail renseigné sur la fiche de leur enfant.</div></div>`;
 }
@@ -571,19 +683,19 @@ function coachTeamView(){
   const ts=S.teams.filter(t=>t.coachIds.includes(me.id));
   if(!ts.length)return '<div class="empty">Vous n\'êtes coach d\'aucune équipe pour le moment. Demandez à un admin de vous associer à une équipe.</div>';
   return `<div class="stack">${ts.map(t=>`<div class="stack">
-    <div class="card"><div class="label">Mon équipe</div><div style="font-family:var(--f-display);font-weight:700;font-size:26px">${esc(t.name)}</div><div class="muted" style="font-size:14px">${esc(t.category||'')}</div>
+    <div class="card">${pageTitle('Équipe '+esc(t.name),I.team,teamColor(t.id),esc(t.category||''))}
       <div class="row" style="gap:6px;margin-top:10px">${t.champIds.map(id=>`<span class="chip">${esc(champ(id)?.name)}</span>`).join('')||'<span class="muted" style="font-size:13px">Aucun championnat</span>'}</div></div>
     ${playersSec(teamPlayers(t.id),false,t.id)}</div>`).join('')}</div>`;
 }
 
 /* ---------- Enfant (parent) ---------- */
 function kidsView(){
-  if(!children().length)return `<div class="stack"><h2 style="font-size:28px">Mon enfant</h2><div class="empty">Aucun enfant n'est rattaché à votre adresse.<br>Si c'est une erreur, contactez le club.</div></div>`;
-  return `<div class="stack"><h2 style="font-size:28px">${children().length>1?'Mes enfants':'Mon enfant'}</h2>
+  if(!children().length)return `<div class="stack">${pageTitle('Mon enfant',I.child,'#7B5CFF')}${emptyBox(I.child,"Aucun enfant n'est rattaché à votre adresse.<br>Si c'est une erreur, contactez le club.")}</div>`;
+  return `<div class="stack">${pageTitle(children().length>1?'Mes enfants':'Mon enfant',I.child,'#7B5CFF')}
   ${children().map(k=>{const t=team(k.teamId);const coaches=t?t.coachIds.map(user).filter(Boolean):[];
     const next=S.events.filter(e=>(!e.teamId||e.teamId===k.teamId)&&e.convoked.includes(k.id)&&evStatus(e)==='up').sort((a,b)=>new Date(a.start)-new Date(b.start))[0];
-    return `<div class="card section">
-    <div class="spread"><div class="row"><span class="avatar">${initials(fullName(k))}</span><div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">Né(e) le ${fBirth(k.birth)}</div></div></div><button class="btn small" data-a="child-edit" data-id="${k.id}">Modifier</button></div>
+    return `<div class="card section kid-card" style="--tc:${t?teamColor(t.id):'#7B5CFF'}">
+    <div class="spread"><div class="row">${av(fullName(k))}<div><div style="font-family:var(--f-display);font-weight:700;font-size:22px">${esc(fullName(k))}</div><div class="muted" style="font-size:14px">Né(e) le ${fBirth(k.birth)}</div></div></div><button class="btn small" data-a="child-edit" data-id="${k.id}">Modifier</button></div>
     <div class="grid2"><div><div class="label">Équipe</div><div style="font-weight:600">${t?esc(t.name)+' · '+esc(t.category||''):'Pas encore d\'équipe'}</div></div>
       <div><div class="label">Coach</div><div style="font-weight:600">${coaches.length?coaches.map(c=>esc(c.name)).join(', '):'—'}</div></div></div>
     <div><div class="label">Votre téléphone</div><div style="font-weight:600" class="num">${phoneOf(k,me.email)?esc(phoneOf(k,me.email)):'Non renseigné'}</div><div class="muted" style="font-size:13px">Visible uniquement par le club et les coachs.</div></div>
@@ -594,8 +706,8 @@ function kidsView(){
 
 /* ---------- Compte ---------- */
 function accountView(){
-  return `<div class="stack"><h2 style="font-size:28px">Compte</h2>
-    <div class="card section"><div class="row"><span class="avatar">${initials(me.name||me.email)}</span><div><div style="font-weight:600">${esc(me.name||'Parent')}</div><div class="muted" style="font-size:14px">${esc(me.email)}</div></div></div>
+  return `<div class="stack">${pageTitle('Compte',I.me,'#12B5A0')}
+    <div class="card section"><div class="row">${av(me.name||me.email)}<div><div style="font-weight:600">${esc(me.name||'Parent')}</div><div class="muted" style="font-size:14px">${esc(me.email)}</div></div></div>
     <button class="btn block" data-a="logout">Se déconnecter</button></div>
     <div class="card section"><div class="label">Démonstration</div><div class="muted" style="font-size:14px">Les données sont enregistrées dans ce navigateur. Déconnectez-vous pour tester un autre rôle (admin, coach, parent).</div>
     <button class="btn danger block" data-a="reset" data-confirm>Réinitialiser les données d'exemple</button></div></div>`;
