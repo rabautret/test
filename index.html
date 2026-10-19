@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2B59FF">
+<meta name="theme-color" content="#FFFFFF">
 <title>Vestiaire Club</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -282,10 +282,90 @@ main{padding-block:22px 120px}
 .kid-card{position:relative;overflow:hidden}
 .kid-card::before{content:"";position:absolute;inset:0 0 auto;height:6px;background:var(--tc,var(--accent))}
 @media (prefers-reduced-motion:reduce){.ev,.tile,.nav button .ni{transition:none}}
+.top .crest{position:relative}
+.crest-sport{position:absolute;right:-7px;bottom:-7px;width:24px;height:24px;border-radius:50%;background:#FF6A3D;color:#fff;display:grid;place-items:center;box-shadow:0 0 0 2.5px #fff}
+.crest-sport svg{width:16px;height:16px}
+.board-ic{display:inline-grid;width:26px;height:26px;color:var(--board-digit)}
+.board-ic svg{width:26px;height:26px}
+.sports{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.sport-opt{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border-radius:16px;background:var(--surface);border:2px solid var(--line);cursor:pointer;text-align:center;font-family:var(--f-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13.5px;line-height:1.1}
+.sport-opt input{position:absolute;opacity:0;pointer-events:none}
+.sport-opt .si{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.sport-opt .si svg{width:32px;height:32px}
+.sport-opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.sport-opt:has(input:checked) .si{background:var(--grad);color:#fff}
+.sport-opt:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.board .btn{background:rgb(255 255 255 / .12);color:#fff;border-color:rgb(255 255 255 / .28)}
+.board .btn:hover{background:rgb(255 255 255 / .2)}
+[hidden]{display:none!important}
 .evi-s{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;color:#fff;background:var(--tc);flex:none}
 .evi-s svg{width:26px;height:26px}
+
+/* ===== Thème « Épuré » (par défaut) : fond clair, traits fins, icônes teintées, un seul accent ===== */
+:root.clean{--r:16px}
+.clean body::before{background:var(--surface)}
+.clean h1,.clean h2,.clean h3{font-style:normal;text-transform:none;font-weight:700;letter-spacing:0}
+.clean .top{background:var(--surface);color:var(--ink);box-shadow:none;border-bottom:1px solid var(--line)}
+.clean .top h1{color:var(--ink);font-size:22px}
+.clean .top .sub{color:var(--muted)}
+.clean .top .crest{background:var(--accent);color:var(--accent-ink);box-shadow:none;width:42px;height:42px;border-radius:13px;font-size:18px}
+.clean .crest-sport{box-shadow:0 0 0 2.5px var(--surface)}
+.clean .role{background:var(--accent-soft);color:var(--accent);backdrop-filter:none}
+.clean .page-title .pi{background:color-mix(in srgb,var(--tc) 14%,transparent);color:var(--tc);box-shadow:none;width:52px;height:52px;border-radius:16px}
+.clean .page-title h2{font-size:30px;line-height:1}
+.clean .card,.clean .list,.clean .ev,.clean .seg,.clean .tile,.clean .empty{box-shadow:none;border:1px solid var(--line)}
+.clean .ev{grid-template-columns:58px 1fr}
+.clean .ev .evi{background:color-mix(in srgb,var(--tc) 14%,transparent);color:var(--tc);box-shadow:none;width:58px;height:58px;border-radius:18px}
+.clean .ev .evi .rep{box-shadow:0 0 0 1.5px var(--line)}
+.clean .ev .evi svg,.clean .tile .ti svg,.clean .page-title .pi svg{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.clean .ev:hover{border-color:var(--tc)}
+.clean .ev:hover .evi svg,.clean .tile:hover .ti svg{transform:rotate(-14deg) scale(1.1)}
+.clean .ev .title{font-style:normal;text-transform:none;font-size:21px;font-weight:700;line-height:1.1}
+.clean .ev.is-live{box-shadow:none;border:2px solid var(--live)}
+.clean .day{font-style:normal;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.clean .day::after{height:1px}
+.clean .day.today{color:var(--accent)}
+.clean .day.today::after{background:var(--accent)}
+.clean .btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.clean .btn.live{box-shadow:none}
+.clean .seg{padding:3px}
+.clean .seg button{font-style:normal;font-weight:700}
+.clean .seg button[aria-pressed="true"]{box-shadow:none}
+.clean .tile{font-style:normal;text-transform:none;font-weight:700;font-size:16px}
+.clean .tile .ti{background:color-mix(in srgb,var(--tc) 14%,transparent);color:var(--tc)}
+.clean .tile[aria-pressed="true"]{background:color-mix(in srgb,var(--tc) 8%,var(--surface));color:var(--ink);border:2px solid var(--tc);box-shadow:none}
+.clean .tile[aria-pressed="true"] .ti{background:var(--tc);color:#fff}
+.clean .tile[aria-pressed="true"] .n{color:var(--muted)}
+.clean .avatar{background:color-mix(in srgb,var(--ac) 16%,transparent);color:var(--ac);font-style:normal}
+.clean .nav{box-shadow:none;border-top:1px solid var(--line)}
+.clean .nav button[aria-current="true"] .ni{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+.clean .chip.club{background:var(--live-soft);color:var(--live)}
+.clean .board{background:var(--board);border-radius:20px}
+.clean .board .digits{text-shadow:none}
+.clean .empty .ei{transform:rotate(-6deg)}
+.clean .panel-head{box-shadow:none;border-bottom:1px solid var(--line)}
+.clean .sport-opt{font-style:normal;text-transform:none;font-weight:700;font-size:14px;border-width:1.5px}
+.clean .sport-opt .si{background:var(--surface-2);color:var(--ink)}
+.clean .sport-opt:has(input:checked) .si{background:var(--accent);color:var(--accent-ink)}
+.clean .kid-card::before{height:4px}
+.clean .login{background:var(--bg);color:var(--ink)}
+.clean .login h1{color:var(--ink);font-style:normal;text-transform:none;font-size:46px;line-height:.95}
+.clean .login .label,.clean .login .demo-lbl{color:var(--muted)}
+.clean .login .crest{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.clean .login .hero svg{color:var(--accent);opacity:.13}
+.clean .login .card,.clean .login .list{border:1px solid var(--line)}
+.clean .evi-s+div>div:first-child{font-style:normal!important;text-transform:none!important;font-weight:700!important}
+.clean .evi-s{background:color-mix(in srgb,var(--tc) 14%,transparent);color:var(--tc)}
+.theme-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.theme-opt{border:1.5px solid var(--line);border-radius:16px;background:var(--surface);padding:10px;display:flex;flex-direction:column;gap:8px;text-align:left;font-weight:700}
+.theme-opt[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-soft)}
+.theme-opt .sw{height:54px;border-radius:11px;display:flex;align-items:flex-end;gap:5px;padding:7px}
+.theme-opt .sw i{display:block;width:18px;height:18px;border-radius:6px}
+.theme-opt .sw.clean-sw{background:var(--bg);border:1px solid var(--line)}
+.theme-opt .sw.punchy-sw{background:var(--grad)}
+.theme-opt small{font-weight:500;color:var(--muted);font-size:12.5px}
 </style>
-<style>html,body{margin:0}body{font-size:15px}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>html,body{margin:0}body{font-size:15px}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head>
 <body>
 
@@ -346,18 +426,26 @@ function seed(){
     {id:'e4',teamId:'t2',title:'Entraînement',subtitle:'Gymnase Jean-Moulin',opponent:'',start:nextDow(2,18,0),askPresence:false,convoked:t2,responses:{},live:{status:'none',us:0,them:0}},
     {id:'e5',teamId:'t1',title:'Match amical',subtitle:'contre ES Colline',opponent:'ES Colline',start:lastDow(6,10,30),askPresence:true,convoked:t1,
      responses:{p1:'present',p2:'present',p3:'absent',p4:'present',p5:'present',p6:'present'},live:{status:'done',us:3,them:3,startedAt:lastDow(6,10,30)}}];
-  return {club:{name:'Olympique des Tilleuls',sport:'Football',short:'OT'},titles:[...DEFAULT_TITLES],users:u,champs,teams,players,events,validations:{}};
+  return {club:{name:'Olympique des Tilleuls',sport:'football',short:'OT'},titles:[...DEFAULT_TITLES],users:u,champs,teams,players,events,validations:{}};
 }
 
 let S=migrate(store.get(KEY)||seed());
 function migrate(s){
   s.players.forEach(p=>{if(!p.parentEmails){p.parentEmails=p.parentEmail?[p.parentEmail]:[];delete p.parentEmail}if(!p.phones){p.phones={};if(p.phone&&p.parentEmails[0])p.phones[low(p.parentEmails[0])]=p.phone}delete p.phone});
   Object.keys(s.validations||{}).forEach(k=>{const v=s.validations[k];if(Array.isArray(v)){const o={};v.forEach(id=>o[id]='ok');s.validations[k]=o}});
-  s.validations=s.validations||{};if(!Array.isArray(s.titles))s.titles=[...DEFAULT_TITLES];return s;
+  s.validations=s.validations||{};if(!Array.isArray(s.titles))s.titles=[...DEFAULT_TITLES];
+  const keys={football:'football',foot:'football','basket-ball':'basket',basket:'basket',basketball:'basket','tennis de table':'pingpong','ping pong':'pingpong','ping-pong':'pingpong',handball:'hand',rugby:'rugby','volley-ball':'volley',volley:'volley',volleyball:'volley',tennis:'tennis',badminton:'badminton'};
+  const ks=['football','basket','pingpong','hand','rugby','volley','tennis','badminton','autre'];
+  if(!ks.includes(s.club.sport)){const k=keys[String(s.club.sport||'').trim().toLowerCase()];if(k)s.club.sport=k;else{s.club.sportName=s.club.sport||'';s.club.sport='autre'}}
+  return s;
 }
 let me=store.get(SKEY);
 const ui={tab:'cal',clubSec:'teams',calMode:'up',teamFilter:'all',sheet:null,loginErr:''};
 const save=()=>store.set(KEY,S);
+const TKEY='vestiaire_theme';
+let theme=(()=>{try{return localStorage.getItem(TKEY)||'clean'}catch(e){return 'clean'}})();
+const applyTheme=()=>document.documentElement.classList.toggle('clean',theme==='clean');
+applyTheme();
 
 /* ---------- Requêtes ---------- */
 const team=id=>S.teams.find(t=>t.id===id);
@@ -442,7 +530,7 @@ function render(){
   else body=accountView();
   app.innerHTML=`
   <header class="top"><div class="wrap">
-    <div class="crest">${esc(S.club.short||initials(S.club.name))}</div>
+    <div class="crest">${esc(S.club.short||initials(S.club.name))}<span class="crest-sport" title="${esc(sportLabel())}">${sportIcon()}</span></div>
     <div style="min-width:0"><h1>${esc(S.club.name)}</h1><div class="sub">${esc(me.name||me.email)}</div></div>
     <span class="role">${roleLbl}</span>
   </div></header>
@@ -456,7 +544,7 @@ function loginView(){
   const demo=[['admin@club.fr','Administrateur du club','Sophie Martin'],['coach.u11@club.fr','Coach des U11','Karim Benali'],['famille.durand@mail.fr','Parent de Léo (U11) et Emma (U13)','Famille Durand'],['papa.durand@mail.fr','2e parent de Léo (U11)','Papa Durand']];
   return `<div class="login"><div class="wrap">
     <div class="hero"><div class="stack" style="gap:14px"><div class="crest">${esc(S.club.short||'OT')}</div>
-    <div><div class="label">Espace club</div><h1>${esc(S.club.name)}</h1></div></div>${I.ball}</div>
+    <div><div class="label">Espace club</div><h1>${esc(S.club.name)}</h1></div></div>${sportIcon()}</div>
     <form id="loginForm" class="card section">
       <label class="field"><span>Adresse e-mail</span><input class="input" id="loginEmail" name="email" type="email" required autocomplete="email" placeholder="prenom.nom@mail.fr"></label>
       ${ui.loginErr?`<div class="err">${esc(ui.loginErr)}</div>`:''}
@@ -506,10 +594,25 @@ function setLink(id,state){const k=low(me.email);S.validations[k]=S.validations[
 function visibleEvents(){const ids=myTeamIds();return S.events.filter(e=>!e.teamId||ids.includes(e.teamId))}
 const CLUB='__club';
 const canManageEv=e=>e.teamId?canManage(e.teamId):(isAdmin()||(isCoach()&&e.createdBy===me.id));
+const SV=(inner)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const SPORTS={
+ football:{label:'Football',icon:null},
+ basket:{label:'Basket-ball',icon:SV('<circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".25"/><path d="M2.5 12h19M12 2.5v19M5.4 5.4c2.4 2.3 3.5 4.3 3.5 6.6s-1.1 4.3-3.5 6.6M18.6 5.4c-2.4 2.3-3.5 4.3-3.5 6.6s1.1 4.3 3.5 6.6"/>')},
+ pingpong:{label:'Tennis de table',icon:SV('<circle cx="9.5" cy="9.5" r="7.2" fill="currentColor" fill-opacity=".3"/><path d="m12.6 15.4 2.8-2.8 5.3 5.3a2 2 0 0 1-2.8 2.8Z" fill="currentColor" stroke-width="1.4"/><circle cx="19.6" cy="4.4" r="2.3" fill="currentColor" stroke="none"/>')},
+ hand:{label:'Handball',icon:SV('<circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".25"/><path d="M3.5 8c4.5 2 12.5 2 17 0M3.5 16c4.5-2 12.5-2 17 0M12 2.5c-2.8 3.5-2.8 15.5 0 19M12 2.5c2.8 3.5 2.8 15.5 0 19"/>')},
+ rugby:{label:'Rugby',icon:SV('<ellipse cx="12" cy="12" rx="10.2" ry="6" transform="rotate(-45 12 12)" fill="currentColor" fill-opacity=".25"/><path d="m8.6 15.4 6.8-6.8M10 11.5l2.5 2.5M11.6 9.9l2.5 2.5M13.2 8.3l2.5 2.5"/>')},
+ volley:{label:'Volley-ball',icon:SV('<circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".25"/><path d="M12 12V2.5M12 12l8.2 4.8M12 12l-8.2 4.8M12 2.5c4 2.5 6.5 7 6.2 11.6M20.2 16.8c-4.3 2-9.5 1.8-13.2-.8M3.8 16.8C3.3 12 5.6 7.4 9.5 5"/>')},
+ tennis:{label:'Tennis',icon:SV('<circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".25"/><path d="M5.3 5.3c3.4 3.4 3.4 10 0 13.4M18.7 5.3c-3.4 3.4-3.4 10 0 13.4"/>')},
+ badminton:{label:'Badminton',icon:SV('<path d="M9.5 14.5 4 20a2.1 2.1 0 0 1-3-3l5.5-5.5" transform="translate(1 0)" fill="currentColor" fill-opacity=".25"/><path d="M10.5 14.5 7.5 11.5 15 3l6 6Z" fill="currentColor" fill-opacity=".25"/><path d="M11 9l4 4M13.5 6.5l4 4"/>')},
+ autre:{label:'Autre sport',icon:null}
+};
+const sportKey=()=>SPORTS[S.club.sport]?S.club.sport:'autre';
+const sportIcon=k=>{k=k||sportKey();if(k==='football')return I.ball;if(k==='autre')return I.star;return SPORTS[k].icon};
+const sportLabel=()=>sportKey()==='autre'?(S.club.sportName||'Sport'):SPORTS[sportKey()].label;
 const PALETTE=['#2B59FF','#FF6A3D','#7B5CFF','#12B5A0','#E8417A','#F2A100','#0EA5E9','#22A855'];
 const teamColor=id=>{const i=S.teams.findIndex(t=>t.id===id);return i<0?'#FF6A3D':PALETTE[i%PALETTE.length]};
 const evColor=e=>e.teamId?teamColor(e.teamId):'#FF6A3D';
-function evIcon(t){t=low(t);if(/coupe|tournoi|finale|plateau/.test(t))return I.trophy;if(/match|amical|championnat|rencontre/.test(t))return I.ball;if(/entra[iî]n/.test(t))return I.whistle;if(/stage/.test(t))return I.star;if(/r[ée]union|assembl|f[êe]te|repas/.test(t))return I.people;return I.cone}
+function evIcon(t){t=low(t);if(/coupe|tournoi|finale|plateau/.test(t))return I.trophy;if(/match|amical|championnat|rencontre|crit[ée]rium|interclub/.test(t))return sportIcon();if(/entra[iî]n/.test(t))return I.whistle;if(/stage/.test(t))return I.star;if(/r[ée]union|assembl|f[êe]te|repas/.test(t))return I.people;return I.cone}
 const av=n=>{let h=0;for(const c of String(n||''))h=(h*31+c.charCodeAt(0))>>>0;return `<span class="avatar" style="--ac:${PALETTE[h%PALETTE.length]}">${initials(n||'?')}</span>`};
 const pageTitle=(title,icon,color,sub='')=>`<div class="page-title"><span class="pi" style="--tc:${color}">${icon}</span><div style="min-width:0"><h2>${title}</h2>${sub?`<div class="ps">${sub}</div>`:''}</div></div>`;
 const emptyBox=(icon,html)=>`<div class="empty"><span class="ei">${icon}</span><div>${html}</div></div>`;
@@ -593,7 +696,7 @@ function boardHtml(e,manage){
   }
   const ctl=(side)=>manage&&st==='live'?`<div class="ctl"><button data-a="score" data-id="${e.id}" data-side="${side}" data-d="-1" aria-label="Retirer un point">−</button><button data-a="score" data-id="${e.id}" data-side="${side}" data-d="1" aria-label="Ajouter un point">+</button></div>`:'';
   return `<div class="board" aria-live="polite">
-    <div class="head"><span>${st==='live'?'<span class="live-tag">En direct</span>':'Score final'}</span>${st==='live'?`<span class="clock num">${elapsed(e)}'</span>`:''}</div>
+    <div class="head"><span class="row" style="gap:8px"><span class="board-ic">${sportIcon()}</span>${st==='live'?'<span class="live-tag">En direct</span>':'Score final'}</span>${st==='live'?`<span class="clock num">${elapsed(e)}'</span>`:''}</div>
     <div class="teams">
       <div class="side"><span class="tn">${esc(S.club.short)} ${esc(scopeName(e))}</span><span class="digits">${e.live.us}</span>${ctl('us')}</div>
       <span class="sep">–</span>
@@ -630,7 +733,7 @@ function clubView(){
   else if(ui.clubSec==='titles')body=titlesSec();
   else body=membersSec();
   return `<div class="stack">
-    <div class="card spread">${pageTitle(esc(S.club.name),I.club,'#2B59FF',`${esc(S.club.sport)} · ${S.teams.length} équipes · ${S.players.length} joueurs`)}<button class="btn small" data-a="club-edit">Modifier</button></div>
+    <div class="card spread">${pageTitle(esc(S.club.name),sportIcon(),'#2B59FF',`${esc(sportLabel())} · ${S.teams.length} équipes · ${S.players.length} joueurs`)}<button class="btn small" data-a="club-edit">Modifier</button></div>
     <div class="tiles">${secs.map(([k,l,ic,c,n])=>`<button class="tile" style="--tc:${c}" data-a="club-sec" data-v="${k}" aria-pressed="${ui.clubSec===k}"><span class="ti">${ic}</span>${l}<span class="n num">${n}</span></button>`).join('')}</div>
     ${body}</div>`;
 }
@@ -709,6 +812,11 @@ function accountView(){
   return `<div class="stack">${pageTitle('Compte',I.me,'#12B5A0')}
     <div class="card section"><div class="row">${av(me.name||me.email)}<div><div style="font-weight:600">${esc(me.name||'Parent')}</div><div class="muted" style="font-size:14px">${esc(me.email)}</div></div></div>
     <button class="btn block" data-a="logout">Se déconnecter</button></div>
+    <div class="card section"><div class="label">Apparence</div>
+      <div class="theme-pick">
+        <button class="theme-opt" data-a="theme" data-v="clean" aria-pressed="${theme==='clean'}"><span class="sw clean-sw"><i style="background:#2B59FF"></i><i style="background:color-mix(in srgb,#FF6A3D 22%,transparent)"></i><i style="background:color-mix(in srgb,#12B5A0 22%,transparent)"></i></span>Épuré<small>Clair et aéré</small></button>
+        <button class="theme-opt" data-a="theme" data-v="punchy" aria-pressed="${theme==='punchy'}"><span class="sw punchy-sw"><i style="background:#fff"></i><i style="background:#FFD23F"></i><i style="background:#FF6A3D"></i></span>Punchy<small>Dégradés et couleurs vives</small></button>
+      </div></div>
     <div class="card section"><div class="label">Démonstration</div><div class="muted" style="font-size:14px">Les données sont enregistrées dans ce navigateur. Déconnectez-vous pour tester un autre rôle (admin, coach, parent).</div>
     <button class="btn danger block" data-a="reset" data-confirm>Réinitialiser les données d'exemple</button></div></div>`;
 }
@@ -835,6 +943,7 @@ function act(a,d,el){
     case 'demo':login(d.email);break;
     case 'logout':me=null;store.del(SKEY);ui.sheet=null;render();break;
     case 'reset':S=seed();save();me=null;store.del(SKEY);ui.sheet=null;render();toast('Données réinitialisées');break;
+    case 'theme':theme=d.v;try{localStorage.setItem(TKEY,theme)}catch(e){}applyTheme();render();break;
     case 'tab':ui.tab=d.tab;window.scrollTo(0,0);render();break;
     case 'cal-mode':ui.calMode=d.v;render();break;
     case 'club-sec':ui.clubSec=d.v;render();break;
@@ -854,9 +963,11 @@ function act(a,d,el){
     case 'club-edit':openModal('Modifier le club',`
       <label class="field"><span>Nom du club</span><input class="input" id="clName" name="name" required value="${esc(S.club.name)}"></label>
       <div class="grid2"><label class="field"><span>Sigle (2-3 lettres)</span><input class="input" id="clShort" name="short" maxlength="3" value="${esc(S.club.short)}"></label>
-      <label class="field"><span>Sport</span><input class="input" id="clSport" name="sport" value="${esc(S.club.sport)}"></label></div>`,'Enregistrer',f=>{
+      </div>
+      <div class="field"><span>Sport</span><div class="sports">${Object.entries(SPORTS).map(([k,v])=>`<label class="sport-opt"><input type="radio" name="sport" value="${k}" ${sportKey()===k?'checked':''}><span class="si">${sportIcon(k)}</span><span>${v.label}</span></label>`).join('')}</div></div>
+      <label class="field" id="clOtherWrap" ${sportKey()==='autre'?'':'hidden'}><span>Nom du sport</span><input class="input" id="clSportName" name="sportName" value="${esc(S.club.sportName||'')}" placeholder="Natation, judo…"></label>`,'Enregistrer',f=>{
         const fd=new FormData(f);if(!fd.get('name').trim())return 'Indiquez un nom.';
-        S.club={name:fd.get('name').trim(),short:(fd.get('short').trim()||initials(fd.get('name'))).toUpperCase(),sport:fd.get('sport').trim()}});break;
+        S.club={name:fd.get('name').trim(),short:(fd.get('short').trim()||initials(fd.get('name'))).toUpperCase(),sport:fd.get('sport')||'football',sportName:fd.get('sport')==='autre'?(fd.get('sportName')||'').trim():''};toast(`Sport : ${sportLabel()}`)});break;
     case 'team-new':case 'team-edit':{const t=a==='team-edit'?team(d.id):null;
       openModal(t?"Modifier l'équipe":'Nouvelle équipe',`
         <div class="grid2"><label class="field"><span>Nom</span><input class="input" id="tmName" name="name" required value="${esc(t?.name||'')}" placeholder="U15"></label>
@@ -935,6 +1046,7 @@ document.addEventListener('change',e=>{
   if(t.id==='teamFilter'){ui.teamFilter=t.value;render()}
   else if(t.dataset.a==='player-move'){const p=player(t.dataset.id);p.teamId=t.value||null;save();render();toast(`${p.first} → ${p.teamId?team(p.teamId).name:'sans équipe'}`)}
   else if(['evRepeat','evUntil','evStart'].includes(t.id)){updateRepeatHint()}
+  else if(t.name==='sport'&&t.type==='radio'){document.getElementById('clOtherWrap').hidden=t.value!=='autre'}
   else if(t.id==='evTeam'){document.getElementById('convBox').innerHTML=convChecks(t.value,null);document.getElementById('evScopeHint').hidden=t.value!==CLUB}
 });
 document.addEventListener('input',e=>{if(['evStart','evUntil'].includes(e.target.id))updateRepeatHint();if(e.target.id==='evTitle')document.querySelectorAll('.chip.pick').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v===e.target.value))});
