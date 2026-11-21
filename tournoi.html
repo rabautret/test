@@ -160,7 +160,8 @@
 </div>
 
 <div id="pdfSheet"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 const PALETTE=["#e63946","#1d6fe0","#2a9d4b","#f4a100","#8e44ad","#ff6f3c","#00a6a6","#d6336c","#5c6bc0","#7cb342","#795548","#111827","#f06292","#26c6da","#c0ca33","#ab47bc","#ff8f00","#546e7a","#9ccc65","#ef5350"];
 const COLOR_NAMES=["Rouges","Bleus","Verts","Jaunes","Violets","Oranges","Turquoises","Framboises","Indigos","Pommes","Marrons","Noirs","Roses","Cyans","Citrons","Mauves","Ambres","Gris","Kiwis","Corails"];
@@ -370,26 +371,84 @@ function buildPdfSheet(){
   $("pdfSheet").innerHTML=h;
 }
 
-$("pdf").onclick=async()=>{
+/* PDF vectoriel (texte + tableaux) — fiable sur ordinateur et téléphone */
+function makePdf(jsPDF,S){
+  // S = {teams,rounds,sp,start,dur}
+  const clean=s=>String(s).replace(/[^\x20-\x7E\xA0-\xFFŒœ’€]/g,"").trim()||"?";
+  const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const txtCol=h=>textColor(h)==="#fff"?[255,255,255]:[28,34,51];
+  const hm=(k)=>S.start&&S.dur?addMin(S.start,k*S.dur):"";
+  const T=S.teams, sp=S.sp;
+  const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+  const nM=S.rounds.reduce((x,r)=>x+r.matches.length,0);
+
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("Tournoi multisports",14,18);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(90);
+  const d=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  doc.text(clean(`${d} - ${T.length} équipes - ${sp.length} sport${sp.length>1?"s":""} - ${nM} matchs en ${S.rounds.length} tours`),14,25);
+  doc.text(clean("Sports : "+sp.map(s=>s.n).join(", ")),14,31,{maxWidth:182});
+
+  // Pastilles équipes
+  let x=14,y=38;doc.setFontSize(9);doc.setFont("helvetica","bold");
+  T.forEach(t=>{
+    const n=clean(t.n), w=doc.getTextWidth(n)+6;
+    if(x+w>196){x=14;y+=8}
+    doc.setFillColor(...rgb(t.c));doc.roundedRect(x,y-4.5,w,6.5,2,2,"F");
+    doc.setTextColor(...txtCol(t.c));doc.text(n,x+3,y);x+=w+3;
+  });
+  doc.setTextColor(0);
+
+  // Programme
+  const body=[], styles=[];
+  S.rounds.forEach((rd,k)=>{
+    body.push([{content:clean(`Tour ${k+1}${hm(k)?" - "+hm(k):""}${rd.rest!==null?"   (repos : "+T[rd.rest].n+")":""}`),colSpan:5,
+      styles:{fillColor:[230,234,244],fontStyle:"bold",textColor:[28,34,51]}}]);
+    rd.matches.forEach(m=>{
+      body.push([hm(k),clean(sp[m.s].n),
+        {content:clean(T[m.a].n),styles:{fillColor:rgb(T[m.a].c),textColor:txtCol(T[m.a].c),fontStyle:"bold",halign:"right"}},
+        "____  -  ____",
+        {content:clean(T[m.b].n),styles:{fillColor:rgb(T[m.b].c),textColor:txtCol(T[m.b].c),fontStyle:"bold"}}]);
+    });
+  });
+  doc.autoTable({
+    startY:y+7,head:[["Heure","Sport","Équipe A","Score","Équipe B"]],body,
+    theme:"grid",styles:{fontSize:9,cellPadding:2,lineColor:[200,206,220],lineWidth:.2},
+    headStyles:{fillColor:[28,34,51],textColor:255},
+    columnStyles:{0:{cellWidth:18},1:{cellWidth:38},3:{cellWidth:28,halign:"center"}},
+    rowPageBreak:"avoid",margin:{left:14,right:14}
+  });
+
+  // Grille croisée (paysage si beaucoup d'équipes)
+  const land=T.length>7;
+  doc.addPage("a4",land?"landscape":"portrait");
+  doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text("Grille croisée (sport et tour)",14,16);
+  const grid=T.map(()=>T.map(()=>[]));
+  S.rounds.forEach((rd,k)=>rd.matches.forEach(m=>{const v=clean(sp[m.s].n)+" T"+(k+1);grid[m.a][m.b].push(v);grid[m.b][m.a].push(v);}));
+  const fs=T.length>14?5.5:T.length>10?6.5:8;
+  doc.autoTable({
+    startY:22,
+    head:[[{content:"",styles:{fillColor:[255,255,255]}}].concat(T.map(t=>({content:clean(t.n),styles:{fillColor:rgb(t.c),textColor:txtCol(t.c)}})))],
+    body:T.map((t,i)=>[{content:clean(t.n),styles:{fillColor:rgb(t.c),textColor:txtCol(t.c),fontStyle:"bold"}}]
+      .concat(T.map((_,j)=>i===j?{content:"",styles:{fillColor:[225,229,238]}}:grid[i][j].join("\n")))),
+    theme:"grid",styles:{fontSize:fs,cellPadding:1.2,halign:"center",valign:"middle",lineColor:[200,206,220],lineWidth:.2},
+    headStyles:{fontStyle:"bold"},margin:{left:10,right:10}
+  });
+
+  // Pied de page
+  const n=doc.getNumberOfPages();
+  for(let p=1;p<=n;p++){doc.setPage(p);doc.setFontSize(8);doc.setTextColor(140);doc.setFont("helvetica","normal");
+    const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+    doc.text(`Page ${p} / ${n}`,pw-14,ph-8,{align:"right"});}
+  return doc;
+}
+
+$("pdf").onclick=()=>{
   if(!lastSchedule) return;
-  buildPdfSheet();
   const fname="tournoi-multisports-"+new Date().toISOString().slice(0,10)+".pdf";
-  if(typeof html2pdf==="undefined"){ window.print(); return; }   // hors ligne : impression → « Enregistrer en PDF »
-  const wait=document.createElement("div");wait.className="pdf-wait";wait.textContent="Création du PDF…";document.body.appendChild(wait);
-  const el=$("pdfSheet");
-  el.style.left="0";el.style.zIndex="-1";
-  try{
-    await html2pdf().set({
-      margin:[10,10,10,10],
-      filename:fname,
-      image:{type:"jpeg",quality:0.95},
-      html2canvas:{scale:2,useCORS:true,windowWidth:720},
-      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-      pagebreak:{mode:["css","legacy"],avoid:"tr"}
-    }).from(el).save();
-  }catch(e){ window.print(); }
-  el.style.left="-10000px";
-  wait.remove();
+  if(!window.jspdf){ buildPdfSheet(); window.print(); return; }   // hors ligne : impression → « Enregistrer en PDF »
+  const doc=makePdf(window.jspdf.jsPDF,{teams,rounds:lastSchedule.rounds,sp:lastSchedule.sp,start:$("start").value,dur:+$("dur").value||0});
+  try{ doc.save(fname); }
+  catch(e){ window.open(doc.output("bloburl"),"_blank"); }
 };
 
 setTeamCount(4);
