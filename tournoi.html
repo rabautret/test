@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournoi multisports</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#1c2233;--mute:#6b7387;--line:#e3e7f0;--accent:#2f6bff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:16px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:1.6rem;margin:4px 0 16px;font-weight:800}
+  h2{font-size:1.1rem;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .step{background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem}
+  .card{background:var(--card);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 10px rgba(20,30,60,.06)}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  label.lbl{font-weight:600;font-size:.92rem}
+  input[type=number],input[type=text],input[type=time],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  input[type=number]{width:80px}
+  .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .stepper button{border:0;background:#eef1f8;width:40px;height:40px;font-size:1.3rem;cursor:pointer}
+  .stepper span{min-width:44px;text-align:center;font-weight:800;font-size:1.1rem}
+  .teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:14px}
+  .team{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:12px;padding:6px 8px}
+  .team input[type=color]{width:36px;height:36px;border:0;padding:0;background:none;cursor:pointer;flex:none}
+  .team input[type=text]{flex:1;min-width:0;border:0;font-weight:600;padding:6px 4px}
+  .sports{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:14px}
+  .sport{position:relative;border:2px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;user-select:none;transition:.15s;background:#fff}
+  .sport .ico{font-size:2rem;line-height:1.2}
+  .sport .nm{font-size:.85rem;font-weight:600;margin-top:2px}
+  .sport.on{border-color:var(--accent);background:#eaf0ff}
+  .sport.on::after{content:"✓";position:absolute;top:4px;right:7px;color:var(--accent);font-weight:800}
+  .sport.dis{opacity:.4;cursor:not-allowed}
+  .counter{font-weight:700;padding:4px 10px;border-radius:999px;background:#eef1f8}
+  .counter.ok{background:#dff6e5;color:#167a35}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 20px;cursor:pointer;background:var(--accent);color:#fff}
+  .btn.ghost{background:#eef1f8;color:var(--ink)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .hint{color:var(--mute);font-size:.85rem}
+  .mode{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .mode label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-weight:700;padding:4px 10px;border-radius:999px;color:#fff;white-space:nowrap;font-size:.9rem}
+  .round{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .round-h{background:#f0f3fa;padding:8px 12px;font-weight:800;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .match{display:grid;grid-template-columns:150px 1fr auto 1fr;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
+  .match .sp{font-weight:600;font-size:.9rem}
+  .match .vs{color:var(--mute);font-weight:800;font-size:.8rem}
+  .match .l{text-align:right}
+  .rest{padding:8px 12px;border-top:1px solid var(--line);color:var(--mute);font-size:.88rem}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:.85rem}
+  th,td{border:1px solid var(--line);padding:6px;text-align:center}
+  th.tn{min-width:90px}
+  td.self{background:repeating-linear-gradient(45deg,#f1f3f8,#f1f3f8 6px,#e7eaf2 6px,#e7eaf2 12px)}
+  .cell div{white-space:nowrap}
+  .stats td:first-child,.stats th:first-child{text-align:left}
+  .ok-banner{background:#dff6e5;color:#167a35;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:12px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{border:0;font:inherit;font-weight:700;padding:8px 14px;border-radius:999px;background:#eef1f8;cursor:pointer}
+  .tab.on{background:var(--ink);color:#fff}
+  .custom{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .custom input[type=text]{flex:1;min-width:140px}
+  .custom .emo{width:60px;text-align:center}
+  /* Mise en page PDF A4 */
+  #pdfSheet{position:fixed;left:-10000px;top:0;width:720px;background:#fff;color:#1c2233;font-family:Inter,Arial,sans-serif;font-size:11px}
+  #pdfSheet h1{font-size:20px;margin:0 0 4px}
+  #pdfSheet .sub{color:#555;margin-bottom:10px}
+  #pdfSheet h3{font-size:13px;margin:14px 0 6px}
+  #pdfSheet table{width:100%;border-collapse:collapse;font-size:11px}
+  #pdfSheet th{background:#1c2233;color:#fff;padding:5px;border:1px solid #1c2233}
+  #pdfSheet td{padding:4px 5px;border:1px solid #ccd2de}
+  #pdfSheet tr{page-break-inside:avoid}
+  #pdfSheet tr.rh td{background:#eef1f8;font-weight:800}
+  #pdfSheet .chip{font-size:10px;padding:2px 8px}
+  #pdfSheet .legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  #pdfSheet .score{width:46px}
+  .pdf-wait{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.2rem;z-index:99}
+  @media print{
+    @page{size:A4;margin:12mm}
+    body{background:#fff;padding:0}
+    .wrap{display:none}
+    #pdfSheet{position:static;width:auto}
+  }
+  @media(max-width:600px){
+    .match{grid-template-columns:1fr auto 1fr}
+    .match .sp{grid-column:1/-1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏆 Tournoi multisports</h1>
+
+  <!-- ÉTAPE 1 -->
+  <div class="card">
+    <h2><span class="step">1</span> Les équipes</h2>
+    <div class="row">
+      <label class="lbl">Nombre d'équipes</label>
+      <div class="stepper">
+        <button id="tMinus">−</button><span id="tCount">4</span><button id="tPlus">+</button>
+      </div>
+      <span class="hint">de 2 à 20 — cliquez sur la pastille pour changer la couleur, sur le nom pour le modifier</span>
+    </div>
+    <div class="teams" id="teams"></div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="card">
+    <h2><span class="step">2</span> Les sports</h2>
+    <div class="row">
+      <label class="lbl">Nombre de sports pratiqués</label>
+      <div class="stepper">
+        <button id="sMinus">−</button><span id="sCount">3</span><button id="sPlus">+</button>
+      </div>
+      <span class="counter" id="sSel">0 / 3 cochés</span>
+    </div>
+    <div class="sports" id="sports"></div>
+    <div class="custom">
+      <input type="text" class="emo" id="cEmo" placeholder="🎯" maxlength="4">
+      <input type="text" id="cName" placeholder="Ajouter un autre sport…">
+      <button class="btn ghost" id="cAdd">Ajouter</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="card">
+    <h2><span class="step">3</span> Options</h2>
+    <div class="mode">
+      <label><input type="radio" name="mode" value="once" checked>
+        <span><b>Chaque équipe rencontre chaque autre une fois</b><br><span class="hint">les sports tournent d'un match à l'autre</span></span></label>
+      <label><input type="radio" name="mode" value="all">
+        <span><b>Chaque équipe rencontre chaque autre dans chaque sport</b><br><span class="hint">plus long, mais complet</span></span></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <label class="lbl">Début</label><input type="time" id="start" value="14:00">
+      <label class="lbl">Durée d'un tour (min)</label><input type="number" id="dur" value="15" min="1">
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="gen">Générer le tableau des rencontres</button>
+      <span class="hint" id="genHint"></span>
+    </div>
+  </div>
+
+  <!-- RÉSULTAT -->
+  <div class="card" id="result" style="display:none">
+    <h2><span class="step">✓</span> Tableau des rencontres</h2>
+    <div class="ok-banner" id="summary"></div>
+    <div class="tabs">
+      <button class="tab on" data-v="rounds">Par tour</button>
+      <button class="tab" data-v="matrix">Grille croisée</button>
+      <button class="tab" data-v="stats">Par équipe</button>
+      <button class="btn ghost" id="copy" style="margin-left:auto;padding:8px 14px">📋 Copier</button>
+      <button class="btn" id="pdf" style="padding:8px 14px">📄 PDF A4</button>
+    </div>
+    <div id="vRounds"></div>
+    <div id="vMatrix" class="scroll" style="display:none"></div>
+    <div id="vStats" class="scroll" style="display:none"></div>
+  </div>
+</div>
+
+<div id="pdfSheet"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const PALETTE=["#e63946","#1d6fe0","#2a9d4b","#f4a100","#8e44ad","#ff6f3c","#00a6a6","#d6336c","#5c6bc0","#7cb342","#795548","#111827","#f06292","#26c6da","#c0ca33","#ab47bc","#ff8f00","#546e7a","#9ccc65","#ef5350"];
+const COLOR_NAMES=["Rouges","Bleus","Verts","Jaunes","Violets","Oranges","Turquoises","Framboises","Indigos","Pommes","Marrons","Noirs","Roses","Cyans","Citrons","Mauves","Ambres","Gris","Kiwis","Corails"];
+const SPORTS=[
+ ["⚽","Football"],["🏀","Basket"],["🏐","Volley"],["🤾","Handball"],["🏉","Rugby"],["🎾","Tennis"],
+ ["🏓","Ping-pong"],["🏸","Badminton"],["⚾","Baseball"],["🏑","Hockey"],["🥏","Ultimate"],["🎳","Bowling"],
+ ["🎯","Fléchettes"],["⛳","Mini-golf"],["🏃","Relais"],["🪢","Tir à la corde"],["🏊","Natation"],["🚴","Vélo"],
+ ["🏹","Tir à l'arc"],["🏏","Cricket"],["🥍","Lacrosse"],["🤺","Escrime"],["♟️","Échecs"],["🥎","Balle au prisonnier"],
+ ["⚪","Pétanque"],["🛶","Canoë"],["🏖️","Beach volley"],["🥌","Curling"]
+];
+
+let teams=[], nbSports=3, selected=[], sports=SPORTS.map(([i,n])=>({i,n}));
+let lastSchedule=null;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function textColor(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000>165?"#1c2233":"#fff";
+}
+function chip(t){return `<span class="chip" style="background:${t.c};color:${textColor(t.c)}">${esc(t.n)}</span>`}
+
+/* ---------- Équipes ---------- */
+function setTeamCount(n){
+  n=Math.max(2,Math.min(20,n));
+  while(teams.length<n){const k=teams.length;teams.push({n:COLOR_NAMES[k]||("Équipe "+(k+1)),c:PALETTE[k%PALETTE.length]})}
+  teams.length=n;
+  $("tCount").textContent=n;
+  renderTeams();
+}
+function renderTeams(){
+  $("teams").innerHTML=teams.map((t,k)=>`
+    <div class="team" style="border-color:${t.c}">
+      <input type="color" value="${t.c}" data-k="${k}">
+      <input type="text" value="${esc(t.n)}" data-k="${k}">
+    </div>`).join("");
+  $("teams").querySelectorAll("input[type=color]").forEach(el=>el.oninput=e=>{
+    const k=+e.target.dataset.k;teams[k].c=e.target.value;e.target.parentElement.style.borderColor=e.target.value;});
+  $("teams").querySelectorAll("input[type=text]").forEach(el=>el.oninput=e=>{teams[+e.target.dataset.k].n=e.target.value||("Équipe "+(+e.target.dataset.k+1));});
+}
+$("tMinus").onclick=()=>setTeamCount(teams.length-1);
+$("tPlus").onclick=()=>setTeamCount(teams.length+1);
+
+/* ---------- Sports ---------- */
+function setSportCount(n){
+  nbSports=Math.max(1,Math.min(sports.length,n));
+  if(selected.length>nbSports) selected=selected.slice(0,nbSports);
+  $("sCount").textContent=nbSports;
+  renderSports();
+}
+function renderSports(){
+  const full=selected.length>=nbSports;
+  $("sports").innerHTML=sports.map((s,k)=>{
+    const on=selected.includes(k);
+    return `<div class="sport ${on?"on":""} ${!on&&full?"dis":""}" data-k="${k}">
+      <div class="ico">${esc(s.i)}</div><div class="nm">${esc(s.n)}</div></div>`}).join("");
+  $("sports").querySelectorAll(".sport").forEach(el=>el.onclick=()=>{
+    const k=+el.dataset.k, p=selected.indexOf(k);
+    if(p>=0) selected.splice(p,1);
+    else if(selected.length<nbSports) selected.push(k);
+    renderSports();
+  });
+  const c=$("sSel");
+  c.textContent=`${selected.length} / ${nbSports} coché${nbSports>1?"s":""}`;
+  c.classList.toggle("ok",selected.length===nbSports);
+  updateGen();
+}
+$("sMinus").onclick=()=>setSportCount(nbSports-1);
+$("sPlus").onclick=()=>setSportCount(nbSports+1);
+$("cAdd").onclick=()=>{
+  const n=$("cName").value.trim(); if(!n) return;
+  sports.push({i:$("cEmo").value.trim()||"🏅",n});
+  $("cName").value="";$("cEmo").value="";
+  if(selected.length<nbSports) selected.push(sports.length-1);
+  renderSports();
+};
+function updateGen(){
+  const ok=selected.length===nbSports;
+  $("gen").disabled=!ok;
+  $("genHint").textContent=ok?"":`Cochez encore ${nbSports-selected.length} sport${nbSports-selected.length>1?"s":""}`;
+}
+
+/* ---------- Génération (méthode du cercle) ---------- */
+function roundRobin(n){
+  const ids=[...Array(n).keys()]; if(n%2) ids.push(-1);
+  const N=ids.length, rounds=[];
+  for(let r=0;r<N-1;r++){
+    const pairs=[];let rest=null;
+    for(let i=0;i<N/2;i++){
+      let a=ids[i], b=ids[N-1-i];
+      if(a===-1||b===-1){rest=a===-1?b:a;continue}
+      if(r%2&&i===0)[a,b]=[b,a];
+      pairs.push([a,b]);
+    }
+    rounds.push({pairs,rest});
+    ids.splice(1,0,ids.pop());
+  }
+  return rounds;
+}
+function addMin(t,m){
+  let [h,mi]=t.split(":").map(Number); if(isNaN(h)) return "";
+  const tot=h*60+mi+m; return String(Math.floor(tot/60)%24).padStart(2,"0")+"h"+String(tot%60).padStart(2,"0");
+}
+
+$("gen").onclick=()=>{
+  const mode=document.querySelector("input[name=mode]:checked").value;
+  const sp=selected.map(k=>sports[k]), S=sp.length;
+  const base=roundRobin(teams.length);
+  const rounds=[];
+  const reps=mode==="all"?S:1;
+  for(let j=0;j<reps;j++){
+    base.forEach((rd,r)=>{
+      rounds.push({rest:rd.rest,matches:rd.pairs.map(([a,b],m)=>({a,b,s:(m+r+j)%S}))});
+    });
+  }
+  lastSchedule={rounds,sp,mode};
+  render();
+};
+
+function render(){
+  const {rounds,sp,mode}=lastSchedule;
+  const start=$("start").value, dur=+$("dur").value||0;
+  const nMatches=rounds.reduce((x,r)=>x+r.matches.length,0);
+  const maxPar=Math.max(...rounds.map(r=>r.matches.length));
+  $("summary").innerHTML=`${teams.length} équipes · ${sp.length} sport${sp.length>1?"s":""} · <b>${nMatches} matchs</b> en <b>${rounds.length} tours</b>`+
+    (start&&dur?` · fin vers ${addMin(start,rounds.length*dur)}`:"")+
+    (maxPar>sp.length?`<br><span style="font-weight:400">⚠️ Jusqu'à ${maxPar} matchs par tour pour ${sp.length} sport${sp.length>1?"s":""} : prévoyez plusieurs terrains par sport.</span>`:"");
+
+  // Par tour
+  $("vRounds").innerHTML=rounds.map((rd,k)=>{
+    const used={};
+    return `<div class="round"><div class="round-h"><span>Tour ${k+1}</span><span>${start&&dur?addMin(start,k*dur)+" – "+addMin(start,(k+1)*dur):""}</span></div>`+
+    rd.matches.map(m=>{
+      used[m.s]=(used[m.s]||0)+1;
+      const terr=maxPar>sp.length?` · terrain ${used[m.s]}`:"";
+      return `<div class="match"><div class="sp">${esc(sp[m.s].i)} ${esc(sp[m.s].n)}${terr}</div>
+        <div class="l">${chip(teams[m.a])}</div><div class="vs">VS</div><div>${chip(teams[m.b])}</div></div>`}).join("")+
+    (rd.rest!==null?`<div class="rest">😴 Au repos : ${chip(teams[rd.rest])}</div>`:"")+`</div>`}).join("");
+
+  // Grille croisée
+  const grid=teams.map(()=>teams.map(()=>[]));
+  rounds.forEach((rd,k)=>rd.matches.forEach(m=>{
+    const v=`<div>${esc(sp[m.s].i)} T${k+1}</div>`; grid[m.a][m.b].push(v); grid[m.b][m.a].push(v);}));
+  $("vMatrix").innerHTML=`<p class="hint">Chaque case indique le sport et le tour de la rencontre (T = tour).</p><table><tr><th></th>${teams.map(t=>`<th class="tn">${chip(t)}</th>`).join("")}</tr>`+
+    teams.map((t,i)=>`<tr><th>${chip(t)}</th>${teams.map((_,j)=>i===j?`<td class="self"></td>`:`<td class="cell">${grid[i][j].join("")}</td>`).join("")}</tr>`).join("")+`</table>`;
+
+  // Par équipe
+  const cnt=teams.map(()=>sp.map(()=>0)), rest=teams.map(()=>0);
+  rounds.forEach(rd=>{rd.matches.forEach(m=>{cnt[m.a][m.s]++;cnt[m.b][m.s]++}); if(rd.rest!==null) rest[rd.rest]++;});
+  $("vStats").innerHTML=`<table class="stats"><tr><th>Équipe</th>${sp.map(s=>`<th>${esc(s.i)}<br>${esc(s.n)}</th>`).join("")}<th>Total</th><th>Repos</th></tr>`+
+    teams.map((t,i)=>`<tr><td>${chip(t)}</td>${cnt[i].map(c=>`<td>${c}</td>`).join("")}<td><b>${cnt[i].reduce((a,b)=>a+b,0)}</b></td><td>${rest[i]}</td></tr>`).join("")+`</table>`;
+
+  $("result").style.display="block";
+  $("result").scrollIntoView({behavior:"smooth"});
+}
+
+/* Onglets */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
+  $("vRounds").style.display=b.dataset.v==="rounds"?"block":"none";
+  $("vMatrix").style.display=b.dataset.v==="matrix"?"block":"none";
+  $("vStats").style.display=b.dataset.v==="stats"?"block":"none";
+});
+
+/* Copier en texte */
+$("copy").onclick=async()=>{
+  if(!lastSchedule) return;
+  const {rounds,sp}=lastSchedule, start=$("start").value, dur=+$("dur").value||0;
+  let txt="TOURNOI MULTISPORTS\n\n";
+  rounds.forEach((rd,k)=>{
+    txt+=`Tour ${k+1}${start&&dur?" ("+addMin(start,k*dur)+")":""}\n`;
+    rd.matches.forEach(m=>txt+=`  ${sp[m.s].i} ${sp[m.s].n} : ${teams[m.a].n} vs ${teams[m.b].n}\n`);
+    if(rd.rest!==null) txt+=`  Repos : ${teams[rd.rest].n}\n`;
+    txt+="\n";
+  });
+  try{await navigator.clipboard.writeText(txt);$("copy").textContent="✅ Copié";}
+  catch(e){$("copy").textContent="❌ Copie impossible";}
+  setTimeout(()=>$("copy").textContent="📋 Copier",1800);
+};
+
+/* ---------- Export PDF A4 ---------- */
+function buildPdfSheet(){
+  const {rounds,sp}=lastSchedule, start=$("start").value, dur=+$("dur").value||0;
+  const nMatches=rounds.reduce((x,r)=>x+r.matches.length,0);
+  const d=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  let h=`<h1>🏆 Tournoi multisports</h1>
+    <div class="sub">${d} · ${teams.length} équipes · ${sp.length} sport${sp.length>1?"s":""} · ${nMatches} matchs en ${rounds.length} tours</div>
+    <div class="legend">${teams.map(chip).join("")}</div>
+    <div class="legend">${sp.map(s=>`<span>${esc(s.i)} ${esc(s.n)}</span>`).join(" · ")}</div>
+    <h3>Programme des rencontres</h3>
+    <table><tr><th>Heure</th><th>Sport</th><th>Équipe A</th><th>Score</th><th>Équipe B</th></tr>`;
+  rounds.forEach((rd,k)=>{
+    h+=`<tr class="rh"><td colspan="5">Tour ${k+1}${start&&dur?" — "+addMin(start,k*dur):""}${rd.rest!==null?" · repos : "+esc(teams[rd.rest].n):""}</td></tr>`;
+    rd.matches.forEach(m=>{
+      h+=`<tr><td>${start&&dur?addMin(start,k*dur):""}</td><td>${esc(sp[m.s].i)} ${esc(sp[m.s].n)}</td>
+        <td style="text-align:right">${chip(teams[m.a])}</td><td class="score" style="text-align:center">…… - ……</td><td>${chip(teams[m.b])}</td></tr>`;
+    });
+  });
+  h+=`</table>`;
+  // Grille croisée
+  const grid=teams.map(()=>teams.map(()=>[]));
+  rounds.forEach((rd,k)=>rd.matches.forEach(m=>{const v=`${esc(sp[m.s].i)} T${k+1}`;grid[m.a][m.b].push(v);grid[m.b][m.a].push(v);}));
+  h+=`<div class="html2pdf__page-break"></div><h3>Grille croisée (sport et tour)</h3>
+    <table><tr><th></th>${teams.map(t=>`<th style="background:${t.c};color:${textColor(t.c)};border-color:${t.c}">${esc(t.n)}</th>`).join("")}</tr>`+
+    teams.map((t,i)=>`<tr><td style="background:${t.c};color:${textColor(t.c)};font-weight:700">${esc(t.n)}</td>${teams.map((_,j)=>i===j?`<td style="background:#e7eaf2"></td>`:`<td style="text-align:center">${grid[i][j].join("<br>")}</td>`).join("")}</tr>`).join("")+`</table>`;
+  $("pdfSheet").innerHTML=h;
+}
+
+$("pdf").onclick=async()=>{
+  if(!lastSchedule) return;
+  buildPdfSheet();
+  const fname="tournoi-multisports-"+new Date().toISOString().slice(0,10)+".pdf";
+  if(typeof html2pdf==="undefined"){ window.print(); return; }   // hors ligne : impression → « Enregistrer en PDF »
+  const wait=document.createElement("div");wait.className="pdf-wait";wait.textContent="Création du PDF…";document.body.appendChild(wait);
+  const el=$("pdfSheet");
+  el.style.left="0";el.style.zIndex="-1";
+  try{
+    await html2pdf().set({
+      margin:[10,10,10,10],
+      filename:fname,
+      image:{type:"jpeg",quality:0.95},
+      html2canvas:{scale:2,useCORS:true,windowWidth:720},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"],avoid:"tr"}
+    }).from(el).save();
+  }catch(e){ window.print(); }
+  el.style.left="-10000px";
+  wait.remove();
+};
+
+setTeamCount(4);
+selected=[0,1,2];
+setSportCount(3);
+</script>
+</body>
+</html>
