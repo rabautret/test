@@ -61,7 +61,22 @@
   .tab.on{background:var(--ink);color:#fff}
   .custom{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
   .custom input[type=text]{flex:1;min-width:140px}
-  .custom .emo{width:60px;text-align:center}
+  .custom .emo{flex:none;width:72px;text-align:center}
+  .savebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border-radius:12px;padding:8px 12px;margin-bottom:16px;font-size:.88rem;color:var(--mute);box-shadow:0 2px 10px rgba(20,30,60,.06)}
+  .btn.sm{padding:6px 10px;font-size:.82rem;border-radius:9px;display:inline-flex;align-items:center}
+  .sport .del{position:absolute;top:3px;left:5px;border:0;background:none;color:#b3b9c7;font-size:.95rem;cursor:pointer;padding:2px 4px;line-height:1}
+  .sport .del:hover{color:#e63946}
+  .sport .ico img{width:40px;height:40px;object-fit:cover;border-radius:8px;display:block;margin:0 auto}
+  .ic img{width:22px;height:22px;object-fit:cover;border-radius:5px;vertical-align:middle}
+  .ic{display:inline-block;vertical-align:middle}
+  .imgpick{width:44px;height:40px;border:1px dashed #b3b9c7;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;overflow:hidden;flex:none}
+  .imgpick img{width:100%;height:100%;object-fit:cover}
+  .link{border:0;background:none;color:var(--accent);font:inherit;font-size:.85rem;cursor:pointer;text-decoration:underline;margin-left:auto}
+  .sessions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .sess{border:2px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px;font:inherit;cursor:pointer;text-align:center}
+  .sess b{display:block}
+  .sess small{color:var(--mute)}
+  .sess.on{border-color:var(--accent);background:#eaf0ff}
   /* Mise en page PDF A4 */
   #pdfSheet{position:fixed;left:-10000px;top:0;width:720px;background:#fff;color:#1c2233;font-family:Inter,Arial,sans-serif;font-size:11px}
   #pdfSheet h1{font-size:20px;margin:0 0 4px}
@@ -91,6 +106,14 @@
 <body>
 <div class="wrap">
   <h1>🏆 Tournoi multisports</h1>
+  <div class="savebar">
+    <span id="saveState">💾 Enregistrement automatique sur cet appareil</span>
+    <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn ghost sm" id="exp">⬇️ Exporter</button>
+      <label class="btn ghost sm">⬆️ Importer<input type="file" id="imp" accept=".json,application/json" hidden></label>
+      <button class="btn ghost sm" id="reset">🗑️ Tout effacer</button>
+    </span>
+  </div>
 
   <!-- ÉTAPE 1 -->
   <div class="card">
@@ -117,15 +140,25 @@
     </div>
     <div class="sports" id="sports"></div>
     <div class="custom">
-      <input type="text" class="emo" id="cEmo" placeholder="🎯" maxlength="4">
-      <input type="text" id="cName" placeholder="Ajouter un autre sport…">
+      <label class="imgpick" id="cImgLbl" title="Choisir une image">
+        <span id="cImgPrev">📷</span>
+        <input type="file" id="cImg" accept="image/*" hidden>
+      </label>
+      <input type="text" class="emo" id="cEmo" placeholder="ou 🎯" maxlength="4">
+      <input type="text" id="cName" placeholder="Nom du nouveau sport…">
       <button class="btn ghost" id="cAdd">Ajouter</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="hint">📷 = image du sport (photo, logo…) · le ✕ sur un sport le supprime</span>
+      <button class="link" id="restore">Rétablir les sports de base</button>
     </div>
   </div>
 
   <!-- ÉTAPE 3 -->
   <div class="card">
-    <h2><span class="step">3</span> Options</h2>
+    <h2><span class="step">3</span> Séance et options</h2>
+    <label class="lbl">Séance</label>
+    <div class="sessions" id="sessions"></div>
     <div class="mode">
       <label><input type="radio" name="mode" value="once" checked>
         <span><b>Chaque équipe rencontre chaque autre une fois</b><br><span class="hint">les sports tournent d'un match à l'autre</span></span></label>
@@ -173,11 +206,22 @@ const SPORTS=[
  ["⚪","Pétanque"],["🛶","Canoë"],["🏖️","Beach volley"],["🥌","Curling"]
 ];
 
-let teams=[], nbSports=3, selected=[], sports=SPORTS.map(([i,n])=>({i,n}));
-let lastSchedule=null;
+const DEFAULT_SPORTS=SPORTS.map(([i,n],k)=>({id:"b"+k,i,n}));
+const SESSIONS=[
+  {id:"lm",jour:"Lundi",moment:"midi",h:"12:15"},
+  {id:"ls",jour:"Lundi",moment:"soir",h:"18:00"},
+  {id:"jm",jour:"Jeudi",moment:"midi",h:"12:15"},
+  {id:"js",jour:"Jeudi",moment:"soir",h:"19:00"}
+];
+const STORE="tournoiMultisports.v1";
+
+let teams=[], nbSports=3, selected=[], sports=DEFAULT_SPORTS.map(s=>({...s}));
+let session="ls", lastSchedule=null, pendingImg=null;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const icon=s=>`<span class="ic">${s.img?`<img src="${s.img}" alt="">`:esc(s.i||"🏅")}</span>`;
+const sessLabel=()=>{const x=SESSIONS.find(z=>z.id===session);return x?`${x.jour} ${x.moment}`:"";};
 
 function textColor(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
@@ -185,23 +229,71 @@ function textColor(hex){
 }
 function chip(t){return `<span class="chip" style="background:${t.c};color:${textColor(t.c)}">${esc(t.n)}</span>`}
 
+/* ---------- Sauvegarde (navigateur de la personne qui gère) ---------- */
+let saveTimer=null;
+function stateObj(){
+  return {v:1,teams,nbSports,selected,sports,session,
+    start:$("start").value,dur:$("dur").value,
+    mode:document.querySelector("input[name=mode]:checked").value,lastSchedule};
+}
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{localStorage.setItem(STORE,JSON.stringify(stateObj()));
+      $("saveState").textContent="💾 Enregistré à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});}
+    catch(e){$("saveState").textContent="⚠️ Enregistrement impossible sur ce navigateur — utilisez Exporter";}
+  },300);
+}
+function applyState(o){
+  if(!o||!Array.isArray(o.teams)) return false;
+  teams=o.teams; sports=o.sports&&o.sports.length?o.sports:DEFAULT_SPORTS.map(s=>({...s}));
+  nbSports=o.nbSports||3; selected=(o.selected||[]).filter(id=>sports.some(s=>s.id===id));
+  session=o.session??"ls"; $("start").value=o.start||"18:00"; $("dur").value=o.dur||15;
+  const r=document.querySelector(`input[name=mode][value="${o.mode||"once"}"]`); if(r) r.checked=true;
+  lastSchedule=o.lastSchedule||null;
+  return true;
+}
+function load(){
+  try{const raw=localStorage.getItem(STORE); if(raw) return applyState(JSON.parse(raw));}catch(e){}
+  return false;
+}
+$("exp").onclick=()=>{
+  const blob=new Blob([JSON.stringify(stateObj(),null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="tournoi-sauvegarde-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a);a.click();a.remove();
+};
+$("imp").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{ if(applyState(JSON.parse(rd.result))){refreshAll();save();$("saveState").textContent="✅ Sauvegarde importée";} }
+    catch(err){$("saveState").textContent="❌ Fichier invalide";}};
+  rd.readAsText(f); e.target.value="";
+};
+let resetArmed=false;
+$("reset").onclick=()=>{
+  if(!resetArmed){resetArmed=true;$("reset").textContent="⚠️ Confirmer ?";setTimeout(()=>{resetArmed=false;$("reset").textContent="🗑️ Tout effacer"},3000);return;}
+  try{localStorage.removeItem(STORE)}catch(e){}
+  location.reload();
+};
+
 /* ---------- Équipes ---------- */
 function setTeamCount(n){
   n=Math.max(2,Math.min(20,n));
   while(teams.length<n){const k=teams.length;teams.push({n:COLOR_NAMES[k]||("Équipe "+(k+1)),c:PALETTE[k%PALETTE.length]})}
   teams.length=n;
-  $("tCount").textContent=n;
-  renderTeams();
+  renderTeams(); save();
 }
 function renderTeams(){
+  $("tCount").textContent=teams.length;
   $("teams").innerHTML=teams.map((t,k)=>`
     <div class="team" style="border-color:${t.c}">
       <input type="color" value="${t.c}" data-k="${k}">
       <input type="text" value="${esc(t.n)}" data-k="${k}">
     </div>`).join("");
   $("teams").querySelectorAll("input[type=color]").forEach(el=>el.oninput=e=>{
-    const k=+e.target.dataset.k;teams[k].c=e.target.value;e.target.parentElement.style.borderColor=e.target.value;});
-  $("teams").querySelectorAll("input[type=text]").forEach(el=>el.oninput=e=>{teams[+e.target.dataset.k].n=e.target.value||("Équipe "+(+e.target.dataset.k+1));});
+    const k=+e.target.dataset.k;teams[k].c=e.target.value;e.target.parentElement.style.borderColor=e.target.value;save();});
+  $("teams").querySelectorAll("input[type=text]").forEach(el=>el.oninput=e=>{teams[+e.target.dataset.k].n=e.target.value||("Équipe "+(+e.target.dataset.k+1));save();});
 }
 $("tMinus").onclick=()=>setTeamCount(teams.length-1);
 $("tPlus").onclick=()=>setTeamCount(teams.length+1);
@@ -210,20 +302,30 @@ $("tPlus").onclick=()=>setTeamCount(teams.length+1);
 function setSportCount(n){
   nbSports=Math.max(1,Math.min(sports.length,n));
   if(selected.length>nbSports) selected=selected.slice(0,nbSports);
-  $("sCount").textContent=nbSports;
-  renderSports();
+  renderSports(); save();
 }
 function renderSports(){
+  nbSports=Math.max(1,Math.min(sports.length,nbSports));
+  $("sCount").textContent=nbSports;
   const full=selected.length>=nbSports;
-  $("sports").innerHTML=sports.map((s,k)=>{
-    const on=selected.includes(k);
-    return `<div class="sport ${on?"on":""} ${!on&&full?"dis":""}" data-k="${k}">
-      <div class="ico">${esc(s.i)}</div><div class="nm">${esc(s.n)}</div></div>`}).join("");
+  $("sports").innerHTML=sports.map(s=>{
+    const on=selected.includes(s.id);
+    return `<div class="sport ${on?"on":""} ${!on&&full?"dis":""}" data-id="${s.id}">
+      <button class="del" data-id="${s.id}" title="Supprimer ce sport">✕</button>
+      <div class="ico">${s.img?`<img src="${s.img}" alt="">`:esc(s.i||"🏅")}</div><div class="nm">${esc(s.n)}</div></div>`}).join("");
   $("sports").querySelectorAll(".sport").forEach(el=>el.onclick=()=>{
-    const k=+el.dataset.k, p=selected.indexOf(k);
+    const id=el.dataset.id, p=selected.indexOf(id);
     if(p>=0) selected.splice(p,1);
-    else if(selected.length<nbSports) selected.push(k);
-    renderSports();
+    else if(selected.length<nbSports) selected.push(id);
+    renderSports(); save();
+  });
+  $("sports").querySelectorAll(".del").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const id=b.dataset.id;
+    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Suppr ?";b.style.color="#e63946";b.style.fontSize=".72rem";
+      setTimeout(()=>{if(b.isConnected){b.dataset.armed="";b.textContent="✕";b.style.color="";b.style.fontSize="";}},2500);return;}
+    sports=sports.filter(s=>s.id!==id); selected=selected.filter(x=>x!==id);
+    renderSports(); save();
   });
   const c=$("sSel");
   c.textContent=`${selected.length} / ${nbSports} coché${nbSports>1?"s":""}`;
@@ -232,18 +334,61 @@ function renderSports(){
 }
 $("sMinus").onclick=()=>setSportCount(nbSports-1);
 $("sPlus").onclick=()=>setSportCount(nbSports+1);
+
+// Image du sport : réduite à 128 px pour rester légère dans la sauvegarde
+$("cImg").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const S=128, cv=document.createElement("canvas"); cv.width=cv.height=S;
+      const ctx=cv.getContext("2d"), m=Math.min(im.width,im.height);
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,S,S);
+      ctx.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,S,S);
+      pendingImg=cv.toDataURL("image/jpeg",0.85);
+      $("cImgPrev").innerHTML=`<img src="${pendingImg}" alt="">`;
+    };
+    im.src=rd.result;
+  };
+  rd.readAsDataURL(f); e.target.value="";
+};
 $("cAdd").onclick=()=>{
-  const n=$("cName").value.trim(); if(!n) return;
-  sports.push({i:$("cEmo").value.trim()||"🏅",n});
-  $("cName").value="";$("cEmo").value="";
-  if(selected.length<nbSports) selected.push(sports.length-1);
-  renderSports();
+  const n=$("cName").value.trim();
+  if(!n){$("cName").focus();$("cName").placeholder="Indiquez un nom de sport";return;}
+  const s={id:"c"+Date.now(),n,i:$("cEmo").value.trim()||"🏅",custom:true};
+  if(pendingImg) s.img=pendingImg;
+  sports.push(s);
+  $("cName").value="";$("cEmo").value="";pendingImg=null;$("cImgPrev").textContent="📷";
+  if(selected.length<nbSports) selected.push(s.id);
+  renderSports(); save();
+};
+$("restore").onclick=()=>{
+  const have=new Set(sports.map(s=>s.id));
+  sports=DEFAULT_SPORTS.filter(s=>!have.has(s.id)).map(s=>({...s})).concat(sports);
+  sports.sort((a,b)=>(a.custom?1:0)-(b.custom?1:0)||(a.custom?0:(+a.id.slice(1))-(+b.id.slice(1))));
+  renderSports(); save();
 };
 function updateGen(){
   const ok=selected.length===nbSports;
   $("gen").disabled=!ok;
   $("genHint").textContent=ok?"":`Cochez encore ${nbSports-selected.length} sport${nbSports-selected.length>1?"s":""}`;
 }
+
+/* ---------- Séances ---------- */
+function renderSessions(){
+  $("sessions").innerHTML=SESSIONS.map(x=>`<button class="sess ${session===x.id?"on":""}" data-id="${x.id}">
+    <b>${x.jour} ${x.moment}</b><small>${x.h.replace(":","h")}</small></button>`).join("")+
+    `<button class="sess ${session===""?"on":""}" data-id=""><b>Autre</b><small>heure libre</small></button>`;
+  $("sessions").querySelectorAll(".sess").forEach(b=>b.onclick=()=>{
+    session=b.dataset.id;
+    const x=SESSIONS.find(z=>z.id===session); if(x) $("start").value=x.h;
+    renderSessions(); save();
+  });
+}
+$("start").oninput=()=>save();
+$("dur").oninput=()=>save();
+document.querySelectorAll("input[name=mode]").forEach(r=>r.onchange=save);
 
 /* ---------- Génération (méthode du cercle) ---------- */
 function roundRobin(n){
@@ -269,7 +414,7 @@ function addMin(t,m){
 
 $("gen").onclick=()=>{
   const mode=document.querySelector("input[name=mode]:checked").value;
-  const sp=selected.map(k=>sports[k]), S=sp.length;
+  const sp=selected.map(id=>sports.find(x=>x.id===id)).filter(Boolean), S=sp.length;
   const base=roundRobin(teams.length);
   const rounds=[];
   const reps=mode==="all"?S:1;
@@ -278,16 +423,16 @@ $("gen").onclick=()=>{
       rounds.push({rest:rd.rest,matches:rd.pairs.map(([a,b],m)=>({a,b,s:(m+r+j)%S}))});
     });
   }
-  lastSchedule={rounds,sp,mode};
-  render();
+  lastSchedule={rounds,sp,mode,session:sessLabel()};
+  render(); save();
 };
 
-function render(){
+function render(scroll){
   const {rounds,sp,mode}=lastSchedule;
   const start=$("start").value, dur=+$("dur").value||0;
   const nMatches=rounds.reduce((x,r)=>x+r.matches.length,0);
   const maxPar=Math.max(...rounds.map(r=>r.matches.length));
-  $("summary").innerHTML=`${teams.length} équipes · ${sp.length} sport${sp.length>1?"s":""} · <b>${nMatches} matchs</b> en <b>${rounds.length} tours</b>`+
+  $("summary").innerHTML=(lastSchedule.session?`<b>${esc(lastSchedule.session)}</b> · `:"")+`${teams.length} équipes · ${sp.length} sport${sp.length>1?"s":""} · <b>${nMatches} matchs</b> en <b>${rounds.length} tours</b>`+
     (start&&dur?` · fin vers ${addMin(start,rounds.length*dur)}`:"")+
     (maxPar>sp.length?`<br><span style="font-weight:400">⚠️ Jusqu'à ${maxPar} matchs par tour pour ${sp.length} sport${sp.length>1?"s":""} : prévoyez plusieurs terrains par sport.</span>`:"");
 
@@ -298,25 +443,25 @@ function render(){
     rd.matches.map(m=>{
       used[m.s]=(used[m.s]||0)+1;
       const terr=maxPar>sp.length?` · terrain ${used[m.s]}`:"";
-      return `<div class="match"><div class="sp">${esc(sp[m.s].i)} ${esc(sp[m.s].n)}${terr}</div>
+      return `<div class="match"><div class="sp">${icon(sp[m.s])} ${esc(sp[m.s].n)}${terr}</div>
         <div class="l">${chip(teams[m.a])}</div><div class="vs">VS</div><div>${chip(teams[m.b])}</div></div>`}).join("")+
     (rd.rest!==null?`<div class="rest">😴 Au repos : ${chip(teams[rd.rest])}</div>`:"")+`</div>`}).join("");
 
   // Grille croisée
   const grid=teams.map(()=>teams.map(()=>[]));
   rounds.forEach((rd,k)=>rd.matches.forEach(m=>{
-    const v=`<div>${esc(sp[m.s].i)} T${k+1}</div>`; grid[m.a][m.b].push(v); grid[m.b][m.a].push(v);}));
+    const v=`<div>${icon(sp[m.s])} T${k+1}</div>`; grid[m.a][m.b].push(v); grid[m.b][m.a].push(v);}));
   $("vMatrix").innerHTML=`<p class="hint">Chaque case indique le sport et le tour de la rencontre (T = tour).</p><table><tr><th></th>${teams.map(t=>`<th class="tn">${chip(t)}</th>`).join("")}</tr>`+
     teams.map((t,i)=>`<tr><th>${chip(t)}</th>${teams.map((_,j)=>i===j?`<td class="self"></td>`:`<td class="cell">${grid[i][j].join("")}</td>`).join("")}</tr>`).join("")+`</table>`;
 
   // Par équipe
   const cnt=teams.map(()=>sp.map(()=>0)), rest=teams.map(()=>0);
   rounds.forEach(rd=>{rd.matches.forEach(m=>{cnt[m.a][m.s]++;cnt[m.b][m.s]++}); if(rd.rest!==null) rest[rd.rest]++;});
-  $("vStats").innerHTML=`<table class="stats"><tr><th>Équipe</th>${sp.map(s=>`<th>${esc(s.i)}<br>${esc(s.n)}</th>`).join("")}<th>Total</th><th>Repos</th></tr>`+
+  $("vStats").innerHTML=`<table class="stats"><tr><th>Équipe</th>${sp.map(s=>`<th>${icon(s)}<br>${esc(s.n)}</th>`).join("")}<th>Total</th><th>Repos</th></tr>`+
     teams.map((t,i)=>`<tr><td>${chip(t)}</td>${cnt[i].map(c=>`<td>${c}</td>`).join("")}<td><b>${cnt[i].reduce((a,b)=>a+b,0)}</b></td><td>${rest[i]}</td></tr>`).join("")+`</table>`;
 
   $("result").style.display="block";
-  $("result").scrollIntoView({behavior:"smooth"});
+  if(scroll!==false) $("result").scrollIntoView({behavior:"smooth"});
 }
 
 /* Onglets */
@@ -331,10 +476,10 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 $("copy").onclick=async()=>{
   if(!lastSchedule) return;
   const {rounds,sp}=lastSchedule, start=$("start").value, dur=+$("dur").value||0;
-  let txt="TOURNOI MULTISPORTS\n\n";
+  let txt="TOURNOI MULTISPORTS"+(lastSchedule.session?" — "+lastSchedule.session:"")+"\n\n";
   rounds.forEach((rd,k)=>{
     txt+=`Tour ${k+1}${start&&dur?" ("+addMin(start,k*dur)+")":""}\n`;
-    rd.matches.forEach(m=>txt+=`  ${sp[m.s].i} ${sp[m.s].n} : ${teams[m.a].n} vs ${teams[m.b].n}\n`);
+    rd.matches.forEach(m=>txt+=`  ${sp[m.s].img?"":sp[m.s].i+" "}${sp[m.s].n} : ${teams[m.a].n} vs ${teams[m.b].n}\n`);
     if(rd.rest!==null) txt+=`  Repos : ${teams[rd.rest].n}\n`;
     txt+="\n";
   });
@@ -351,20 +496,20 @@ function buildPdfSheet(){
   let h=`<h1>🏆 Tournoi multisports</h1>
     <div class="sub">${d} · ${teams.length} équipes · ${sp.length} sport${sp.length>1?"s":""} · ${nMatches} matchs en ${rounds.length} tours</div>
     <div class="legend">${teams.map(chip).join("")}</div>
-    <div class="legend">${sp.map(s=>`<span>${esc(s.i)} ${esc(s.n)}</span>`).join(" · ")}</div>
+    <div class="legend">${sp.map(s=>`<span>${icon(s)} ${esc(s.n)}</span>`).join(" · ")}</div>
     <h3>Programme des rencontres</h3>
     <table><tr><th>Heure</th><th>Sport</th><th>Équipe A</th><th>Score</th><th>Équipe B</th></tr>`;
   rounds.forEach((rd,k)=>{
     h+=`<tr class="rh"><td colspan="5">Tour ${k+1}${start&&dur?" — "+addMin(start,k*dur):""}${rd.rest!==null?" · repos : "+esc(teams[rd.rest].n):""}</td></tr>`;
     rd.matches.forEach(m=>{
-      h+=`<tr><td>${start&&dur?addMin(start,k*dur):""}</td><td>${esc(sp[m.s].i)} ${esc(sp[m.s].n)}</td>
+      h+=`<tr><td>${start&&dur?addMin(start,k*dur):""}</td><td>${icon(sp[m.s])} ${esc(sp[m.s].n)}</td>
         <td style="text-align:right">${chip(teams[m.a])}</td><td class="score" style="text-align:center">…… - ……</td><td>${chip(teams[m.b])}</td></tr>`;
     });
   });
   h+=`</table>`;
   // Grille croisée
   const grid=teams.map(()=>teams.map(()=>[]));
-  rounds.forEach((rd,k)=>rd.matches.forEach(m=>{const v=`${esc(sp[m.s].i)} T${k+1}`;grid[m.a][m.b].push(v);grid[m.b][m.a].push(v);}));
+  rounds.forEach((rd,k)=>rd.matches.forEach(m=>{const v=`${icon(sp[m.s])} T${k+1}`;grid[m.a][m.b].push(v);grid[m.b][m.a].push(v);}));
   h+=`<div class="html2pdf__page-break"></div><h3>Grille croisée (sport et tour)</h3>
     <table><tr><th></th>${teams.map(t=>`<th style="background:${t.c};color:${textColor(t.c)};border-color:${t.c}">${esc(t.n)}</th>`).join("")}</tr>`+
     teams.map((t,i)=>`<tr><td style="background:${t.c};color:${textColor(t.c)};font-weight:700">${esc(t.n)}</td>${teams.map((_,j)=>i===j?`<td style="background:#e7eaf2"></td>`:`<td style="text-align:center">${grid[i][j].join("<br>")}</td>`).join("")}</tr>`).join("")+`</table>`;
@@ -382,7 +527,7 @@ function makePdf(jsPDF,S){
   const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
   const nM=S.rounds.reduce((x,r)=>x+r.matches.length,0);
 
-  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("Tournoi multisports",14,18);
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(clean("Tournoi multisports"+(S.session?" - "+S.session:"")),14,18);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(90);
   const d=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   doc.text(clean(`${d} - ${T.length} équipes - ${sp.length} sport${sp.length>1?"s":""} - ${nM} matchs en ${S.rounds.length} tours`),14,25);
@@ -404,7 +549,7 @@ function makePdf(jsPDF,S){
     body.push([{content:clean(`Tour ${k+1}${hm(k)?" - "+hm(k):""}${rd.rest!==null?"   (repos : "+T[rd.rest].n+")":""}`),colSpan:5,
       styles:{fillColor:[230,234,244],fontStyle:"bold",textColor:[28,34,51]}}]);
     rd.matches.forEach(m=>{
-      body.push([hm(k),clean(sp[m.s].n),
+      body.push([hm(k),{content:clean(sp[m.s].n),sportImg:sp[m.s].img||null,styles:sp[m.s].img?{cellPadding:{top:2,bottom:2,right:2,left:9}}:{}},
         {content:clean(T[m.a].n),styles:{fillColor:rgb(T[m.a].c),textColor:txtCol(T[m.a].c),fontStyle:"bold",halign:"right"}},
         "____  -  ____",
         {content:clean(T[m.b].n),styles:{fillColor:rgb(T[m.b].c),textColor:txtCol(T[m.b].c),fontStyle:"bold"}}]);
@@ -415,7 +560,12 @@ function makePdf(jsPDF,S){
     theme:"grid",styles:{fontSize:9,cellPadding:2,lineColor:[200,206,220],lineWidth:.2},
     headStyles:{fillColor:[28,34,51],textColor:255},
     columnStyles:{0:{cellWidth:18},1:{cellWidth:38},3:{cellWidth:28,halign:"center"}},
-    rowPageBreak:"avoid",margin:{left:14,right:14}
+    rowPageBreak:"avoid",margin:{left:14,right:14},
+    didDrawCell:d=>{
+      const im=d.section==="body"&&d.cell.raw&&d.cell.raw.sportImg;
+      if(im){const z=Math.min(5.5,d.cell.height-1.5);
+        try{doc.addImage(im,im.startsWith("data:image/png")?"PNG":"JPEG",d.cell.x+1.8,d.cell.y+(d.cell.height-z)/2,z,z);}catch(e){}}
+    }
   });
 
   // Grille croisée (paysage si beaucoup d'équipes)
@@ -446,14 +596,21 @@ $("pdf").onclick=()=>{
   if(!lastSchedule) return;
   const fname="tournoi-multisports-"+new Date().toISOString().slice(0,10)+".pdf";
   if(!window.jspdf){ buildPdfSheet(); window.print(); return; }   // hors ligne : impression → « Enregistrer en PDF »
-  const doc=makePdf(window.jspdf.jsPDF,{teams,rounds:lastSchedule.rounds,sp:lastSchedule.sp,start:$("start").value,dur:+$("dur").value||0});
+  const doc=makePdf(window.jspdf.jsPDF,{teams,session:lastSchedule.session,rounds:lastSchedule.rounds,sp:lastSchedule.sp,start:$("start").value,dur:+$("dur").value||0});
   try{ doc.save(fname); }
   catch(e){ window.open(doc.output("bloburl"),"_blank"); }
 };
 
-setTeamCount(4);
-selected=[0,1,2];
-setSportCount(3);
+function refreshAll(){
+  renderTeams(); renderSports(); renderSessions();
+  if(lastSchedule&&lastSchedule.rounds&&lastSchedule.rounds.every(rd=>rd.matches.every(m=>m.a<teams.length&&m.b<teams.length))) render(false);
+  else { lastSchedule=null; $("result").style.display="none"; }
+}
+if(!load()){
+  for(let k=0;k<4;k++) teams.push({n:COLOR_NAMES[k],c:PALETTE[k]});
+  selected=["b0","b1","b2"]; nbSports=3; session="ls"; $("start").value="18:00";
+}
+refreshAll();
 </script>
 </body>
 </html>
